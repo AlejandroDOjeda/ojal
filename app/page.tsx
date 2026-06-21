@@ -17,14 +17,14 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Cargando...</p>
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <p className="text-muted-foreground">Cargando...</p>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background">
       <LoginCard onSignInWithEmail={signInWithEmail} onSignUpWithEmail={signUpWithEmail} onSignOut={signOut} userEmail={userEmail} />
     </main>
   );

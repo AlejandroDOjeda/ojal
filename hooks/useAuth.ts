@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabaseClient";
 
 type SupabaseSession = {
   user?: {
+    id: string;
     email?: string;
-    user_metadata?: { email?: string } | null;
+    user_metadata?: { email?: string; theme?: string } | null;
   } | null;
 } | null;
 

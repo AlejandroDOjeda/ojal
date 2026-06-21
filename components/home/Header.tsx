@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
 import { useRouter } from "next/navigation";
+import { Moon, Sun } from "lucide-react";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useUserTheme } from "@/hooks/useUserTheme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,32 +12,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function Header({ userEmail, onSignOut }: { userEmail: string | null; onSignOut: () => Promise<void> }) {
+export default function Header() {
   const router = useRouter();
+  const { userEmail, signOut } = useAuthContext();
+  const { resolvedTheme, toggleTheme } = useUserTheme();
 
   const handleSignOut = async () => {
-    await onSignOut();
+    await signOut();
     router.replace("/");
   };
 
   const initials = userEmail
-    ? userEmail
-        .split("@")[0]
-        .split("")
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
+    ? userEmail.split("@")[0].split("").slice(0, 2).join("").toUpperCase()
     : "?";
 
   return (
-    <header className="border-b bg-white">
+    <header className="border-b bg-background">
       <div className="flex items-center justify-between px-8 py-4">
         <div className="flex-1" />
 
-        {/* Profile Dropdown */}
+        <button
+          onClick={toggleTheme}
+          className="mr-3 flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted transition-colors"
+          aria-label="Toggle dark mode"
+        >
+          {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
         <DropdownMenu>
           <DropdownMenuTrigger>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors cursor-pointer">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors cursor-pointer">
               {initials}
             </div>
           </DropdownMenuTrigger>
@@ -47,7 +53,7 @@ export default function Header({ userEmail, onSignOut }: { userEmail: string | n
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:bg-red-50">
+            <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:bg-destructive/10">
               Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
