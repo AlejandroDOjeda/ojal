@@ -5,23 +5,23 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageShell, GridContainer, FormField } from "@/components/app";
-import type { CategoriaHacienda, CategoriaHaciendaFormData } from "./CategoriaHaciendaContainer";
+import type { CategoriaGasto, CategoriaGastoFormData } from "./CategoriaGastoContainer";
 
-const EMPTY_FORM: CategoriaHaciendaFormData = { nombre: "", descripcion: "", tasa_iva: 10.5 };
+const EMPTY_FORM: CategoriaGastoFormData = { nombre: "", descripcion: "", tasa_iva_habitual: 21.0 };
 
 type Props = {
-  categorias: CategoriaHacienda[];
+  categorias: CategoriaGasto[];
   loading: boolean;
   error: string | null;
-  onCreate: (data: CategoriaHaciendaFormData) => Promise<void>;
-  onUpdate: (id: string, data: CategoriaHaciendaFormData) => Promise<void>;
+  onCreate: (data: CategoriaGastoFormData) => Promise<void>;
+  onUpdate: (id: string, data: CategoriaGastoFormData) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 };
 
-export default function CategoriaHaciendaView({ categorias, loading, error, onCreate, onUpdate, onDelete }: Props) {
+export default function CategoriaGastoView({ categorias, loading, error, onCreate, onUpdate, onDelete }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<CategoriaHacienda | null>(null);
-  const [form, setForm] = useState<CategoriaHaciendaFormData>(EMPTY_FORM);
+  const [editing, setEditing] = useState<CategoriaGasto | null>(null);
+  const [form, setForm] = useState<CategoriaGastoFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -29,9 +29,9 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormError(null); setModalOpen(true); };
-  const openEdit = (cat: CategoriaHacienda) => {
+  const openEdit = (cat: CategoriaGasto) => {
     setEditing(cat);
-    setForm({ nombre: cat.nombre, descripcion: cat.descripcion ?? "", tasa_iva: cat.tasa_iva });
+    setForm({ nombre: cat.nombre, descripcion: cat.descripcion ?? "", tasa_iva_habitual: cat.tasa_iva_habitual });
     setFormError(null);
     setModalOpen(true);
   };
@@ -63,7 +63,7 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
   );
 
   return (
-    <PageShell title="Categorías de Hacienda" description="Categorías de ganado vacuno utilizadas en las facturas" action={actionBtn}>
+    <PageShell title="Categorías de Gasto" description="Categorías de gastos de compra utilizadas en las facturas" action={actionBtn}>
       {error && (
         <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>
       )}
@@ -83,7 +83,7 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nombre</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Descripción</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground w-28">Tasa IVA</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground w-28">IVA habitual</th>
                 <th className="px-4 py-3 w-32" />
               </tr>
             </thead>
@@ -97,7 +97,7 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
                   <tr key={cat.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-foreground">{cat.nombre}</td>
                     <td className="px-4 py-3 text-muted-foreground">{cat.descripcion ?? "—"}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">{cat.tasa_iva}%</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{cat.tasa_iva_habitual}%</td>
                     <td className="px-4 py-3">
                       {deleteConfirmId === cat.id ? (
                         <div className="flex items-center gap-2 justify-end">
@@ -123,17 +123,21 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar categoría" : "Nueva categoría de gasto"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
             <FormField label="Nombre" required>
-              <Input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Ternero" />
+              <Input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Combustible" />
             </FormField>
             <FormField label="Descripción">
-              <Input value={form.descripcion} onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))} placeholder="Ej: Macho menor de 1 año" />
+              <Input value={form.descripcion} onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))} placeholder="Ej: Gasoil, nafta y lubricantes" />
             </FormField>
-            <FormField label="Tasa IVA (%)" required>
-              <Input type="number" step="0.01" min="0" max="100" value={form.tasa_iva} onChange={(e) => setForm((f) => ({ ...f, tasa_iva: parseFloat(e.target.value) || 0 }))} />
+            <FormField label="IVA habitual (%)" required>
+              <Input
+                type="number" step="0.01" min="0" max="100"
+                value={form.tasa_iva_habitual}
+                onChange={(e) => setForm((f) => ({ ...f, tasa_iva_habitual: parseFloat(e.target.value) || 0 }))}
+              />
             </FormField>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2">
