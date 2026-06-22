@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Home, Settings, HelpCircle, Building2, Beef, ReceiptText } from "lucide-react";
+import { ChevronDown, Home, Settings, HelpCircle, Building2, Beef, ReceiptText, ShoppingBag } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -70,6 +70,13 @@ export default function Sidebar() {
               >
                 <Beef size={16} />
                 <span>Categorías Hacienda</span>
+              </Link>
+              <Link
+                href="/configuracion/categoria-gasto"
+                className={linkClass("/configuracion/categoria-gasto")}
+              >
+                <ShoppingBag size={16} />
+                <span>Categorías Gasto</span>
               </Link>
             </div>
           )}

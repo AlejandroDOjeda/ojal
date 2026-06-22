@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ShoppingCart, TrendingUp, FileText } from "lucide-react";
+import Link from "next/link";
 import { PageShell, GridContainer, EmptyState } from "@/components/app";
 import type { FacturaResumen } from "./FacturasContainer";
 
@@ -127,7 +128,7 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-xs text-primary hover:underline">Ver</button>
+                    <Link href={`/facturas/${f.id}`} className="text-xs text-primary hover:underline">Ver</Link>
                   </td>
                 </tr>
               ))}
