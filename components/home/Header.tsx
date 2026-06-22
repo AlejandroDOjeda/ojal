@@ -49,9 +49,6 @@ export default function Header() {
             <DropdownMenuItem onClick={() => router.push("/profile")}>
               Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/settings")}>
-              Configuración
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:bg-destructive/10">
               Cerrar sesión

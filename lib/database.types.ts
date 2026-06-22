@@ -14,6 +14,8 @@ export interface Database {
       profile: {
         Row: {
           id: string;
+          nombre: string | null;
+          apellido: string | null;
           razon_social: string | null;
           cuit_cuil: string | null;
           tipo_persona: TipoPersona | null;
@@ -24,6 +26,8 @@ export interface Database {
         };
         Insert: {
           id: string;
+          nombre?: string | null;
+          apellido?: string | null;
           razon_social?: string | null;
           cuit_cuil?: string | null;
           tipo_persona?: TipoPersona | null;
@@ -33,6 +37,8 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
+          nombre?: string | null;
+          apellido?: string | null;
           razon_social?: string | null;
           cuit_cuil?: string | null;
           tipo_persona?: TipoPersona | null;
