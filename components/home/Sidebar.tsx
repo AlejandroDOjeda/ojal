@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutDashboard, Settings, HelpCircle, Building2, User, Beef } from "lucide-react";
+import { ChevronDown, Home, Settings, HelpCircle, Building2, Beef, ReceiptText } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -11,29 +11,30 @@ export default function Sidebar() {
     pathname.startsWith("/configuracion")
   );
 
-  const isActive = (href: string) => pathname === href;
-  const linkClass = (href: string) =>
+  const isActive = (href: string, prefix = false) =>
+    prefix ? pathname.startsWith(href) : pathname === href;
+  const linkClass = (href: string, prefix = false) =>
     `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${
-      isActive(href)
+      isActive(href, prefix)
         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
         : "hover:bg-sidebar-accent/60"
     }`;
 
   return (
     <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col h-screen shadow-lg shrink-0">
-      <div className="p-6 border-b border-sidebar-border">
+      <Link href="/home" className="p-6 border-b border-sidebar-border hover:bg-sidebar-accent/40 transition-colors">
         <h1 className="text-2xl font-bold">Ojeda Corp.</h1>
-      </div>
+      </Link>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         <Link href="/home" className={linkClass("/home")}>
-          <LayoutDashboard size={18} />
-          <span>Dashboard</span>
+          <Home size={18} />
+          <span>Inicio</span>
         </Link>
 
-        <Link href="/profile" className={linkClass("/profile")}>
-          <User size={18} />
-          <span>Perfil</span>
+        <Link href="/facturas" className={linkClass("/facturas", true)}>
+          <ReceiptText size={18} />
+          <span>Facturas</span>
         </Link>
 
         {/* Configuración colapsable */}
