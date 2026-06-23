@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useAuth from "@/hooks/useAuth";
-import Sidebar from "@/components/home/Sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import AppSidebar from "@/components/home/Sidebar";
 import Header from "@/components/home/Header";
 import { AuthContext } from "@/contexts/AuthContext";
 
@@ -36,13 +37,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <AuthContext.Provider value={ctxValue}>
-      <div className="flex h-screen bg-background">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+      <SidebarProvider
+        className="h-screen overflow-hidden"
+        style={{ "--sidebar-width-icon": "3.5rem" } as React.CSSProperties}
+      >
+        <AppSidebar />
+        <SidebarInset>
           <Header />
           <div className="flex-1 overflow-auto">{children}</div>
-        </div>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
     </AuthContext.Provider>
   );
 }

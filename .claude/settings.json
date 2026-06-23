@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx shadcn@latest add table select badge label separator sidebar --yes)",
+      "Bash(node -e \"const s = require\\('c:/Users/ale_4/OneDrive/Escritorio/Aqui vamos otra vez/ojal/node_modules/@base-ui/react/dist/cjs/select/root/select-root.js'\\); console.log\\(Object.keys\\(s\\)\\)\")"
+    ]
+  }
+}
