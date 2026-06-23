@@ -13,6 +13,7 @@ import { PageShell, SectionCard } from "@/components/app";
 import { FacturaHeaderForm } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
+import { TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
 import {
   EMPTY_HEADER, EMPTY_ITEM_GASTO, calcItemGastoSubtotal, calcTotalesGasto, formatARS,
   type FacturaHeaderData, type ItemGastoForm,
@@ -53,24 +54,24 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
     setItems((p) => p.map((item) => {
       if (item._key !== key) return item;
       const updated = { ...item, [field]: value };
-      if (field === "categoria_gasto_id") {
-        const cat = categorias.find((c) => c.id === value);
-        if (cat) updated.tasa_iva = String(cat.tasa_iva_habitual);
+      if (field === "Id_CategoriaGasto") {
+        const cat = categorias.find((c) => String(c.id) === value);
+        if (cat) updated.TasaIva = String(cat.TasaIvaHabitual);
       }
       return updated;
     }));
   };
 
   const validate = (): string | null => {
-    if (!header.tipo_comprobante) return "Seleccioná el tipo de comprobante.";
-    if (!header.fecha) return "La fecha es obligatoria.";
-    if (!header.entidad_legal_id) return "Seleccioná el proveedor.";
-    if (header.condicion_pago === "cuenta_corriente" && !header.fecha_vencimiento) return "Ingresá la fecha de vencimiento.";
+    if (!header.Id_TipoComprobante) return "Seleccioná el tipo de comprobante.";
+    if (!header.Fecha) return "La fecha es obligatoria.";
+    if (!header.Id_EntidadLegal) return "Seleccioná el proveedor.";
+    if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) return "Ingresá la fecha de vencimiento.";
     if (items.length === 0) return "Agregá al menos un ítem.";
     for (const item of items) {
-      if (!item.descripcion.trim()) return "Todos los ítems deben tener descripción.";
-      if (!item.cantidad || parseFloat(item.cantidad) <= 0) return "La cantidad debe ser mayor a 0.";
-      if (!item.precio_unitario || parseFloat(item.precio_unitario) <= 0) return "El precio unitario debe ser mayor a 0.";
+      if (!item.Descripcion.trim()) return "Todos los ítems deben tener descripción.";
+      if (!item.Cantidad || parseFloat(item.Cantidad) <= 0) return "La cantidad debe ser mayor a 0.";
+      if (!item.PrecioUnitario || parseFloat(item.PrecioUnitario) <= 0) return "El precio unitario debe ser mayor a 0.";
     }
     return null;
   };
@@ -88,15 +89,11 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
   const totales = calcTotalesGasto(items);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
-      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2">
-        <ArrowLeft size={14} />Volver a Facturas
-      </Button>
+      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
     </Link>
   );
 
-  if (loadingData) {
-    return <PageShell title="Nueva Factura de Compra" back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
-  }
+  if (loadingData) return <PageShell title="Nueva Factura de Compra" back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
     <PageShell title="Nueva Factura de Compra" back={backLink} className="max-w-5xl">
@@ -105,9 +102,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
 
         <SectionCard title="Ítems">
           <div className="flex justify-end mb-3">
-            <Button type="button" variant="ghost" size="sm" onClick={addItem} className="gap-1.5">
-              <Plus size={15} />Agregar ítem
-            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={addItem} className="gap-1.5"><Plus size={15} />Agregar ítem</Button>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -126,35 +121,30 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                 {items.map((item) => (
                   <TableRow key={item._key} className="hover:bg-transparent">
                     <TableCell className="pr-3">
-                      <Input value={item.descripcion} onChange={(e) => updateItem(item._key, "descripcion", e.target.value)} placeholder="Descripción" />
+                      <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select value={item.categoria_gasto_id || undefined} onValueChange={(v) => updateItem(item._key, "categoria_gasto_id", v ?? "")}>
+                      <Select
+                        items={Object.fromEntries(categorias.map((c) => [String(c.id), c.Nombre]))}
+                        value={item.Id_CategoriaGasto || undefined}
+                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v ?? "")}>
                         <SelectTrigger className="w-full"><SelectValue placeholder="— Sin categoría —" /></SelectTrigger>
-                        <SelectContent>
-                          {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.Nombre}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="0" step="0.001" value={item.cantidad} onChange={(e) => updateItem(item._key, "cantidad", e.target.value)} className="text-right" />
+                      <Input type="number" min="0" step="0.001" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className="text-right" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="0" step="0.01" value={item.precio_unitario} onChange={(e) => updateItem(item._key, "precio_unitario", e.target.value)} placeholder="0,00" className="text-right" />
+                      <Input type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select value={item.tasa_iva} onValueChange={(v) => updateItem(item._key, "tasa_iva", v ?? "21")}>
+                      <Select items={TASA_IVA_ITEMS} value={item.TasaIva} onValueChange={(v) => updateItem(item._key, "TasaIva", v ?? "21")}>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">0%</SelectItem>
-                          <SelectItem value="10.5">10.5%</SelectItem>
-                          <SelectItem value="21">21%</SelectItem>
-                        </SelectContent>
+                        <SelectContent>{TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right font-medium whitespace-nowrap pl-3">
-                      {formatARS(calcItemGastoSubtotal(item))}
-                    </TableCell>
+                    <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemGastoSubtotal(item))}</TableCell>
                     <TableCell className="pl-2">
                       {items.length > 1 && (
                         <Button type="button" variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item._key)}>

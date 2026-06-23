@@ -1,274 +1,164 @@
-// Generado manualmente desde el schema de Supabase.
-// Regenerar con: supabase gen types typescript --project-id <id> > lib/database.types.ts
-
-export type TipoPersona = "fisica" | "juridica";
-export type CondicionIva = "responsable_inscripto" | "monotributo" | "exento" | "consumidor_final";
-export type TipoOperacion = "compra" | "venta";
-export type TipoComprobante = "A" | "B" | "C" | "liquidacion_hacienda";
-export type CondicionPago = "contado" | "cuenta_corriente";
-export type EstadoFactura = "borrador" | "confirmada" | "pagada" | "cobrada" | "anulada";
+// Schema de Supabase — PascalCase en tablas y columnas, integer IDs.
+// Las tablas de referencia usan IDs numéricos fijos (seeded, sin ABM).
 
 export interface Database {
   public: {
     Tables: {
-      profile: {
+      // ── Tablas de referencia (solo lectura) ──────────────────────────────
+      TipoPersona:    { Row: { Id_TipoPersona: number;    Nombre: string }; Insert: never; Update: never; Relationships: [] };
+      CondicionIva:   { Row: { Id_CondicionIva: number;   Nombre: string }; Insert: never; Update: never; Relationships: [] };
+      TipoOperacion:  { Row: { Id_TipoOperacion: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
+      TipoComprobante:{ Row: { Id_TipoComprobante: number;Nombre: string }; Insert: never; Update: never; Relationships: [] };
+      CondicionPago:  { Row: { Id_CondicionPago: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
+      EstadoFactura:  { Row: { Id_EstadoFactura: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
+
+      // ── Profile (aislado por usuario, Id_Profile = UUID de auth) ─────────
+      Profile: {
         Row: {
-          id: string;
-          nombre: string | null;
-          apellido: string | null;
-          razon_social: string | null;
-          cuit_cuil: string | null;
-          tipo_persona: TipoPersona | null;
-          condicion_iva: CondicionIva | null;
-          telefono: string | null;
-          created_at: string;
-          updated_at: string;
+          Id_Profile:      string;
+          Nombre:          string | null;
+          Apellido:        string | null;
+          RazonSocial:     string | null;
+          CuitCuil:        string | null;
+          Id_TipoPersona:  number | null;
+          Id_CondicionIva: number | null;
+          Telefono:        string | null;
+          CreatedAt:       string;
+          UpdatedAt:       string;
         };
         Insert: {
-          id: string;
-          nombre?: string | null;
-          apellido?: string | null;
-          razon_social?: string | null;
-          cuit_cuil?: string | null;
-          tipo_persona?: TipoPersona | null;
-          condicion_iva?: CondicionIva | null;
-          telefono?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          Id_Profile:      string;
+          Nombre?:         string | null;
+          Apellido?:       string | null;
+          RazonSocial?:    string | null;
+          CuitCuil?:       string | null;
+          Id_TipoPersona?: number | null;
+          Id_CondicionIva?:number | null;
+          Telefono?:       string | null;
         };
         Update: {
-          nombre?: string | null;
-          apellido?: string | null;
-          razon_social?: string | null;
-          cuit_cuil?: string | null;
-          tipo_persona?: TipoPersona | null;
-          condicion_iva?: CondicionIva | null;
-          telefono?: string | null;
-          updated_at?: string;
+          Nombre?:         string | null;
+          Apellido?:       string | null;
+          RazonSocial?:    string | null;
+          CuitCuil?:       string | null;
+          Id_TipoPersona?: number | null;
+          Id_CondicionIva?:number | null;
+          Telefono?:       string | null;
         };
         Relationships: [];
       };
 
-      entidad_legal: {
+      // ── Tablas compartidas ───────────────────────────────────────────────
+      EntidadLegal: {
         Row: {
-          id: string;
-          user_id: string;
-          razon_social: string;
-          cuit_cuil: string;
-          tipo_persona: TipoPersona;
-          condicion_iva: CondicionIva;
-          email: string | null;
-          telefono: string | null;
-          created_at: string;
-          updated_at: string;
+          Id_EntidadLegal: number;
+          RazonSocial:     string;
+          CuitCuil:        string;
+          Id_TipoPersona:  number;
+          Id_CondicionIva: number;
+          Email:           string | null;
+          Telefono:        string | null;
+          CreatedAt:       string;
+          UpdatedAt:       string;
         };
         Insert: {
-          id?: string;
-          user_id: string;
-          razon_social: string;
-          cuit_cuil: string;
-          tipo_persona: TipoPersona;
-          condicion_iva: CondicionIva;
-          email?: string | null;
-          telefono?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          RazonSocial:    string;
+          CuitCuil:       string;
+          Id_TipoPersona: number;
+          Id_CondicionIva:number;
+          Email?:         string | null;
+          Telefono?:      string | null;
         };
         Update: {
-          razon_social?: string;
-          cuit_cuil?: string;
-          tipo_persona?: TipoPersona;
-          condicion_iva?: CondicionIva;
-          email?: string | null;
-          telefono?: string | null;
-          updated_at?: string;
+          RazonSocial?:    string;
+          CuitCuil?:       string;
+          Id_TipoPersona?: number;
+          Id_CondicionIva?:number;
+          Email?:          string | null;
+          Telefono?:       string | null;
         };
         Relationships: [];
       };
 
-      categoria_hacienda: {
+      CategoriaHacienda: {
+        Row: { Id_CategoriaHacienda: number; Nombre: string; Descripcion: string | null; TasaIva: number; Activa: boolean; CreatedAt: string };
+        Insert: { Nombre: string; Descripcion?: string | null; TasaIva?: number; Activa?: boolean };
+        Update: { Nombre?: string; Descripcion?: string | null; TasaIva?: number; Activa?: boolean };
+        Relationships: [];
+      };
+
+      CategoriaGasto: {
+        Row: { Id_CategoriaGasto: number; Nombre: string; Descripcion: string | null; TasaIvaHabitual: number; Activa: boolean; CreatedAt: string };
+        Insert: { Nombre: string; Descripcion?: string | null; TasaIvaHabitual?: number; Activa?: boolean };
+        Update: { Nombre?: string; Descripcion?: string | null; TasaIvaHabitual?: number; Activa?: boolean };
+        Relationships: [];
+      };
+
+      Factura: {
         Row: {
-          id: string;
-          nombre: string;
-          descripcion: string | null;
-          tasa_iva: number;
-          activa: boolean;
-          created_at: string;
+          Id_Factura:          number;
+          Id_TipoOperacion:    number;
+          Id_TipoComprobante:  number | null;
+          PuntoVenta:          string | null;
+          Numero:              string | null;
+          Fecha:               string;
+          Id_EntidadLegal:     number;
+          Id_CondicionPago:    number;
+          FechaVencimiento:    string | null;
+          Id_EstadoFactura:    number;
+          Subtotal:            number;
+          Iva10_5:             number;
+          Iva21:               number;
+          Total:               number;
+          Observaciones:       string | null;
+          CreatedAt:           string;
+          UpdatedAt:           string;
         };
         Insert: {
-          id?: string;
-          nombre: string;
-          descripcion?: string | null;
-          tasa_iva?: number;
-          activa?: boolean;
-          created_at?: string;
+          Id_TipoOperacion:    number;
+          Id_TipoComprobante?: number | null;
+          PuntoVenta?:         string | null;
+          Numero?:             string | null;
+          Fecha:               string;
+          Id_EntidadLegal:     number;
+          Id_CondicionPago?:   number;
+          FechaVencimiento?:   string | null;
+          Id_EstadoFactura?:   number;
+          Subtotal?:           number;
+          Iva10_5?:            number;
+          Iva21?:              number;
+          Total?:              number;
+          Observaciones?:      string | null;
         };
         Update: {
-          nombre?: string;
-          descripcion?: string | null;
-          tasa_iva?: number;
-          activa?: boolean;
+          Id_TipoComprobante?: number | null;
+          PuntoVenta?:         string | null;
+          Numero?:             string | null;
+          Fecha?:              string;
+          Id_EntidadLegal?:    number;
+          Id_CondicionPago?:   number;
+          FechaVencimiento?:   string | null;
+          Id_EstadoFactura?:   number;
+          Subtotal?:           number;
+          Iva10_5?:            number;
+          Iva21?:              number;
+          Total?:              number;
+          Observaciones?:      string | null;
         };
         Relationships: [];
       };
 
-      categoria_gasto: {
-        Row: {
-          id: string;
-          nombre: string;
-          descripcion: string | null;
-          tasa_iva_habitual: number;
-          activa: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          nombre: string;
-          descripcion?: string | null;
-          tasa_iva_habitual?: number;
-          activa?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          nombre?: string;
-          descripcion?: string | null;
-          tasa_iva_habitual?: number;
-          activa?: boolean;
-        };
+      ItemHacienda: {
+        Row: { Id_ItemHacienda: number; Id_Factura: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number; Subtotal: number; CreatedAt: string };
+        Insert: { Id_Factura: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal: number };
+        Update: { Cabezas?: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal?: number };
         Relationships: [];
       };
 
-      factura: {
-        Row: {
-          id: string;
-          user_id: string;
-          tipo_operacion: TipoOperacion;
-          tipo_comprobante: TipoComprobante;
-          punto_venta: string | null;
-          numero: string | null;
-          fecha: string;
-          entidad_legal_id: string;
-          condicion_pago: CondicionPago;
-          fecha_vencimiento: string | null;
-          estado: EstadoFactura;
-          subtotal: number;
-          iva_10_5: number;
-          iva_21: number;
-          total: number;
-          observaciones: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          tipo_operacion: TipoOperacion;
-          tipo_comprobante: TipoComprobante;
-          punto_venta?: string | null;
-          numero?: string | null;
-          fecha: string;
-          entidad_legal_id: string;
-          condicion_pago?: CondicionPago;
-          fecha_vencimiento?: string | null;
-          estado?: EstadoFactura;
-          subtotal?: number;
-          iva_10_5?: number;
-          iva_21?: number;
-          total?: number;
-          observaciones?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          tipo_operacion?: TipoOperacion;
-          tipo_comprobante?: TipoComprobante;
-          punto_venta?: string | null;
-          numero?: string | null;
-          fecha?: string;
-          entidad_legal_id?: string;
-          condicion_pago?: CondicionPago;
-          fecha_vencimiento?: string | null;
-          estado?: EstadoFactura;
-          subtotal?: number;
-          iva_10_5?: number;
-          iva_21?: number;
-          total?: number;
-          observaciones?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-
-      item_hacienda: {
-        Row: {
-          id: string;
-          factura_id: string;
-          categoria_hacienda_id: string;
-          cabezas: number;
-          kg_promedio: number | null;
-          precio_por_kg: number | null;
-          precio_por_cabeza: number | null;
-          tasa_iva: number;
-          subtotal: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          factura_id: string;
-          categoria_hacienda_id: string;
-          cabezas: number;
-          kg_promedio?: number | null;
-          precio_por_kg?: number | null;
-          precio_por_cabeza?: number | null;
-          tasa_iva?: number;
-          subtotal: number;
-          created_at?: string;
-        };
-        Update: {
-          factura_id?: string;
-          categoria_hacienda_id?: string;
-          cabezas?: number;
-          kg_promedio?: number | null;
-          precio_por_kg?: number | null;
-          precio_por_cabeza?: number | null;
-          tasa_iva?: number;
-          subtotal?: number;
-        };
-        Relationships: [];
-      };
-
-      item_gasto: {
-        Row: {
-          id: string;
-          factura_id: string;
-          descripcion: string;
-          categoria_gasto_id: string | null;
-          cantidad: number;
-          precio_unitario: number;
-          tasa_iva: number;
-          subtotal: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          factura_id: string;
-          descripcion: string;
-          categoria_gasto_id?: string | null;
-          cantidad?: number;
-          precio_unitario: number;
-          tasa_iva?: number;
-          subtotal: number;
-          created_at?: string;
-        };
-        Update: {
-          factura_id?: string;
-          descripcion?: string;
-          categoria_gasto_id?: string | null;
-          cantidad?: number;
-          precio_unitario?: number;
-          tasa_iva?: number;
-          subtotal?: number;
-        };
+      ItemGasto: {
+        Row: { Id_ItemGasto: number; Id_Factura: number; Descripcion: string; Id_CategoriaGasto: number | null; Cantidad: number; PrecioUnitario: number; TasaIva: number; Subtotal: number; CreatedAt: string };
+        Insert: { Id_Factura: number; Descripcion: string; Id_CategoriaGasto?: number | null; Cantidad?: number; PrecioUnitario: number; TasaIva?: number; Subtotal: number };
+        Update: { Descripcion?: string; Id_CategoriaGasto?: number | null; Cantidad?: number; PrecioUnitario?: number; TasaIva?: number; Subtotal?: number };
         Relationships: [];
       };
     };

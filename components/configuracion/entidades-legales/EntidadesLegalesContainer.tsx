@@ -2,104 +2,79 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuthContext } from "@/contexts/AuthContext";
 import EntidadesLegalesView from "./EntidadesLegalesView";
 
 export type EntidadLegal = {
-  id: string;
-  razon_social: string;
-  cuit_cuil: string;
-  tipo_persona: "fisica" | "juridica";
-  condicion_iva: "responsable_inscripto" | "monotributo" | "exento" | "consumidor_final";
-  email: string | null;
-  telefono: string | null;
-  created_at: string;
+  Id_EntidadLegal: number;
+  RazonSocial:     string;
+  CuitCuil:        string;
+  Id_TipoPersona:  number;
+  Id_CondicionIva: number;
+  Email:           string | null;
+  Telefono:        string | null;
+  CreatedAt:       string;
 };
 
 export type EntidadLegalFormData = {
-  razon_social: string;
-  cuit_cuil: string;
-  tipo_persona: "fisica" | "juridica" | "";
-  condicion_iva: "responsable_inscripto" | "monotributo" | "exento" | "consumidor_final" | "";
-  email: string;
-  telefono: string;
+  RazonSocial:     string;
+  CuitCuil:        string;
+  Id_TipoPersona:  string; // string para Select
+  Id_CondicionIva: string; // string para Select
+  Email:           string;
+  Telefono:        string;
 };
 
 export default function EntidadesLegalesContainer() {
-  const { userId } = useAuthContext();
   const [entidades, setEntidades] = useState<EntidadLegal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchEntidades = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const { data, error } = await supabase
-      .from("entidad_legal")
-      .select("*")
-      .order("razon_social");
-
-    if (error) setError(error.message);
-    else setEntidades(data ?? []);
+    setLoading(true); setError(null);
+    const { data, error } = await supabase.from("EntidadLegal").select("*").order("RazonSocial");
+    if (error) setError(error.message); else setEntidades(data ?? []);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchEntidades();
-  }, [fetchEntidades]);
+  useEffect(() => { fetchEntidades(); }, [fetchEntidades]);
 
-  const handleCreate = async (formData: EntidadLegalFormData) => {
-    if (!userId) throw new Error("Usuario no autenticado");
-    const { error } = await supabase.from("entidad_legal").insert({
-      user_id: userId,
-      razon_social: formData.razon_social,
-      cuit_cuil: formData.cuit_cuil,
-      tipo_persona: (formData.tipo_persona as EntidadLegal["tipo_persona"]) || null,
-      condicion_iva: (formData.condicion_iva as EntidadLegal["condicion_iva"]) || null,
-      email: formData.email || null,
-      telefono: formData.telefono || null,
+  const handleCreate = async (f: EntidadLegalFormData) => {
+    const { error } = await supabase.from("EntidadLegal").insert({
+      RazonSocial:    f.RazonSocial,
+      CuitCuil:       f.CuitCuil,
+      Id_TipoPersona: parseInt(f.Id_TipoPersona),
+      Id_CondicionIva:parseInt(f.Id_CondicionIva),
+      Email:          f.Email || null,
+      Telefono:       f.Telefono || null,
     });
     if (error) throw new Error(error.message);
     await fetchEntidades();
   };
 
-  const handleUpdate = async (id: string, formData: EntidadLegalFormData) => {
-    const { error } = await supabase
-      .from("entidad_legal")
-      .update({
-        razon_social: formData.razon_social,
-        cuit_cuil: formData.cuit_cuil,
-        tipo_persona: (formData.tipo_persona as EntidadLegal["tipo_persona"]) || null,
-        condicion_iva: (formData.condicion_iva as EntidadLegal["condicion_iva"]) || null,
-        email: formData.email || null,
-        telefono: formData.telefono || null,
-      })
-      .eq("id", id);
+  const handleUpdate = async (id: number, f: EntidadLegalFormData) => {
+    const { error } = await supabase.from("EntidadLegal").update({
+      RazonSocial:    f.RazonSocial,
+      CuitCuil:       f.CuitCuil,
+      Id_TipoPersona: parseInt(f.Id_TipoPersona),
+      Id_CondicionIva:parseInt(f.Id_CondicionIva),
+      Email:          f.Email || null,
+      Telefono:       f.Telefono || null,
+    }).eq("Id_EntidadLegal", id);
     if (error) throw new Error(error.message);
     await fetchEntidades();
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("entidad_legal")
-      .delete()
-      .eq("id", id);
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase.from("EntidadLegal").delete().eq("Id_EntidadLegal", id);
     if (error) {
-      if (error.code === "23503")
-        throw new Error("No se puede eliminar: la entidad está en uso en facturas existentes.");
+      if (error.code === "23503") throw new Error("No se puede eliminar: la entidad está en uso en facturas existentes.");
       throw new Error(error.message);
     }
     await fetchEntidades();
   };
 
   return (
-    <EntidadesLegalesView
-      entidades={entidades}
-      loading={loading}
-      error={error}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      onDelete={handleDelete}
-    />
+    <EntidadesLegalesView entidades={entidades} loading={loading} error={error}
+      onCreate={handleCreate} onUpdate={handleUpdate} onDelete={handleDelete} />
   );
 }

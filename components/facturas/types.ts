@@ -1,108 +1,110 @@
-// Tipos y utilidades compartidas del módulo de facturas
+// Tipos y utilidades del módulo de facturas.
+// Los campos de referencia (Id_TipoComprobante, Id_CondicionPago) se guardan
+// como strings en el estado del formulario para compatibilidad con Select,
+// y se parsean a integer al guardar en Supabase.
 
 export type FacturaHeaderData = {
-  tipo_comprobante: "A" | "B" | "C" | "";
-  punto_venta: string;
-  numero: string;
-  fecha: string;
-  entidad_legal_id: string;
-  condicion_pago: "contado" | "cuenta_corriente";
-  fecha_vencimiento: string;
+  Id_TipoComprobante: string; // "1","2","3" — vacío si no se eligió
+  PuntoVenta: string;
+  Numero: string;
+  Fecha: string;
+  Id_EntidadLegal: string;
+  Id_CondicionPago: string;   // "1"=Contado, "2"=Cuenta corriente
+  FechaVencimiento: string;
 };
 
 export type ItemGastoForm = {
   _key: string;
-  descripcion: string;
-  categoria_gasto_id: string;
-  cantidad: string;
-  precio_unitario: string;
-  tasa_iva: string;
+  Descripcion: string;
+  Id_CategoriaGasto: string;
+  Cantidad: string;
+  PrecioUnitario: string;
+  TasaIva: string;
 };
 
 export type ItemHaciendaForm = {
   _key: string;
-  categoria_hacienda_id: string;
-  cabezas: string;
-  modalidad: "por_kg" | "por_cabeza";
-  kg_promedio: string;
-  precio_por_kg: string;
-  precio_por_cabeza: string;
-  tasa_iva: string;
+  Id_CategoriaHacienda: string;
+  Cabezas: string;
+  Modalidad: "1" | "2"; // "1"=Por kg, "2"=Por cabeza
+  KgPromedio: string;
+  PrecioPorKg: string;
+  PrecioPorCabeza: string;
+  TasaIva: string;
 };
 
 export type Totales = {
-  subtotal: number;
-  iva_10_5: number;
-  iva_21: number;
-  total: number;
+  Subtotal: number;
+  Iva10_5: number;
+  Iva21: number;
+  Total: number;
 };
 
 // Valores iniciales
 export const EMPTY_HEADER: FacturaHeaderData = {
-  tipo_comprobante: "",
-  punto_venta: "0001",
-  numero: "",
-  fecha: new Date().toISOString().split("T")[0],
-  entidad_legal_id: "",
-  condicion_pago: "contado",
-  fecha_vencimiento: "",
+  Id_TipoComprobante: "",
+  PuntoVenta: "0001",
+  Numero: "",
+  Fecha: new Date().toISOString().split("T")[0],
+  Id_EntidadLegal: "",
+  Id_CondicionPago: "1", // Contado por defecto
+  FechaVencimiento: "",
 };
 
 export const EMPTY_ITEM_GASTO: Omit<ItemGastoForm, "_key"> = {
-  descripcion: "",
-  categoria_gasto_id: "",
-  cantidad: "1",
-  precio_unitario: "",
-  tasa_iva: "21",
+  Descripcion: "",
+  Id_CategoriaGasto: "",
+  Cantidad: "1",
+  PrecioUnitario: "",
+  TasaIva: "21",
 };
 
 export const EMPTY_ITEM_HACIENDA: Omit<ItemHaciendaForm, "_key"> = {
-  categoria_hacienda_id: "",
-  cabezas: "",
-  modalidad: "por_kg",
-  kg_promedio: "",
-  precio_por_kg: "",
-  precio_por_cabeza: "",
-  tasa_iva: "10.5",
+  Id_CategoriaHacienda: "",
+  Cabezas: "",
+  Modalidad: "1", // Por kg por defecto
+  KgPromedio: "",
+  PrecioPorKg: "",
+  PrecioPorCabeza: "",
+  TasaIva: "10.5",
 };
 
-// Cálculo de subtotal por ítem
+// Cálculo de subtotales
 export function calcItemGastoSubtotal(item: ItemGastoForm): number {
-  return (parseFloat(item.cantidad) || 0) * (parseFloat(item.precio_unitario) || 0);
+  return (parseFloat(item.Cantidad) || 0) * (parseFloat(item.PrecioUnitario) || 0);
 }
 
 export function calcItemHaciendaSubtotal(item: ItemHaciendaForm): number {
-  const cabezas = parseInt(item.cabezas) || 0;
-  if (item.modalidad === "por_kg") {
-    return cabezas * (parseFloat(item.kg_promedio) || 0) * (parseFloat(item.precio_por_kg) || 0);
+  const cabezas = parseInt(item.Cabezas) || 0;
+  if (item.Modalidad === "1") { // Por kg
+    return cabezas * (parseFloat(item.KgPromedio) || 0) * (parseFloat(item.PrecioPorKg) || 0);
   }
-  return cabezas * (parseFloat(item.precio_por_cabeza) || 0);
+  return cabezas * (parseFloat(item.PrecioPorCabeza) || 0);
 }
 
-// Cálculo de totales generales
-function acumularIva(totales: { iva_10_5: number; iva_21: number }, subtotal: number, tasa: number) {
-  if (tasa === 10.5) totales.iva_10_5 += subtotal * 0.105;
-  else if (tasa === 21) totales.iva_21 += subtotal * 0.21;
+function acumularIva(acc: { Iva10_5: number; Iva21: number }, subtotal: number, tasa: number) {
+  if (tasa === 10.5) acc.Iva10_5 += subtotal * 0.105;
+  else if (tasa === 21) acc.Iva21 += subtotal * 0.21;
 }
 
 export function calcTotalesGasto(items: ItemGastoForm[]): Totales {
-  const acc = { subtotal: 0, iva_10_5: 0, iva_21: 0 };
+  const acc = { Subtotal: 0, Iva10_5: 0, Iva21: 0 };
   for (const item of items) {
     const sub = calcItemGastoSubtotal(item);
-    acc.subtotal += sub;
-    acumularIva(acc, sub, parseFloat(item.tasa_iva) || 0);
+    acc.Subtotal += sub;
+    acumularIva(acc, sub, parseFloat(item.TasaIva) || 0);
   }
-  return { ...acc, total: acc.subtotal + acc.iva_10_5 + acc.iva_21 };
+  return { ...acc, Total: acc.Subtotal + acc.Iva10_5 + acc.Iva21 };
 }
 
 export function calcTotalesHacienda(items: ItemHaciendaForm[]): Totales {
-  const acc = { subtotal: 0, iva_10_5: 0, iva_21: 0 };
+  const acc = { Subtotal: 0, Iva10_5: 0, Iva21: 0 };
   for (const item of items) {
     const sub = calcItemHaciendaSubtotal(item);
-    acc.subtotal += sub;
-    acumularIva(acc, sub, parseFloat(item.tasa_iva) || 0);
+    acc.Subtotal += sub;
+    acumularIva(acc, sub, parseFloat(item.TasaIva) || 0);
   }
-  return { ...acc, total: acc.subtotal + acc.iva_10_5 + acc.iva_21 };
+  return { ...acc, Total: acc.Subtotal + acc.Iva10_5 + acc.Iva21 };
 }
 
 export const formatARS = (n: number) =>

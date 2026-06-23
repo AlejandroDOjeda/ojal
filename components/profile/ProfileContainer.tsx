@@ -4,26 +4,20 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuthContext } from "@/contexts/AuthContext";
 import ProfileView from "./ProfileView";
-import type { CondicionIva, TipoPersona } from "@/lib/database.types";
 
 export type ProfileFormData = {
-  nombre: string;
-  apellido: string;
-  razon_social: string;
-  cuit_cuil: string;
-  tipo_persona: TipoPersona | "";
-  condicion_iva: CondicionIva | "";
-  telefono: string;
+  Nombre: string;
+  Apellido: string;
+  RazonSocial: string;
+  CuitCuil: string;
+  Id_TipoPersona: string;   // string para Select: "1" o "2"
+  Id_CondicionIva: string;  // string para Select: "1"–"4"
+  Telefono: string;
 };
 
 const EMPTY_FORM: ProfileFormData = {
-  nombre: "",
-  apellido: "",
-  razon_social: "",
-  cuit_cuil: "",
-  tipo_persona: "",
-  condicion_iva: "",
-  telefono: "",
+  Nombre: "", Apellido: "", RazonSocial: "", CuitCuil: "",
+  Id_TipoPersona: "", Id_CondicionIva: "", Telefono: "",
 };
 
 export default function ProfileContainer() {
@@ -37,52 +31,39 @@ export default function ProfileContainer() {
   const fetchProfile = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("profile")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
+    const { data } = await supabase.from("Profile").select("*").eq("Id_Profile", userId).single();
     if (data) {
       setForm({
-        nombre: data.nombre ?? "",
-        apellido: data.apellido ?? "",
-        razon_social: data.razon_social ?? "",
-        cuit_cuil: data.cuit_cuil ?? "",
-        tipo_persona: data.tipo_persona ?? "",
-        condicion_iva: data.condicion_iva ?? "",
-        telefono: data.telefono ?? "",
+        Nombre: data.Nombre ?? "",
+        Apellido: data.Apellido ?? "",
+        RazonSocial: data.RazonSocial ?? "",
+        CuitCuil: data.CuitCuil ?? "",
+        Id_TipoPersona: data.Id_TipoPersona ? String(data.Id_TipoPersona) : "",
+        Id_CondicionIva: data.Id_CondicionIva ? String(data.Id_CondicionIva) : "",
+        Telefono: data.Telefono ?? "",
       });
     }
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   const handleSave = async (data: ProfileFormData) => {
     if (!userId) return;
-    setSaving(true);
-    setSuccessMessage(null);
-    setErrorMessage(null);
+    setSaving(true); setSuccessMessage(null); setErrorMessage(null);
 
-    const { error } = await supabase
-      .from("profile")
-      .update({
-        nombre: data.nombre || null,
-        apellido: data.apellido || null,
-        razon_social: data.razon_social || null,
-        cuit_cuil: data.cuit_cuil || null,
-        tipo_persona: data.tipo_persona || null,
-        condicion_iva: data.condicion_iva || null,
-        telefono: data.telefono || null,
-      })
-      .eq("id", userId);
+    const { error } = await supabase.from("Profile").update({
+      Nombre: data.Nombre || null,
+      Apellido: data.Apellido || null,
+      RazonSocial: data.RazonSocial || null,
+      CuitCuil: data.CuitCuil || null,
+      Id_TipoPersona: data.Id_TipoPersona ? parseInt(data.Id_TipoPersona) : null,
+      Id_CondicionIva: data.Id_CondicionIva ? parseInt(data.Id_CondicionIva) : null,
+      Telefono: data.Telefono || null,
+    }).eq("Id_Profile", userId);
 
-    if (error) {
-      setErrorMessage("No se pudo guardar el perfil. Intentá de nuevo.");
-    } else {
+    if (error) setErrorMessage("No se pudo guardar el perfil. Intentá de nuevo.");
+    else {
       setSuccessMessage("Perfil actualizado correctamente.");
       setTimeout(() => setSuccessMessage(null), 3000);
     }
@@ -91,13 +72,9 @@ export default function ProfileContainer() {
 
   return (
     <ProfileView
-      userEmail={userEmail}
-      form={form}
-      setForm={setForm}
-      loading={loading}
-      saving={saving}
-      successMessage={successMessage}
-      errorMessage={errorMessage}
+      userEmail={userEmail} form={form} setForm={setForm}
+      loading={loading} saving={saving}
+      successMessage={successMessage} errorMessage={errorMessage}
       onSave={handleSave}
     />
   );
