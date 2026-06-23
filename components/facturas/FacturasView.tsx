@@ -4,23 +4,30 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ShoppingCart, TrendingUp, FileText } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, GridContainer, EmptyState } from "@/components/app";
 import type { FacturaResumen } from "./FacturasContainer";
 
 const ESTADO_LABEL: Record<FacturaResumen["estado"], string> = {
-  borrador: "Borrador",
-  confirmada: "Confirmada",
-  pagada: "Pagada",
-  cobrada: "Cobrada",
-  anulada: "Anulada",
+  borrador: "Borrador", confirmada: "Confirmada", pagada: "Pagada", cobrada: "Cobrada", anulada: "Anulada",
+};
+
+const ESTADO_VARIANT: Record<FacturaResumen["estado"], string> = {
+  borrador: "secondary",
+  confirmada: "outline",
+  pagada: "outline",
+  cobrada: "outline",
+  anulada: "destructive",
 };
 
 const ESTADO_CLASS: Record<FacturaResumen["estado"], string> = {
-  borrador: "bg-muted text-muted-foreground",
-  confirmada: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  pagada: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-  cobrada: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-  anulada: "bg-destructive/10 text-destructive",
+  borrador: "",
+  confirmada: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
+  pagada: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
+  cobrada: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
+  anulada: "",
 };
 
 const formatNumero = (punto: string | null, numero: string | null) => {
@@ -43,16 +50,13 @@ type Props = {
 export default function FacturasView({ compras, ventas, loading, error }: Props) {
   const [tab, setTab] = useState<Tab>("compras");
   const router = useRouter();
-
   const filas = tab === "compras" ? compras : ventas;
 
   return (
     <PageShell title="Facturas" description="Comprobantes de compra y venta">
-      {error && (
-        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>
-      )}
+      {error && <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
 
-      {/* Tabs + botón de alta */}
+      {/* Tabs + botón */}
       <div className="flex items-end justify-between mb-6 border-b border-border">
         <div className="flex gap-1">
           <button
@@ -63,9 +67,7 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
           >
             <ShoppingCart size={15} />
             Compras
-            {compras.length > 0 && (
-              <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{compras.length}</span>
-            )}
+            {compras.length > 0 && <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{compras.length}</span>}
           </button>
           <button
             onClick={() => setTab("ventas")}
@@ -75,18 +77,17 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
           >
             <TrendingUp size={15} />
             Ventas
-            {ventas.length > 0 && (
-              <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{ventas.length}</span>
-            )}
+            {ventas.length > 0 && <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{ventas.length}</span>}
           </button>
         </div>
-        <button
+        <Button
+          size="icon"
+          className="mb-1"
           onClick={() => router.push(tab === "compras" ? "/facturas/nueva-compra" : "/facturas/nueva-venta")}
-          className="mb-1 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/90 transition-colors"
           aria-label={tab === "compras" ? "Nueva Compra" : "Nueva Venta"}
         >
           <Plus size={15} />
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -101,39 +102,44 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
         </GridContainer>
       ) : (
         <GridContainer>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 border-b border-border">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Fecha</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Comprobante</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">{tab === "compras" ? "Proveedor" : "Cliente"}</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Estado</th>
-                <th className="px-4 py-3 w-20" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent bg-muted/50">
+                <TableHead className="text-muted-foreground">Fecha</TableHead>
+                <TableHead className="text-muted-foreground">Comprobante</TableHead>
+                <TableHead className="text-muted-foreground">{tab === "compras" ? "Proveedor" : "Cliente"}</TableHead>
+                <TableHead className="text-muted-foreground text-right">Total</TableHead>
+                <TableHead className="text-muted-foreground">Estado</TableHead>
+                <TableHead className="w-16" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filas.map((f) => (
-                <tr key={f.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 text-muted-foreground">{new Date(f.fecha).toLocaleDateString("es-AR")}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                <TableRow key={f.id}>
+                  <TableCell className="text-muted-foreground">{new Date(f.fecha).toLocaleDateString("es-AR")}</TableCell>
+                  <TableCell className="text-muted-foreground">
                     {f.tipo_comprobante === "liquidacion_hacienda" ? "Liq. Hacienda" : `Fc. ${f.tipo_comprobante}`}{" "}
                     {formatNumero(f.punto_venta, f.numero)}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-foreground">{f.entidad_legal?.razon_social ?? "—"}</td>
-                  <td className="px-4 py-3 text-right font-medium text-foreground">{formatMonto(f.total)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_CLASS[f.estado]}`}>
+                  </TableCell>
+                  <TableCell className="font-medium">{f.entidad_legal?.razon_social ?? "—"}</TableCell>
+                  <TableCell className="text-right font-medium">{formatMonto(f.total)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={ESTADO_VARIANT[f.estado] as "default" | "secondary" | "destructive" | "outline"}
+                      className={ESTADO_CLASS[f.estado]}
+                    >
                       {ESTADO_LABEL[f.estado]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/facturas/${f.id}`} className="text-xs text-primary hover:underline">Ver</Link>
-                  </td>
-                </tr>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/facturas/${f.id}`}>
+                      <Button variant="ghost" size="xs">Ver</Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </GridContainer>
       )}
     </PageShell>

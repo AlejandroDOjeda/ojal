@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Menu } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useUserTheme } from "@/hooks/useUserTheme";
+import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +17,7 @@ import {
 export default function Header() {
   const router = useRouter();
   const { userEmail, signOut } = useAuthContext();
+  const { toggleSidebar } = useSidebar();
   const { resolvedTheme, toggleTheme } = useUserTheme();
 
   const handleSignOut = async () => {
@@ -27,23 +30,21 @@ export default function Header() {
     : "?";
 
   return (
-    <header className="border-b bg-background">
-      <div className="flex items-center justify-between px-8 py-4">
-        <div className="flex-1" />
-
-        <button
-          onClick={toggleTheme}
-          className="mr-3 flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted transition-colors"
-          aria-label="Toggle dark mode"
-        >
+    <header className="border-b bg-background shrink-0">
+      <div className="flex items-center justify-between px-2 h-12">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
+          <Menu size={18} />
+        </Button>
+        <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle dark mode">
           {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+        </Button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors cursor-pointer">
-              {initials}
-            </div>
+          <DropdownMenuTrigger
+            className="inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm outline-none"
+          >
+            {initials}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={() => router.push("/profile")}>
@@ -55,6 +56,7 @@ export default function Header() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type ViewProps = {
   userEmail?: string | null;
@@ -18,18 +19,8 @@ type ViewProps = {
 };
 
 export default function LoginCardView({
-  userEmail,
-  email,
-  password,
-  isRegister,
-  loading,
-  errorMessage,
-  cooldownSeconds,
-  setEmail,
-  setPassword,
-  toggleRegister,
-  submit,
-  onSignOut,
+  userEmail, email, password, isRegister, loading, errorMessage,
+  cooldownSeconds, setEmail, setPassword, toggleRegister, submit, onSignOut,
 }: ViewProps) {
   return (
     <div className="w-full max-w-md bg-card rounded-lg shadow p-8">
@@ -41,44 +32,25 @@ export default function LoginCardView({
           <p className="text-foreground">Conectado como:</p>
           <p className="font-medium">{userEmail}</p>
           <div className="flex justify-center">
-            <button onClick={onSignOut} className="mt-4 inline-flex items-center gap-2 rounded bg-destructive px-4 py-2 text-destructive-foreground hover:bg-destructive/90">
-              Cerrar sesión
-            </button>
+            <Button variant="destructive" onClick={onSignOut} className="mt-4">Cerrar sesión</Button>
           </div>
         </div>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-4">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-          <Input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          <button
-            type="submit"
-            disabled={loading || cooldownSeconds > 0}
-            className="inline-flex items-center justify-center gap-3 rounded border px-4 py-2 hover:shadow-sm"
-          >
+          <Button type="submit" variant="outline" disabled={loading || cooldownSeconds > 0}>
             {isRegister ? "Crear cuenta" : "Iniciar sesión"}
-          </button>
+          </Button>
 
-          {cooldownSeconds > 0 && <div className="text-sm text-destructive">Intenta de nuevo en {cooldownSeconds}s</div>}
-          {errorMessage && <div className="text-sm text-destructive">{errorMessage}</div>}
+          {cooldownSeconds > 0 && <p className="text-sm text-destructive">Intenta de nuevo en {cooldownSeconds}s</p>}
+          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <button type="button" onClick={toggleRegister} className="underline">
+            <Button type="button" variant="link" size="xs" onClick={toggleRegister} className="text-muted-foreground underline p-0 h-auto">
               {isRegister ? "¿Ya tenés cuenta? Iniciar sesión" : "¿No tenés cuenta? Registrate"}
-            </button>
+            </Button>
           </div>
         </form>
       )}

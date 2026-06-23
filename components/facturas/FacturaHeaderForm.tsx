@@ -1,7 +1,8 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { SectionCard, FormField, AppSelect } from "@/components/app";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SectionCard, FormField } from "@/components/app";
 import type { FacturaHeaderData } from "./types";
 
 type EntidadOption = { id: string; razon_social: string };
@@ -19,15 +20,14 @@ export function FacturaHeaderForm({ data, entidades, entidadLabel, onChange }: P
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <FormField label="Tipo" required>
-            <AppSelect
-              value={data.tipo_comprobante}
-              onChange={(e) => onChange("tipo_comprobante", e.target.value as FacturaHeaderData["tipo_comprobante"])}
-            >
-              <option value="">—</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-            </AppSelect>
+            <Select value={data.tipo_comprobante || undefined} onValueChange={(v) => onChange("tipo_comprobante", (v ?? "") as FacturaHeaderData["tipo_comprobante"])}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A">A</SelectItem>
+                <SelectItem value="B">B</SelectItem>
+                <SelectItem value="C">C</SelectItem>
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="Pto. venta">
             <Input value={data.punto_venta} onChange={(e) => onChange("punto_venta", e.target.value)} placeholder="0001" maxLength={4} />
@@ -42,24 +42,21 @@ export function FacturaHeaderForm({ data, entidades, entidadLabel, onChange }: P
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label={entidadLabel} required className="sm:col-span-2">
-            <AppSelect
-              value={data.entidad_legal_id}
-              onChange={(e) => onChange("entidad_legal_id", e.target.value)}
-            >
-              <option value="">— Seleccioná —</option>
-              {entidades.map((e) => (
-                <option key={e.id} value={e.id}>{e.razon_social}</option>
-              ))}
-            </AppSelect>
+            <Select value={data.entidad_legal_id || undefined} onValueChange={(v) => onChange("entidad_legal_id", v ?? "")}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
+              <SelectContent>
+                {entidades.map((e) => <SelectItem key={e.id} value={e.id ?? ""}>{e.razon_social}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="Condición de pago">
-            <AppSelect
-              value={data.condicion_pago}
-              onChange={(e) => onChange("condicion_pago", e.target.value as FacturaHeaderData["condicion_pago"])}
-            >
-              <option value="contado">Contado</option>
-              <option value="cuenta_corriente">Cuenta corriente</option>
-            </AppSelect>
+            <Select value={data.condicion_pago} onValueChange={(v) => onChange("condicion_pago", (v ?? "contado") as FacturaHeaderData["condicion_pago"])}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contado">Contado</SelectItem>
+                <SelectItem value="cuenta_corriente">Cuenta corriente</SelectItem>
+              </SelectContent>
+            </Select>
           </FormField>
         </div>
 

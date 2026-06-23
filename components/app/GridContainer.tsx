@@ -13,7 +13,7 @@ export function GridContainer({ state = "default", className, children }: Props)
     <div
       className={cn(
         "flex-1 rounded-lg bg-card border",
-        state === "default" && "border-border overflow-hidden",
+        state === "default" && "border-border overflow-auto",
         state === "empty" &&
           "border-dashed border-border flex flex-col items-center justify-center text-center p-8",
         state === "loading" && "border-border flex items-center justify-center p-20",
