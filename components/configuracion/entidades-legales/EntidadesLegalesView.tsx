@@ -4,37 +4,23 @@ import { useState } from "react";
 import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { PageShell, GridContainer, FormField, EmptyState, AppSelect } from "@/components/app";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageShell, GridContainer, FormField, EmptyState } from "@/components/app";
+import { formatCuit, cuitToDigits } from "@/lib/formato";
+import { TIPO_PERSONA_OPTIONS, TIPO_PERSONA_ITEMS, CONDICION_IVA_OPTIONS, CONDICION_IVA_ITEMS } from "@/lib/opciones";
 import type { EntidadLegal, EntidadLegalFormData } from "./EntidadesLegalesContainer";
 
-const TIPO_LABEL: Record<EntidadLegal["tipo_persona"], string> = {
-  fisica: "Persona Física",
-  juridica: "Persona Jurídica",
-};
-
-const CONDICION_LABEL: Record<EntidadLegal["condicion_iva"], string> = {
-  responsable_inscripto: "Resp. Inscripto",
-  monotributo: "Monotributo",
-  exento: "Exento",
-  consumidor_final: "Consumidor Final",
-};
-
-const EMPTY_FORM: EntidadLegalFormData = {
-  razon_social: "",
-  cuit_cuil: "",
-  tipo_persona: "",
-  condicion_iva: "",
-  email: "",
-  telefono: "",
-};
+const EMPTY_FORM: EntidadLegalFormData = { RazonSocial: "", CuitCuil: "", Id_TipoPersona: "", Id_CondicionIva: "", Email: "", Telefono: "" };
 
 type Props = {
   entidades: EntidadLegal[];
   loading: boolean;
   error: string | null;
   onCreate: (data: EntidadLegalFormData) => Promise<void>;
-  onUpdate: (id: string, data: EntidadLegalFormData) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onUpdate: (id: number, data: EntidadLegalFormData) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 };
 
 export default function EntidadesLegalesView({ entidades, loading, error, onCreate, onUpdate, onDelete }: Props) {
@@ -43,60 +29,45 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
   const [form, setForm] = useState<EntidadLegalFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormError(null); setModalOpen(true); };
   const openEdit = (e: EntidadLegal) => {
     setEditing(e);
-    setForm({ razon_social: e.razon_social, cuit_cuil: e.cuit_cuil, tipo_persona: e.tipo_persona, condicion_iva: e.condicion_iva, email: e.email ?? "", telefono: e.telefono ?? "" });
-    setFormError(null);
-    setModalOpen(true);
+    setForm({ RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil, Id_TipoPersona: String(e.Id_TipoPersona), Id_CondicionIva: String(e.Id_CondicionIva), Email: e.Email ?? "", Telefono: e.Telefono ?? "" });
+    setFormError(null); setModalOpen(true);
   };
   const closeModal = () => { setModalOpen(false); setEditing(null); setForm(EMPTY_FORM); setFormError(null); };
-
-  const set = (field: keyof EntidadLegalFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((f) => ({ ...f, [field]: e.target.value }));
+  const setField = (field: keyof EntidadLegalFormData, value: string) => setForm(f => ({ ...f, [field]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.razon_social.trim()) { setFormError("La razón social es obligatoria."); return; }
-    if (!form.cuit_cuil.trim()) { setFormError("El CUIT/CUIL es obligatorio."); return; }
-    if (!form.tipo_persona) { setFormError("Seleccioná el tipo de persona."); return; }
-    if (!form.condicion_iva) { setFormError("Seleccioná la condición frente al IVA."); return; }
+    if (!form.RazonSocial.trim()) { setFormError("La razón social es obligatoria."); return; }
+    if (!form.CuitCuil.trim()) { setFormError("El CUIT/CUIL es obligatorio."); return; }
+    if (!form.Id_TipoPersona) { setFormError("Seleccioná el tipo de persona."); return; }
+    if (!form.Id_CondicionIva) { setFormError("Seleccioná la condición frente al IVA."); return; }
     setSaving(true); setFormError(null);
-    try {
-      editing ? await onUpdate(editing.id, form) : await onCreate(form);
-      closeModal();
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Error al guardar.");
-    } finally { setSaving(false); }
+    try { editing ? await onUpdate(editing.Id_EntidadLegal, form) : await onCreate(form); closeModal(); }
+    catch (err: unknown) { setFormError(err instanceof Error ? err.message : "Error al guardar."); }
+    finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     setDeleting(true); setDeleteError(null);
     try { await onDelete(id); setDeleteConfirmId(null); }
     catch (err: unknown) { setDeleteError(err instanceof Error ? err.message : "No se pudo eliminar."); }
     finally { setDeleting(false); }
   };
 
-  const actionBtn = (
-    <button onClick={openCreate} className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
-      <Plus size={16} />
-    </button>
-  );
-
   return (
-    <PageShell title="Entidades Legales" description="Administrá las entidades legales del sistema" action={actionBtn}>
-      {error && (
-        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>
-      )}
+    <PageShell title="Entidades Legales" description="Administrá las entidades legales del sistema"
+      action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
+      {error && <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
       {deleteError && (
         <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive flex items-center justify-between">
-          {deleteError}
-          <button onClick={() => setDeleteError(null)} className="ml-4 underline text-xs">Cerrar</button>
+          {deleteError}<Button variant="link" size="xs" onClick={() => setDeleteError(null)}>Cerrar</Button>
         </div>
       )}
 
@@ -104,99 +75,78 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
         <GridContainer state="loading"><p className="text-muted-foreground">Cargando...</p></GridContainer>
       ) : entidades.length === 0 ? (
         <GridContainer state="empty">
-          <EmptyState
-            icon={<Building2 size={48} />}
-            title="No hay entidades legales"
-            description="Creá la primera entidad para comenzar."
-            action={
-              <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-                <Plus size={16} /> Nueva Entidad Legal
-              </button>
-            }
-          />
+          <EmptyState icon={<Building2 size={48} />} title="No hay entidades legales" description="Creá la primera entidad para comenzar."
+            action={<Button onClick={openCreate}><Plus />Nueva Entidad Legal</Button>} />
         </GridContainer>
       ) : (
         <GridContainer>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 border-b border-border">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Razón Social</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">CUIT / CUIL</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tipo</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Condición IVA</th>
-                <th className="px-4 py-3 w-32" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent bg-muted/50">
+                <TableHead className="text-muted-foreground">Razón Social</TableHead>
+                <TableHead className="text-muted-foreground">CUIT / CUIL</TableHead>
+                <TableHead className="text-muted-foreground">Tipo</TableHead>
+                <TableHead className="text-muted-foreground">Condición IVA</TableHead>
+                <TableHead className="w-32" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {entidades.map((e) => (
-                <tr key={e.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-foreground">{e.razon_social}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{e.cuit_cuil}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{TIPO_LABEL[e.tipo_persona]}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{CONDICION_LABEL[e.condicion_iva]}</td>
-                  <td className="px-4 py-3">
-                    {deleteConfirmId === e.id ? (
+                <TableRow key={e.Id_EntidadLegal}>
+                  <TableCell className="font-medium">{e.RazonSocial}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatCuit(e.CuitCuil)}</TableCell>
+                  <TableCell className="text-muted-foreground">{TIPO_PERSONA_ITEMS[String(e.Id_TipoPersona)] ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{CONDICION_IVA_ITEMS[String(e.Id_CondicionIva)] ?? "—"}</TableCell>
+                  <TableCell>
+                    {deleteConfirmId === e.Id_EntidadLegal ? (
                       <div className="flex items-center gap-2 justify-end">
                         <span className="text-xs text-muted-foreground">¿Eliminar?</span>
-                        <button onClick={() => handleDelete(e.id)} disabled={deleting} className="text-xs font-medium text-destructive hover:underline disabled:opacity-50">Sí</button>
-                        <button onClick={() => setDeleteConfirmId(null)} className="text-xs text-muted-foreground hover:underline">No</button>
+                        <Button variant="destructive" size="xs" onClick={() => handleDelete(e.Id_EntidadLegal)} disabled={deleting}>Sí</Button>
+                        <Button variant="ghost" size="xs" onClick={() => setDeleteConfirmId(null)}>No</Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" aria-label="Editar"><Pencil size={15} /></button>
-                        <button onClick={() => { setDeleteError(null); setDeleteConfirmId(e.id); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive" aria-label="Eliminar"><Trash2 size={15} /></button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(e)}><Pencil size={15} /></Button>
+                        <Button variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => { setDeleteError(null); setDeleteConfirmId(e.Id_EntidadLegal); }}><Trash2 size={15} /></Button>
                       </div>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </GridContainer>
       )}
 
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar entidad legal" : "Nueva entidad legal"}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? "Editar entidad legal" : "Nueva entidad legal"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
             <FormField label="Razón Social" required>
-              <Input value={form.razon_social} onChange={set("razon_social")} placeholder="Ej: García & Asociados S.A." />
+              <Input value={form.RazonSocial} onChange={(e) => setField("RazonSocial", e.target.value)} placeholder="Ej: García & Asociados S.A." />
             </FormField>
             <FormField label="CUIT / CUIL" required>
-              <Input value={form.cuit_cuil} onChange={set("cuit_cuil")} placeholder="Ej: 20-12345678-9" />
+              <Input value={formatCuit(form.CuitCuil)} onChange={(e) => setField("CuitCuil", cuitToDigits(e.target.value))} placeholder="XX-XXXXXXXX-X" maxLength={13} />
             </FormField>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Tipo" required>
-                <AppSelect value={form.tipo_persona} onChange={set("tipo_persona")}>
-                  <option value="">— Seleccioná —</option>
-                  <option value="fisica">Persona Física</option>
-                  <option value="juridica">Persona Jurídica</option>
-                </AppSelect>
+                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || undefined} onValueChange={(v) => setField("Id_TipoPersona", v ?? "")}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
+                  <SelectContent>{TIPO_PERSONA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
               </FormField>
               <FormField label="Condición IVA" required>
-                <AppSelect value={form.condicion_iva} onChange={set("condicion_iva")}>
-                  <option value="">— Seleccioná —</option>
-                  <option value="responsable_inscripto">Resp. Inscripto</option>
-                  <option value="monotributo">Monotributo</option>
-                  <option value="exento">Exento</option>
-                  <option value="consumidor_final">Consumidor Final</option>
-                </AppSelect>
+                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || undefined} onValueChange={(v) => setField("Id_CondicionIva", v ?? "")}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
+                  <SelectContent>{CONDICION_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
               </FormField>
             </div>
-            <FormField label="Email">
-              <Input value={form.email} onChange={set("email")} type="email" placeholder="Ej: contacto@empresa.com" />
-            </FormField>
-            <FormField label="Teléfono">
-              <Input value={form.telefono} onChange={set("telefono")} placeholder="Ej: 011 15-1234-5678" />
-            </FormField>
+            <FormField label="Email"><Input value={form.Email} onChange={(e) => setField("Email", e.target.value)} type="email" placeholder="Ej: contacto@empresa.com" /></FormField>
+            <FormField label="Teléfono"><Input value={form.Telefono} onChange={(e) => setField("Telefono", e.target.value)} placeholder="Ej: 011 15-1234-5678" /></FormField>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
-            <div className="flex justify-end pt-2">
-              <button type="submit" disabled={saving} className="inline-flex items-center rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                {saving ? "Guardando…" : "Guardar"}
-              </button>
-            </div>
+            <div className="flex justify-end pt-2"><Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button></div>
           </form>
         </DialogContent>
       </Dialog>

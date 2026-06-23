@@ -3,28 +3,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuthContext } from "@/contexts/AuthContext";
-import {
-  calcItemHaciendaSubtotal,
-  calcTotalesHacienda,
-  type FacturaHeaderData,
-  type ItemHaciendaForm,
-} from "@/components/facturas/types";
+import { TIPO_OPERACION } from "@/lib/opciones";
+import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
 import NuevaVentaView from "./NuevaVentaView";
 
-export type CategoriaHaciendaOption = {
-  id: string;
-  nombre: string;
-  tasa_iva: number;
-};
-
-export type EntidadOption = {
-  id: string;
-  razon_social: string;
-};
+export type CategoriaHaciendaOption = { id: number; Nombre: string; TasaIva: number };
+export type EntidadOption = { id: number; RazonSocial: string };
 
 export default function NuevaVentaContainer() {
-  const { userId } = useAuthContext();
   const router = useRouter();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
@@ -32,71 +18,60 @@ export default function NuevaVentaContainer() {
 
   const fetchData = useCallback(async () => {
     const [{ data: ents }, { data: cats }] = await Promise.all([
-      supabase.from("entidad_legal").select("id, razon_social").order("razon_social"),
-      supabase.from("categoria_hacienda").select("id, nombre, tasa_iva").eq("activa", true).order("nombre"),
+      supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial").order("RazonSocial"),
+      supabase.from("CategoriaHacienda").select("Id_CategoriaHacienda, Nombre, TasaIva").eq("Activa", true).order("Nombre"),
     ]);
-    setEntidades(ents ?? []);
-    setCategorias(cats ?? []);
+    setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial })));
+    setCategorias((cats ?? []).map((c: { Id_CategoriaHacienda: number; Nombre: string; TasaIva: number }) => ({ id: c.Id_CategoriaHacienda, Nombre: c.Nombre, TasaIva: c.TasaIva })));
     setLoadingData(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
-    if (!userId) throw new Error("Usuario no autenticado");
-
     const totales = calcTotalesHacienda(items);
+    const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { data: facturaData, error: facturaError } = await supabase
-      .from("factura")
+      .from("Factura")
       .insert({
-        user_id: userId,
-        tipo_operacion: "venta",
-        tipo_comprobante: (header.tipo_comprobante as "A" | "B" | "C") || null,
-        punto_venta: header.punto_venta ? header.punto_venta.padStart(4, "0") : null,
-        numero: header.numero ? header.numero.padStart(8, "0") : null,
-        fecha: header.fecha,
-        entidad_legal_id: header.entidad_legal_id,
-        condicion_pago: header.condicion_pago,
-        fecha_vencimiento: header.condicion_pago === "cuenta_corriente" ? header.fecha_vencimiento || null : null,
-        estado: "confirmada",
-        subtotal: totales.subtotal,
-        iva_10_5: totales.iva_10_5,
-        iva_21: totales.iva_21,
-        total: totales.total,
+        Id_TipoOperacion:   TIPO_OPERACION.VENTA,
+        Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
+        PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
+        Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+        Fecha:              header.Fecha,
+        Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
+        Id_CondicionPago:   parseInt(header.Id_CondicionPago),
+        FechaVencimiento:   esCuentaCorriente ? header.FechaVencimiento || null : null,
+        Id_EstadoFactura:   2, // Confirmada
+        Subtotal:           totales.Subtotal,
+        Iva10_5:            totales.Iva10_5,
+        Iva21:              totales.Iva21,
+        Total:              totales.Total,
       })
-      .select("id")
+      .select("Id_Factura")
       .single();
 
     if (facturaError) throw new Error(facturaError.message);
 
     const itemsPayload = items.map((item) => ({
-      factura_id: facturaData.id,
-      categoria_hacienda_id: item.categoria_hacienda_id,
-      cabezas: parseInt(item.cabezas),
-      kg_promedio: item.modalidad === "por_kg" ? parseFloat(item.kg_promedio) : null,
-      precio_por_kg: item.modalidad === "por_kg" ? parseFloat(item.precio_por_kg) : null,
-      precio_por_cabeza: item.modalidad === "por_cabeza" ? parseFloat(item.precio_por_cabeza) : null,
-      tasa_iva: parseFloat(item.tasa_iva),
-      subtotal: calcItemHaciendaSubtotal(item),
+      Id_Factura:           facturaData.Id_Factura,
+      Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
+      Cabezas:              parseInt(item.Cabezas),
+      KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
+      PrecioPorKg:          item.Modalidad === "1" ? parseFloat(item.PrecioPorKg) : null,
+      PrecioPorCabeza:      item.Modalidad === "2" ? parseFloat(item.PrecioPorCabeza) : null,
+      TasaIva:              parseFloat(item.TasaIva),
+      Subtotal:             calcItemHaciendaSubtotal(item),
     }));
 
-    const { error: itemsError } = await supabase.from("item_hacienda").insert(itemsPayload);
-
+    const { error: itemsError } = await supabase.from("ItemHacienda").insert(itemsPayload);
     if (itemsError) {
-      await supabase.from("factura").delete().eq("id", facturaData.id);
+      await supabase.from("Factura").delete().eq("Id_Factura", facturaData.Id_Factura);
       throw new Error(itemsError.message);
     }
-
     router.push("/facturas");
   };
 
-  return (
-    <NuevaVentaView
-      entidades={entidades}
-      categorias={categorias}
-      loadingData={loadingData}
-      onSave={handleSave}
-    />
-  );
+  return <NuevaVentaView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
 }

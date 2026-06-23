@@ -2,18 +2,19 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { TIPO_OPERACION } from "@/lib/opciones";
 import FacturasView from "./FacturasView";
 
 export type FacturaResumen = {
-  id: string;
-  tipo_operacion: "compra" | "venta";
-  tipo_comprobante: "A" | "B" | "C" | "liquidacion_hacienda";
-  punto_venta: string | null;
-  numero: string | null;
-  fecha: string;
-  estado: "borrador" | "confirmada" | "pagada" | "cobrada" | "anulada";
-  total: number;
-  entidad_legal: { razon_social: string } | null;
+  Id_Factura:          number;
+  Id_TipoOperacion:    number;
+  Id_TipoComprobante:  number | null;
+  PuntoVenta:          string | null;
+  Numero:              string | null;
+  Fecha:               string;
+  Id_EstadoFactura:    number;
+  Total:               number;
+  EntidadLegal:        { RazonSocial: string } | null;
 };
 
 export default function FacturasContainer() {
@@ -23,34 +24,22 @@ export default function FacturasContainer() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchFacturas = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
+    setLoading(true); setError(null);
     const { data, error } = await supabase
-      .from("factura")
-      .select("id, tipo_operacion, tipo_comprobante, punto_venta, numero, fecha, estado, total, entidad_legal(razon_social)")
-      .order("fecha", { ascending: false });
+      .from("Factura")
+      .select("Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Id_EstadoFactura, Total, EntidadLegal(RazonSocial)")
+      .order("Fecha", { ascending: false });
 
-    if (error) {
-      setError(error.message);
-    } else {
+    if (error) { setError(error.message); }
+    else {
       const rows = (data ?? []) as FacturaResumen[];
-      setCompras(rows.filter((f) => f.tipo_operacion === "compra"));
-      setVentas(rows.filter((f) => f.tipo_operacion === "venta"));
+      setCompras(rows.filter((f) => f.Id_TipoOperacion === TIPO_OPERACION.COMPRA));
+      setVentas(rows.filter((f) => f.Id_TipoOperacion === TIPO_OPERACION.VENTA));
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchFacturas();
-  }, [fetchFacturas]);
+  useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 
-  return (
-    <FacturasView
-      compras={compras}
-      ventas={ventas}
-      loading={loading}
-      error={error}
-    />
-  );
+  return <FacturasView compras={compras} ventas={ventas} loading={loading} error={error} />;
 }

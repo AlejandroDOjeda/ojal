@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   label: string;
@@ -10,9 +11,9 @@ type Props = {
 export function FormField({ label, required, className, children }: Props) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <label className="text-sm font-medium text-foreground">
+      <Label>
         {label}{required && <span className="text-destructive ml-0.5">*</span>}
-      </label>
+      </Label>
       {children}
     </div>
   );

@@ -3,94 +3,164 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Home, Settings, HelpCircle, Building2, Beef, ReceiptText, ShoppingBag } from "lucide-react";
+import {
+  Home, Settings, HelpCircle, Building2, Beef,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarSeparator,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
-export default function Sidebar() {
+const configItems = [
+  { href: "/configuracion/entidades-legales", label: "Entidades Legales", icon: Building2 },
+  { href: "/configuracion/categoria-hacienda", label: "Categorías Hacienda", icon: Beef },
+  { href: "/configuracion/categoria-gasto", label: "Categorías Gasto", icon: ShoppingBag },
+];
+
+export default function AppSidebar() {
   const pathname = usePathname();
-  const [configOpen, setConfigOpen] = useState(
-    pathname.startsWith("/configuracion")
-  );
-
-  const isActive = (href: string, prefix = false) =>
-    prefix ? pathname.startsWith(href) : pathname === href;
-  const linkClass = (href: string, prefix = false) =>
-    `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${
-      isActive(href, prefix)
-        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-        : "hover:bg-sidebar-accent/60"
-    }`;
+  const [configOpen, setConfigOpen] = useState(pathname.startsWith("/configuracion"));
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   return (
-    <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col h-screen shadow-lg shrink-0">
-      <Link href="/home" className="p-6 border-b border-sidebar-border hover:bg-sidebar-accent/40 transition-colors">
-        <h1 className="text-2xl font-bold">Ojeda Corp.</h1>
-      </Link>
+    <Sidebar collapsible="icon">
+      {/* Logo */}
+      <SidebarHeader className="border-b border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" className="justify-center" render={<Link href="/home" />}>
+              <span className="text-xl font-bold">
+                {isCollapsed ? "Oj" : "Ojeda Corp."}
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        <Link href="/home" className={linkClass("/home")}>
-          <Home size={18} />
-          <span>Inicio</span>
-        </Link>
+      {/* Nav */}
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
 
-        <Link href="/facturas" className={linkClass("/facturas", true)}>
-          <ReceiptText size={18} />
-          <span>Facturas</span>
-        </Link>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Inicio" isActive={pathname === "/home"} render={<Link href="/home" />}>
+                  <Home />
+                  <span>Inicio</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
-        {/* Configuración colapsable */}
-        <div>
-          <button
-            onClick={() => setConfigOpen((o) => !o)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${
-              pathname.startsWith("/configuracion")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "hover:bg-sidebar-accent/60"
-            }`}
-          >
-            <Settings size={18} />
-            <span className="flex-1 text-left">Configuración</span>
-            <ChevronDown
-              size={16}
-              className={`transition-transform duration-200 ${configOpen ? "rotate-180" : ""}`}
-            />
-          </button>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Facturas" isActive={pathname.startsWith("/facturas")} render={<Link href="/facturas" />}>
+                  <ReceiptText />
+                  <span>Facturas</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
-          {configOpen && (
-            <div className="mt-1 ml-4 pl-3 border-l border-sidebar-border space-y-1">
-              <Link
-                href="/configuracion/entidades-legales"
-                className={linkClass("/configuracion/entidades-legales")}
-              >
-                <Building2 size={16} />
-                <span>Entidades Legales</span>
-              </Link>
-              <Link
-                href="/configuracion/categoria-hacienda"
-                className={linkClass("/configuracion/categoria-hacienda")}
-              >
-                <Beef size={16} />
-                <span>Categorías Hacienda</span>
-              </Link>
-              <Link
-                href="/configuracion/categoria-gasto"
-                className={linkClass("/configuracion/categoria-gasto")}
-              >
-                <ShoppingBag size={16} />
-                <span>Categorías Gasto</span>
-              </Link>
-            </div>
-          )}
-        </div>
+              <SidebarSeparator />
 
-        <Link href="/help" className={linkClass("/help")}>
-          <HelpCircle size={18} />
-          <span>Ayuda</span>
-        </Link>
-      </nav>
+              {/* Configuración */}
+              <SidebarMenuItem>
+                {isCollapsed ? (
+                  /* Modo colapsado: ícono + chevron inline */
+                  <button
+                    onClick={() => setConfigOpen((o) => !o)}
+                    className={cn(
+                      "flex h-8 w-full items-center gap-2 rounded-md p-2 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      (pathname.startsWith("/configuracion") || configOpen) &&
+                        "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    )}
+                  >
+                    <Settings size={16} className="size-4 shrink-0" />
+                    <ChevronRight
+                      size={12}
+                      className={cn("shrink-0 transition-transform duration-200", configOpen && "rotate-90")}
+                    />
+                  </button>
+                ) : (
+                  /* Modo expandido: botón normal */
+                  <SidebarMenuButton
+                    tooltip="Configuración"
+                    isActive={pathname.startsWith("/configuracion")}
+                    onClick={() => setConfigOpen((o) => !o)}
+                  >
+                    <Settings />
+                    <span>Configuración</span>
+                    <ChevronDown
+                      className={cn("ml-auto transition-transform duration-200", configOpen && "rotate-180")}
+                    />
+                  </SidebarMenuButton>
+                )}
 
-      <div className="p-4 border-t border-sidebar-border text-xs text-sidebar-foreground/60">
-        <p>v1.0.0</p>
-      </div>
-    </aside>
+                {/* Submenú expandido */}
+                {configOpen && !isCollapsed && (
+                  <SidebarMenuSub>
+                    {configItems.map((item) => (
+                      <SidebarMenuSubItem key={item.href}>
+                        <SidebarMenuSubButton
+                          isActive={pathname === item.href}
+                          render={<Link href={item.href} />}
+                        >
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                )}
+
+                {/* Submenú colapsado: íconos indentados */}
+                {configOpen && isCollapsed && (
+                  <div className="ml-2 mt-0.5 flex flex-col gap-0.5">
+                    {configItems.map((item) => (
+                      <SidebarMenuButton
+                        key={item.href}
+                        size="sm"
+                        tooltip={item.label}
+                        isActive={pathname === item.href}
+                        render={<Link href={item.href} />}
+                      >
+                        <item.icon />
+                      </SidebarMenuButton>
+                    ))}
+                  </div>
+                )}
+              </SidebarMenuItem>
+
+              <SidebarSeparator />
+
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Ayuda" isActive={pathname === "/help"} render={<Link href="/help" />}>
+                  <HelpCircle />
+                  <span>Ayuda</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <p className="px-2 text-xs text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
+          v1.0.0
+        </p>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

@@ -5,18 +5,18 @@ import { supabase } from "@/lib/supabaseClient";
 import CategoriaHaciendaView from "./CategoriaHaciendaView";
 
 export type CategoriaHacienda = {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  tasa_iva: number;
-  activa: boolean;
-  created_at: string;
+  Id_CategoriaHacienda: number;
+  Nombre: string;
+  Descripcion: string | null;
+  TasaIva: number;
+  Activa: boolean;
+  CreatedAt: string;
 };
 
 export type CategoriaHaciendaFormData = {
-  nombre: string;
-  descripcion: string;
-  tasa_iva: number;
+  Nombre: string;
+  Descripcion: string;
+  TasaIva: number;
 };
 
 export default function CategoriaHaciendaContainer() {
@@ -25,50 +25,35 @@ export default function CategoriaHaciendaContainer() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchCategorias = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     const { data, error } = await supabase
-      .from("categoria_hacienda")
+      .from("CategoriaHacienda")
       .select("*")
-      .eq("activa", true)
-      .order("nombre");
-
+      .eq("Activa", true)
+      .order("Nombre");
     if (error) setError(error.message);
     else setCategorias(data ?? []);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchCategorias();
-  }, [fetchCategorias]);
+  useEffect(() => { fetchCategorias(); }, [fetchCategorias]);
 
   const handleCreate = async (formData: CategoriaHaciendaFormData) => {
-    const { error } = await supabase
-      .from("categoria_hacienda")
-      .insert({ ...formData, activa: true });
+    const { error } = await supabase.from("CategoriaHacienda").insert({ ...formData, Activa: true });
     if (error) throw new Error(error.message);
     await fetchCategorias();
   };
 
-  const handleUpdate = async (id: string, formData: CategoriaHaciendaFormData) => {
-    const { error } = await supabase
-      .from("categoria_hacienda")
-      .update(formData)
-      .eq("id", id);
+  const handleUpdate = async (id: number, formData: CategoriaHaciendaFormData) => {
+    const { error } = await supabase.from("CategoriaHacienda").update(formData).eq("Id_CategoriaHacienda", id);
     if (error) throw new Error(error.message);
     await fetchCategorias();
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("categoria_hacienda")
-      .delete()
-      .eq("id", id);
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase.from("CategoriaHacienda").delete().eq("Id_CategoriaHacienda", id);
     if (error) {
-      // FK violation: la categoría está en uso en alguna factura
-      if (error.code === "23503") {
-        throw new Error("No se puede eliminar: la categoría está en uso en facturas existentes.");
-      }
+      if (error.code === "23503") throw new Error("No se puede eliminar: la categoría está en uso en facturas existentes.");
       throw new Error(error.message);
     }
     await fetchCategorias();
@@ -76,12 +61,8 @@ export default function CategoriaHaciendaContainer() {
 
   return (
     <CategoriaHaciendaView
-        categorias={categorias}
-        loading={loading}
-        error={error}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
+      categorias={categorias} loading={loading} error={error}
+      onCreate={handleCreate} onUpdate={handleUpdate} onDelete={handleDelete}
+    />
   );
 }

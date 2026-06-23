@@ -5,49 +5,45 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FacturaDetalleView from "./FacturaDetalleView";
 
-export type EntidadInfo = {
-  razon_social: string;
-  cuit_cuil: string;
-  condicion_iva: string;
-};
+export type EntidadInfo = { RazonSocial: string; CuitCuil: string; Id_CondicionIva: number };
 
 export type FacturaDetalle = {
-  id: string;
-  tipo_operacion: "compra" | "venta";
-  tipo_comprobante: "A" | "B" | "C" | "liquidacion_hacienda" | null;
-  punto_venta: string | null;
-  numero: string | null;
-  fecha: string;
-  entidad_legal: EntidadInfo | null;
-  condicion_pago: "contado" | "cuenta_corriente";
-  fecha_vencimiento: string | null;
-  estado: "borrador" | "confirmada" | "pagada" | "cobrada" | "anulada";
-  subtotal: number;
-  iva_10_5: number;
-  iva_21: number;
-  total: number;
-  observaciones: string | null;
+  Id_Factura:          number;
+  Id_TipoOperacion:    number;
+  Id_TipoComprobante:  number | null;
+  PuntoVenta:          string | null;
+  Numero:              string | null;
+  Fecha:               string;
+  EntidadLegal:        EntidadInfo | null;
+  Id_CondicionPago:    number;
+  FechaVencimiento:    string | null;
+  Id_EstadoFactura:    number;
+  Subtotal:            number;
+  Iva10_5:             number;
+  Iva21:               number;
+  Total:               number;
+  Observaciones:       string | null;
 };
 
 export type ItemGastoDetalle = {
-  id: string;
-  descripcion: string;
-  categoria_gasto: { nombre: string } | null;
-  cantidad: number;
-  precio_unitario: number;
-  tasa_iva: number;
-  subtotal: number;
+  Id_ItemGasto:      number;
+  Descripcion:       string;
+  CategoriaGasto:    { Nombre: string } | null;
+  Cantidad:          number;
+  PrecioUnitario:    number;
+  TasaIva:           number;
+  Subtotal:          number;
 };
 
 export type ItemHaciendaDetalle = {
-  id: string;
-  categoria_hacienda: { nombre: string } | null;
-  cabezas: number;
-  kg_promedio: number | null;
-  precio_por_kg: number | null;
-  precio_por_cabeza: number | null;
-  tasa_iva: number;
-  subtotal: number;
+  Id_ItemHacienda:   number;
+  CategoriaHacienda: { Nombre: string } | null;
+  Cabezas:           number;
+  KgPromedio:        number | null;
+  PrecioPorKg:       number | null;
+  PrecioPorCabeza:   number | null;
+  TasaIva:           number;
+  Subtotal:          number;
 };
 
 export default function FacturaDetalleContainer() {
@@ -60,54 +56,38 @@ export default function FacturaDetalleContainer() {
 
   useEffect(() => {
     if (!id) return;
-
     const fetch = async () => {
       setLoading(true);
-
-      const { data: facturaData, error } = await supabase
-        .from("factura")
-        .select("*, entidad_legal(razon_social, cuit_cuil, condicion_iva)")
-        .eq("id", id)
+      const { data, error } = await supabase
+        .from("Factura")
+        .select("*, EntidadLegal(RazonSocial, CuitCuil, Id_CondicionIva)")
+        .eq("Id_Factura", parseInt(id))
         .single();
 
-      if (error || !facturaData) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
+      if (error || !data) { setNotFound(true); setLoading(false); return; }
 
-      const factura = facturaData as unknown as FacturaDetalle;
+      const factura = data as unknown as FacturaDetalle;
       setFactura(factura);
 
-      if (factura.tipo_operacion === "compra") {
+      if (factura.Id_TipoOperacion === 1) { // Compra
         const { data: items } = await supabase
-          .from("item_gasto")
-          .select("*, categoria_gasto(nombre)")
-          .eq("factura_id", id)
-          .order("created_at");
+          .from("ItemGasto")
+          .select("*, CategoriaGasto(Nombre)")
+          .eq("Id_Factura", parseInt(id))
+          .order("CreatedAt");
         setItemsGasto((items ?? []) as unknown as ItemGastoDetalle[]);
-      } else {
+      } else { // Venta
         const { data: items } = await supabase
-          .from("item_hacienda")
-          .select("*, categoria_hacienda(nombre)")
-          .eq("factura_id", id)
-          .order("created_at");
+          .from("ItemHacienda")
+          .select("*, CategoriaHacienda(Nombre)")
+          .eq("Id_Factura", parseInt(id))
+          .order("CreatedAt");
         setItemsHacienda((items ?? []) as unknown as ItemHaciendaDetalle[]);
       }
-
       setLoading(false);
     };
-
     fetch();
   }, [id]);
 
-  return (
-    <FacturaDetalleView
-      factura={factura}
-      itemsGasto={itemsGasto}
-      itemsHacienda={itemsHacienda}
-      loading={loading}
-      notFound={notFound}
-    />
-  );
+  return <FacturaDetalleView factura={factura} itemsGasto={itemsGasto} itemsHacienda={itemsHacienda} loading={loading} notFound={notFound} />;
 }
