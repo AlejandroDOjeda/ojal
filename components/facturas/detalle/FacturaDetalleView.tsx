@@ -7,29 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, SectionCard } from "@/components/app";
 import { formatARS } from "@/components/facturas/types";
+import { TIPO_COMPROBANTE_ITEMS, CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS, ESTADO_FACTURA_OPTIONS } from "@/lib/opciones";
 import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle } from "./FacturaDetalleContainer";
 
-const ESTADO_LABEL: Record<FacturaDetalle["estado"], string> = {
-  borrador: "Borrador", confirmada: "Confirmada", pagada: "Pagada", cobrada: "Cobrada", anulada: "Anulada",
-};
-
-const ESTADO_VARIANT: Record<FacturaDetalle["estado"], string> = {
-  borrador: "secondary", confirmada: "outline", pagada: "outline", cobrada: "outline", anulada: "destructive",
-};
-
-const ESTADO_CLASS: Record<FacturaDetalle["estado"], string> = {
-  borrador: "",
-  confirmada: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
-  pagada: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-  cobrada: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-  anulada: "",
+const ESTADO_LABEL = Object.fromEntries(ESTADO_FACTURA_OPTIONS.map(o => [o.value, o.label]));
+const ESTADO_VARIANT: Record<number, string> = { 1: "secondary", 2: "outline", 3: "outline", 4: "outline", 5: "destructive" };
+const ESTADO_CLASS: Record<number, string> = {
+  1: "", 5: "",
+  2: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
+  3: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
+  4: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
 };
 
 const formatFecha = (d: string) => new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-const formatNumero = (tipo: string | null, punto: string | null, numero: string | null) => {
-  const prefix = tipo === "liquidacion_hacienda" ? "Liq. Hacienda" : `Fc. ${tipo ?? ""}`;
-  if (!punto && !numero) return prefix;
-  return `${prefix} ${punto ?? "0000"}-${numero ?? "00000000"}`;
+const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
+  const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
+  if (!punto && !numero) return label || "—";
+  return `${label} ${punto ?? "0000"}-${numero ?? "00000000"}`;
 };
 
 const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -49,16 +43,12 @@ type Props = {
 
 const backLink = (
   <Link href="/facturas">
-    <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2">
-      <ArrowLeft size={14} />Volver a Facturas
-    </Button>
+    <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
   </Link>
 );
 
 export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, loading, notFound }: Props) {
-  if (loading) {
-    return <PageShell title="Detalle de Factura" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
-  }
+  if (loading) return <PageShell title="Detalle de Factura" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   if (notFound || !factura) {
     return (
@@ -71,43 +61,37 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
     );
   }
 
-  const isCompra = factura.tipo_operacion === "compra";
-  const titulo = formatNumero(factura.tipo_comprobante, factura.punto_venta, factura.numero);
+  const isCompra = factura.Id_TipoOperacion === 1;
+  const titulo = formatNumero(factura.Id_TipoComprobante, factura.PuntoVenta, factura.Numero);
+  const condPagoLabel = CONDICION_PAGO_OPTIONS.find(o => o.value === factura.Id_CondicionPago)?.label ?? "—";
+  const condIvaLabel = factura.EntidadLegal ? (CONDICION_IVA_ITEMS[String(factura.EntidadLegal.Id_CondicionIva)] ?? "—") : "—";
 
   return (
     <PageShell
-      title={titulo}
-      description={isCompra ? "Factura de Compra" : "Factura de Venta"}
-      back={backLink}
+      title={titulo} description={isCompra ? "Factura de Compra" : "Factura de Venta"} back={backLink}
       action={
-        <Badge
-          variant={ESTADO_VARIANT[factura.estado] as "default" | "secondary" | "destructive" | "outline"}
-          className={ESTADO_CLASS[factura.estado]}
-        >
-          {ESTADO_LABEL[factura.estado]}
+        <Badge variant={ESTADO_VARIANT[factura.Id_EstadoFactura] as "default" | "secondary" | "destructive" | "outline"} className={ESTADO_CLASS[factura.Id_EstadoFactura]}>
+          {ESTADO_LABEL[factura.Id_EstadoFactura] ?? "—"}
         </Badge>
       }
-      className="max-w-4xl"
-    >
+      className="max-w-4xl">
       <div className="space-y-6">
         <SectionCard title="Datos del comprobante">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <InfoRow label="Fecha" value={formatFecha(factura.fecha)} />
-            <InfoRow label="Condición de pago" value={factura.condicion_pago === "contado" ? "Contado" : "Cuenta corriente"} />
-            {factura.fecha_vencimiento && <InfoRow label="Vencimiento" value={formatFecha(factura.fecha_vencimiento)} />}
+            <InfoRow label="Fecha" value={formatFecha(factura.Fecha)} />
+            <InfoRow label="Condición de pago" value={condPagoLabel} />
+            {factura.FechaVencimiento && <InfoRow label="Vencimiento" value={formatFecha(factura.FechaVencimiento)} />}
           </div>
         </SectionCard>
 
         <SectionCard title={isCompra ? "Proveedor" : "Cliente"}>
-          {factura.entidad_legal ? (
+          {factura.EntidadLegal ? (
             <div className="space-y-3">
-              <InfoRow label="Razón Social" value={factura.entidad_legal.razon_social} />
-              <InfoRow label="CUIT / CUIL" value={factura.entidad_legal.cuit_cuil} />
-              <InfoRow label="Condición IVA" value={factura.entidad_legal.condicion_iva.replace("_", " ")} />
+              <InfoRow label="Razón Social" value={factura.EntidadLegal.RazonSocial} />
+              <InfoRow label="CUIT / CUIL" value={factura.EntidadLegal.CuitCuil} />
+              <InfoRow label="Condición IVA" value={condIvaLabel} />
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin información de entidad.</p>
-          )}
+          ) : <p className="text-sm text-muted-foreground">Sin información de entidad.</p>}
         </SectionCard>
 
         {isCompra ? (
@@ -125,13 +109,13 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
               </TableHeader>
               <TableBody>
                 {itemsGasto.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.descripcion}</TableCell>
-                    <TableCell className="text-muted-foreground">{item.categoria_gasto?.nombre ?? "—"}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.cantidad}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{formatARS(item.precio_unitario)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.tasa_iva}%</TableCell>
-                    <TableCell className="text-right font-medium">{formatARS(item.subtotal)}</TableCell>
+                  <TableRow key={item.Id_ItemGasto}>
+                    <TableCell>{item.Descripcion}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.CategoriaGasto?.Nombre ?? "—"}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.Cantidad}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{formatARS(item.PrecioUnitario)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.TasaIva}%</TableCell>
+                    <TableCell className="text-right font-medium">{formatARS(item.Subtotal)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -153,14 +137,14 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
               </TableHeader>
               <TableBody>
                 {itemsHacienda.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.categoria_hacienda?.nombre ?? "—"}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.cabezas}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.kg_promedio ?? "—"}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.precio_por_kg ? formatARS(item.precio_por_kg) : "—"}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.precio_por_cabeza ? formatARS(item.precio_por_cabeza) : "—"}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{item.tasa_iva}%</TableCell>
-                    <TableCell className="text-right font-medium">{formatARS(item.subtotal)}</TableCell>
+                  <TableRow key={item.Id_ItemHacienda}>
+                    <TableCell>{item.CategoriaHacienda?.Nombre ?? "—"}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.Cabezas}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.KgPromedio ?? "—"}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.PrecioPorKg ? formatARS(item.PrecioPorKg) : "—"}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.PrecioPorCabeza ? formatARS(item.PrecioPorCabeza) : "—"}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{item.TasaIva}%</TableCell>
+                    <TableCell className="text-right font-medium">{formatARS(item.Subtotal)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -170,18 +154,14 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
 
         <SectionCard title="Totales">
           <div className="space-y-2 text-sm max-w-xs ml-auto">
-            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (sin IVA)</span><span className="font-medium">{formatARS(factura.subtotal)}</span></div>
-            {factura.iva_10_5 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 10.5%</span><span className="font-medium">{formatARS(factura.iva_10_5)}</span></div>}
-            {factura.iva_21 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 21%</span><span className="font-medium">{formatARS(factura.iva_21)}</span></div>}
-            <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold text-base">Total</span><span className="font-bold text-base">{formatARS(factura.total)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (sin IVA)</span><span className="font-medium">{formatARS(factura.Subtotal)}</span></div>
+            {factura.Iva10_5 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 10.5%</span><span className="font-medium">{formatARS(factura.Iva10_5)}</span></div>}
+            {factura.Iva21 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 21%</span><span className="font-medium">{formatARS(factura.Iva21)}</span></div>}
+            <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold text-base">Total</span><span className="font-bold text-base">{formatARS(factura.Total)}</span></div>
           </div>
         </SectionCard>
 
-        {factura.observaciones && (
-          <SectionCard title="Observaciones">
-            <p className="text-sm text-muted-foreground">{factura.observaciones}</p>
-          </SectionCard>
-        )}
+        {factura.Observaciones && <SectionCard title="Observaciones"><p className="text-sm text-muted-foreground">{factura.Observaciones}</p></SectionCard>}
       </div>
     </PageShell>
   );

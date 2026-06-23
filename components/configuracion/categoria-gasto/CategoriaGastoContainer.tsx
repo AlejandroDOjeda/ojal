@@ -5,18 +5,18 @@ import { supabase } from "@/lib/supabaseClient";
 import CategoriaGastoView from "./CategoriaGastoView";
 
 export type CategoriaGasto = {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  tasa_iva_habitual: number;
-  activa: boolean;
-  created_at: string;
+  Id_CategoriaGasto: number;
+  Nombre: string;
+  Descripcion: string | null;
+  TasaIvaHabitual: number;
+  Activa: boolean;
+  CreatedAt: string;
 };
 
 export type CategoriaGastoFormData = {
-  nombre: string;
-  descripcion: string;
-  tasa_iva_habitual: number;
+  Nombre: string;
+  Descripcion: string;
+  TasaIvaHabitual: number;
 };
 
 export default function CategoriaGastoContainer() {
@@ -25,14 +25,12 @@ export default function CategoriaGastoContainer() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchCategorias = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     const { data, error } = await supabase
-      .from("categoria_gasto")
+      .from("CategoriaGasto")
       .select("*")
-      .eq("activa", true)
-      .order("nombre");
-
+      .eq("Activa", true)
+      .order("Nombre");
     if (error) setError(error.message);
     else setCategorias(data ?? []);
     setLoading(false);
@@ -41,30 +39,21 @@ export default function CategoriaGastoContainer() {
   useEffect(() => { fetchCategorias(); }, [fetchCategorias]);
 
   const handleCreate = async (formData: CategoriaGastoFormData) => {
-    const { error } = await supabase
-      .from("categoria_gasto")
-      .insert({ ...formData, activa: true });
+    const { error } = await supabase.from("CategoriaGasto").insert({ ...formData, Activa: true });
     if (error) throw new Error(error.message);
     await fetchCategorias();
   };
 
-  const handleUpdate = async (id: string, formData: CategoriaGastoFormData) => {
-    const { error } = await supabase
-      .from("categoria_gasto")
-      .update(formData)
-      .eq("id", id);
+  const handleUpdate = async (id: number, formData: CategoriaGastoFormData) => {
+    const { error } = await supabase.from("CategoriaGasto").update(formData).eq("Id_CategoriaGasto", id);
     if (error) throw new Error(error.message);
     await fetchCategorias();
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("categoria_gasto")
-      .delete()
-      .eq("id", id);
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase.from("CategoriaGasto").delete().eq("Id_CategoriaGasto", id);
     if (error) {
-      if (error.code === "23503")
-        throw new Error("No se puede eliminar: la categoría está en uso en facturas existentes.");
+      if (error.code === "23503") throw new Error("No se puede eliminar: la categoría está en uso en facturas existentes.");
       throw new Error(error.message);
     }
     await fetchCategorias();
@@ -72,12 +61,8 @@ export default function CategoriaGastoContainer() {
 
   return (
     <CategoriaGastoView
-      categorias={categorias}
-      loading={loading}
-      error={error}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      onDelete={handleDelete}
+      categorias={categorias} loading={loading} error={error}
+      onCreate={handleCreate} onUpdate={handleUpdate} onDelete={handleDelete}
     />
   );
 }

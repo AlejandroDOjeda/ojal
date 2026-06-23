@@ -13,6 +13,7 @@ import { PageShell, SectionCard } from "@/components/app";
 import { FacturaHeaderForm } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
+import { MODALIDAD_PRECIO_OPTIONS, MODALIDAD_PRECIO_ITEMS, TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
 import {
   EMPTY_HEADER, EMPTY_ITEM_HACIENDA, calcItemHaciendaSubtotal, calcTotalesHacienda, formatARS,
   type FacturaHeaderData, type ItemHaciendaForm,
@@ -53,28 +54,28 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
     setItems((p) => p.map((item) => {
       if (item._key !== key) return item;
       const updated = { ...item, [field]: value };
-      if (field === "categoria_hacienda_id") {
-        const cat = categorias.find((c) => c.id === value);
-        if (cat) updated.tasa_iva = String(cat.tasa_iva);
+      if (field === "Id_CategoriaHacienda") {
+        const cat = categorias.find((c) => String(c.id) === value);
+        if (cat) updated.TasaIva = String(cat.TasaIva);
       }
       return updated;
     }));
   };
 
   const validate = (): string | null => {
-    if (!header.tipo_comprobante) return "Seleccioná el tipo de comprobante.";
-    if (!header.fecha) return "La fecha es obligatoria.";
-    if (!header.entidad_legal_id) return "Seleccioná el cliente.";
-    if (header.condicion_pago === "cuenta_corriente" && !header.fecha_vencimiento) return "Ingresá la fecha de vencimiento.";
+    if (!header.Id_TipoComprobante) return "Seleccioná el tipo de comprobante.";
+    if (!header.Fecha) return "La fecha es obligatoria.";
+    if (!header.Id_EntidadLegal) return "Seleccioná el cliente.";
+    if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) return "Ingresá la fecha de vencimiento.";
     if (items.length === 0) return "Agregá al menos un ítem.";
     for (const item of items) {
-      if (!item.categoria_hacienda_id) return "Todos los ítems deben tener categoría.";
-      if (!item.cabezas || parseInt(item.cabezas) <= 0) return "La cantidad de cabezas debe ser mayor a 0.";
-      if (item.modalidad === "por_kg") {
-        if (!item.kg_promedio || parseFloat(item.kg_promedio) <= 0) return "Ingresá el peso promedio.";
-        if (!item.precio_por_kg || parseFloat(item.precio_por_kg) <= 0) return "Ingresá el precio por kg.";
+      if (!item.Id_CategoriaHacienda) return "Todos los ítems deben tener categoría.";
+      if (!item.Cabezas || parseInt(item.Cabezas) <= 0) return "La cantidad de cabezas debe ser mayor a 0.";
+      if (item.Modalidad === "1") {
+        if (!item.KgPromedio || parseFloat(item.KgPromedio) <= 0) return "Ingresá el peso promedio.";
+        if (!item.PrecioPorKg || parseFloat(item.PrecioPorKg) <= 0) return "Ingresá el precio por kg.";
       } else {
-        if (!item.precio_por_cabeza || parseFloat(item.precio_por_cabeza) <= 0) return "Ingresá el precio por cabeza.";
+        if (!item.PrecioPorCabeza || parseFloat(item.PrecioPorCabeza) <= 0) return "Ingresá el precio por cabeza.";
       }
     }
     return null;
@@ -93,15 +94,11 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
   const totales = calcTotalesHacienda(items);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
-      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2">
-        <ArrowLeft size={14} />Volver a Facturas
-      </Button>
+      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
     </Link>
   );
 
-  if (loadingData) {
-    return <PageShell title="Nueva Factura de Venta" back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
-  }
+  if (loadingData) return <PageShell title="Nueva Factura de Venta" back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
     <PageShell title="Nueva Factura de Venta" back={backLink} className="max-w-5xl">
@@ -110,9 +107,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
 
         <SectionCard title="Hacienda">
           <div className="flex justify-end mb-3">
-            <Button type="button" variant="ghost" size="sm" onClick={addItem} className="gap-1.5">
-              <Plus size={15} />Agregar ítem
-            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={addItem} className="gap-1.5"><Plus size={15} />Agregar ítem</Button>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -132,50 +127,42 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
                 {items.map((item) => (
                   <TableRow key={item._key} className="hover:bg-transparent">
                     <TableCell className="pr-3">
-                      <Select value={item.categoria_hacienda_id || undefined} onValueChange={(v) => updateItem(item._key, "categoria_hacienda_id", v ?? "")}>
+                      <Select
+                        items={Object.fromEntries(categorias.map((c) => [String(c.id), c.Nombre]))}
+                        value={item.Id_CategoriaHacienda || undefined}
+                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v ?? "")}>
                         <SelectTrigger className="w-full"><SelectValue placeholder="— Categoría —" /></SelectTrigger>
-                        <SelectContent>
-                          {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.Nombre}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="1" step="1" value={item.cabezas} onChange={(e) => updateItem(item._key, "cabezas", e.target.value)} className="text-right" placeholder="0" />
+                      <Input type="number" min="1" step="1" value={item.Cabezas} onChange={(e) => updateItem(item._key, "Cabezas", e.target.value)} className="text-right" placeholder="0" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select value={item.modalidad} onValueChange={(v) => updateItem(item._key, "modalidad", v ?? "por_kg")}>
+                      <Select items={MODALIDAD_PRECIO_ITEMS} value={item.Modalidad} onValueChange={(v) => updateItem(item._key, "Modalidad", v ?? "por_kg")}>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="por_kg">Por kg</SelectItem>
-                          <SelectItem value="por_cabeza">Por cabeza</SelectItem>
-                        </SelectContent>
+                        <SelectContent>{MODALIDAD_PRECIO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="px-3">
-                      {item.modalidad === "por_kg" ? (
-                        <Input type="number" min="0" step="0.1" value={item.kg_promedio} onChange={(e) => updateItem(item._key, "kg_promedio", e.target.value)} className="text-right" placeholder="0,0" />
+                      {item.Modalidad === "1" ? (
+                        <Input type="number" min="0" step="0.1" value={item.KgPromedio} onChange={(e) => updateItem(item._key, "KgPromedio", e.target.value)} className="text-right" placeholder="0,0" />
                       ) : <span className="block text-right text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="px-3">
-                      {item.modalidad === "por_kg" ? (
-                        <Input type="number" min="0" step="0.01" value={item.precio_por_kg} onChange={(e) => updateItem(item._key, "precio_por_kg", e.target.value)} className="text-right" placeholder="$/kg" />
+                      {item.Modalidad === "1" ? (
+                        <Input type="number" min="0" step="0.01" value={item.PrecioPorKg} onChange={(e) => updateItem(item._key, "PrecioPorKg", e.target.value)} className="text-right" placeholder="$/kg" />
                       ) : (
-                        <Input type="number" min="0" step="0.01" value={item.precio_por_cabeza} onChange={(e) => updateItem(item._key, "precio_por_cabeza", e.target.value)} className="text-right" placeholder="$/cab." />
+                        <Input type="number" min="0" step="0.01" value={item.PrecioPorCabeza} onChange={(e) => updateItem(item._key, "PrecioPorCabeza", e.target.value)} className="text-right" placeholder="$/cab." />
                       )}
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select value={item.tasa_iva} onValueChange={(v) => updateItem(item._key, "tasa_iva", v ?? "10.5")}>
+                      <Select items={TASA_IVA_ITEMS} value={item.TasaIva} onValueChange={(v) => updateItem(item._key, "TasaIva", v ?? "10.5")}>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">0%</SelectItem>
-                          <SelectItem value="10.5">10.5%</SelectItem>
-                          <SelectItem value="21">21%</SelectItem>
-                        </SelectContent>
+                        <SelectContent>{TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right font-medium whitespace-nowrap pl-3">
-                      {formatARS(calcItemHaciendaSubtotal(item))}
-                    </TableCell>
+                    <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemHaciendaSubtotal(item))}</TableCell>
                     <TableCell className="pl-2">
                       {items.length > 1 && (
                         <Button type="button" variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item._key)}>
