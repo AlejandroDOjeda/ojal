@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, GridContainer, FormField, EmptyState } from "@/components/app";
 import { formatCuit, cuitToDigits } from "@/lib/formato";
+import { validarCuit, validarEmail, validarTelefono, formatTelefono } from "@/lib/validaciones";
 import { TIPO_PERSONA_OPTIONS, TIPO_PERSONA_ITEMS, CONDICION_IVA_OPTIONS, CONDICION_IVA_ITEMS } from "@/lib/opciones";
 import type { EntidadLegal, EntidadLegalFormData } from "./EntidadesLegalesContainer";
 
@@ -46,8 +47,11 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
     e.preventDefault();
     if (!form.RazonSocial.trim()) { setFormError("La razón social es obligatoria."); return; }
     if (!form.CuitCuil.trim()) { setFormError("El CUIT/CUIL es obligatorio."); return; }
+    if (!validarCuit(form.CuitCuil)) { setFormError("El CUIT/CUIL no es válido. Verificá los 11 dígitos y el dígito verificador."); return; }
     if (!form.Id_TipoPersona) { setFormError("Seleccioná el tipo de persona."); return; }
     if (!form.Id_CondicionIva) { setFormError("Seleccioná la condición frente al IVA."); return; }
+    if (form.Email && !validarEmail(form.Email)) { setFormError("El formato del email no es válido."); return; }
+    if (form.Telefono && !validarTelefono(form.Telefono)) { setFormError("El teléfono debe tener entre 8 y 12 dígitos."); return; }
     setSaving(true); setFormError(null);
     try { editing ? await onUpdate(editing.Id_EntidadLegal, form) : await onCreate(form); closeModal(); }
     catch (err: unknown) { setFormError(err instanceof Error ? err.message : "Error al guardar."); }
@@ -131,20 +135,20 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
             </FormField>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Tipo" required>
-                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || undefined} onValueChange={(v) => setField("Id_TipoPersona", v ?? "")}>
+                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || null} onValueChange={(v) => setField("Id_TipoPersona", v ?? "")}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
                   <SelectContent>{TIPO_PERSONA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </FormField>
               <FormField label="Condición IVA" required>
-                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || undefined} onValueChange={(v) => setField("Id_CondicionIva", v ?? "")}>
+                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || null} onValueChange={(v) => setField("Id_CondicionIva", v ?? "")}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
                   <SelectContent>{CONDICION_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </FormField>
             </div>
             <FormField label="Email"><Input value={form.Email} onChange={(e) => setField("Email", e.target.value)} type="email" placeholder="Ej: contacto@empresa.com" /></FormField>
-            <FormField label="Teléfono"><Input value={form.Telefono} onChange={(e) => setField("Telefono", e.target.value)} placeholder="Ej: 011 15-1234-5678" /></FormField>
+            <FormField label="Teléfono"><Input value={form.Telefono} onChange={(e) => setField("Telefono", formatTelefono(e.target.value))} placeholder="Ej: 011 15-1234-5678" /></FormField>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2"><Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button></div>
           </form>

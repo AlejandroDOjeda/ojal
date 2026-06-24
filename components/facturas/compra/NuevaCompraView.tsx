@@ -126,7 +126,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                     <TableCell className="px-3">
                       <Select
                         items={Object.fromEntries(categorias.map((c) => [String(c.id), c.Nombre]))}
-                        value={item.Id_CategoriaGasto || undefined}
+                        value={item.Id_CategoriaGasto || null}
                         onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v ?? "")}>
                         <SelectTrigger className="w-full"><SelectValue placeholder="— Sin categoría —" /></SelectTrigger>
                         <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.Nombre}</SelectItem>)}</SelectContent>

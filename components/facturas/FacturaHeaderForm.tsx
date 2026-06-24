@@ -24,7 +24,7 @@ export function FacturaHeaderForm({ data, entidades, entidadLabel, onChange }: P
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <FormField label="Tipo" required>
-            <Select items={TIPO_COMPROBANTE_ITEMS} value={data.Id_TipoComprobante || undefined}
+            <Select items={TIPO_COMPROBANTE_ITEMS} value={data.Id_TipoComprobante || null}
               onValueChange={(v) => onChange("Id_TipoComprobante", v ?? "")}>
               <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
@@ -49,7 +49,7 @@ export function FacturaHeaderForm({ data, entidades, entidadLabel, onChange }: P
           <FormField label={entidadLabel} required className="sm:col-span-2">
             <Select
               items={Object.fromEntries(entidades.map((e) => [String(e.id), e.RazonSocial]))}
-              value={data.Id_EntidadLegal || undefined}
+              value={data.Id_EntidadLegal || null}
               onValueChange={(v) => onChange("Id_EntidadLegal", v ?? "")}>
               <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
               <SelectContent>

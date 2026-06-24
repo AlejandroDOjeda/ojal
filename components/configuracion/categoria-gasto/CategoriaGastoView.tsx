@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -118,9 +120,17 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
             <FormField label="Descripción">
               <Input value={form.Descripcion} onChange={(e) => setForm(f => ({ ...f, Descripcion: e.target.value }))} placeholder="Ej: Gasoil, nafta y lubricantes" />
             </FormField>
-            <FormField label="IVA habitual (%)" required>
-              <Input type="number" step="0.01" min="0" max="100" value={form.TasaIvaHabitual}
-                onChange={(e) => setForm(f => ({ ...f, TasaIvaHabitual: parseFloat(e.target.value) || 0 }))} />
+            <FormField label="IVA habitual" required>
+              <Select
+                items={TASA_IVA_ITEMS}
+                value={String(form.TasaIvaHabitual)}
+                onValueChange={(v) => setForm(f => ({ ...f, TasaIvaHabitual: parseFloat(v ?? "21") }))}
+              >
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </FormField>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2">

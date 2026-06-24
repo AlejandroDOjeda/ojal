@@ -129,7 +129,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
                     <TableCell className="pr-3">
                       <Select
                         items={Object.fromEntries(categorias.map((c) => [String(c.id), c.Nombre]))}
-                        value={item.Id_CategoriaHacienda || undefined}
+                        value={item.Id_CategoriaHacienda || null}
                         onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v ?? "")}>
                         <SelectTrigger className="w-full"><SelectValue placeholder="— Categoría —" /></SelectTrigger>
                         <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.Nombre}</SelectItem>)}</SelectContent>

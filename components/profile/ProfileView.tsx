@@ -54,13 +54,13 @@ export default function ProfileView({ userEmail, form, setForm, loading, saving,
             </FormField>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Tipo de persona" required>
-                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || undefined} onValueChange={setSelect("Id_TipoPersona")}>
+                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || null} onValueChange={setSelect("Id_TipoPersona")}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
                   <SelectContent>{TIPO_PERSONA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </FormField>
               <FormField label="Condición frente al IVA" required>
-                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || undefined} onValueChange={setSelect("Id_CondicionIva")}>
+                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || null} onValueChange={setSelect("Id_CondicionIva")}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
                   <SelectContent>{CONDICION_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
