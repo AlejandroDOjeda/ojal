@@ -24,6 +24,10 @@ type Props = {
   entidades: EntidadOption[];
   categorias: CategoriaHaciendaOption[];
   loadingData: boolean;
+  initialHeader?: FacturaHeaderData;
+  initialItems?: ItemHaciendaForm[];
+  title?: string;
+  cancelPath?: string;
   onSave: (header: FacturaHeaderData, items: ItemHaciendaForm[]) => Promise<void>;
 };
 
@@ -32,10 +36,10 @@ const newKey = () => String(++keyCounter);
 
 type ItemHaciendaErrors = Partial<Record<"Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 
-export default function NuevaVentaView({ entidades, categorias, loadingData, onSave }: Props) {
+export default function NuevaVentaView({ entidades, categorias, loadingData, initialHeader, initialItems, title, cancelPath, onSave }: Props) {
   const router = useRouter();
-  const [header, setHeader] = useState<FacturaHeaderData>(EMPTY_HEADER);
-  const [items, setItems] = useState<ItemHaciendaForm[]>([{ _key: newKey(), ...EMPTY_ITEM_HACIENDA }]);
+  const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
+  const [items, setItems] = useState<ItemHaciendaForm[]>(initialItems ?? [{ _key: newKey(), ...EMPTY_ITEM_HACIENDA }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
@@ -120,7 +124,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
   };
 
-  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas?tab=ventas"); };
+  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=ventas"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const totales = calcTotalesHacienda(items);
@@ -130,10 +134,10 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
     </Link>
   );
 
-  if (loadingData) return <PageShell title="Nueva Factura de Venta" back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title="Nueva Factura de Venta" back={backLink} className="max-w-5xl">
+    <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-5xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Cliente" onChange={setHeaderField} />
 
@@ -227,7 +231,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
           <p className="text-sm text-muted-foreground">Se perderán todos los cambios realizados en esta factura.</p>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setShowExitDialog(false)}>Quedarme</Button>
-            <Button variant="destructive" onClick={() => router.push("/facturas?tab=ventas")}>Salir</Button>
+            <Button variant="destructive" onClick={() => router.push(cancelPath ?? "/facturas?tab=ventas")}>Salir</Button>
           </div>
         </DialogContent>
       </Dialog>
