@@ -8,7 +8,7 @@ import { calcItemGastoSubtotal, calcTotalesGasto, type FacturaHeaderData, type I
 import NuevaCompraView from "./NuevaCompraView";
 
 export type CategoriaGastoOption = { id: number; Nombre: string; TasaIvaHabitual: number };
-export type EntidadOption = { id: number; RazonSocial: string };
+export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string };
 
 export default function NuevaCompraContainer() {
   const router = useRouter();
@@ -18,10 +18,10 @@ export default function NuevaCompraContainer() {
 
   const fetchData = useCallback(async () => {
     const [{ data: ents }, { data: cats }] = await Promise.all([
-      supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial").order("RazonSocial"),
+      supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial, CuitCuil").order("RazonSocial"),
       supabase.from("CategoriaGasto").select("Id_CategoriaGasto, Nombre, TasaIvaHabitual").eq("Activa", true).order("Nombre"),
     ]);
-    setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial })));
+    setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
     setCategorias((cats ?? []).map((c: { Id_CategoriaGasto: number; Nombre: string; TasaIvaHabitual: number }) => ({ id: c.Id_CategoriaGasto, Nombre: c.Nombre, TasaIvaHabitual: c.TasaIvaHabitual })));
     setLoadingData(false);
   }, []);
@@ -43,7 +43,6 @@ export default function NuevaCompraContainer() {
         Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
         Id_CondicionPago:   parseInt(header.Id_CondicionPago),
         FechaVencimiento:   esCuentaCorriente ? header.FechaVencimiento || null : null,
-        Id_EstadoFactura:   2, // Confirmada
         Subtotal:           totales.Subtotal,
         Iva10_5:            totales.Iva10_5,
         Iva21:              totales.Iva21,

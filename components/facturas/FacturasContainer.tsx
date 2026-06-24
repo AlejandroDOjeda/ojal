@@ -12,7 +12,6 @@ export type FacturaResumen = {
   PuntoVenta:          string | null;
   Numero:              string | null;
   Fecha:               string;
-  Id_EstadoFactura:    number;
   Total:               number;
   EntidadLegal:        { RazonSocial: string } | null;
 };
@@ -27,7 +26,7 @@ export default function FacturasContainer() {
     setLoading(true); setError(null);
     const { data, error } = await supabase
       .from("Factura")
-      .select("Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Id_EstadoFactura, Total, EntidadLegal(RazonSocial)")
+      .select("Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Total, EntidadLegal(RazonSocial)")
       .order("Fecha", { ascending: false });
 
     if (error) { setError(error.message); }

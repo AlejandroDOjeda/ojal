@@ -10,8 +10,6 @@ export interface Database {
       TipoOperacion:  { Row: { Id_TipoOperacion: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
       TipoComprobante:{ Row: { Id_TipoComprobante: number;Nombre: string }; Insert: never; Update: never; Relationships: [] };
       CondicionPago:  { Row: { Id_CondicionPago: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
-      EstadoFactura:  { Row: { Id_EstadoFactura: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
-
       // ── Profile (aislado por usuario, Id_Profile = UUID de auth) ─────────
       Profile: {
         Row: {
@@ -105,7 +103,6 @@ export interface Database {
           Id_EntidadLegal:     number;
           Id_CondicionPago:    number;
           FechaVencimiento:    string | null;
-          Id_EstadoFactura:    number;
           Subtotal:            number;
           Iva10_5:             number;
           Iva21:               number;
@@ -123,7 +120,7 @@ export interface Database {
           Id_EntidadLegal:     number;
           Id_CondicionPago?:   number;
           FechaVencimiento?:   string | null;
-          Id_EstadoFactura?:   number;
+
           Subtotal?:           number;
           Iva10_5?:            number;
           Iva21?:              number;
@@ -138,7 +135,7 @@ export interface Database {
           Id_EntidadLegal?:    number;
           Id_CondicionPago?:   number;
           FechaVencimiento?:   string | null;
-          Id_EstadoFactura?:   number;
+
           Subtotal?:           number;
           Iva10_5?:            number;
           Iva21?:              number;

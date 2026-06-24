@@ -47,18 +47,6 @@ export const CONDICION_PAGO_OPTIONS = [
 
 export const CONDICION_PAGO_ITEMS = toSelectItems(CONDICION_PAGO_OPTIONS);
 
-// ─── EstadoFactura ────────────────────────────────────────────────────────────
-
-export const ESTADO_FACTURA_OPTIONS = [
-  { value: 1, label: "Borrador"   },
-  { value: 2, label: "Confirmada" },
-  { value: 3, label: "Pagada"     },
-  { value: 4, label: "Cobrada"    },
-  { value: 5, label: "Anulada"    },
-] as const;
-
-export const ESTADO_FACTURA_ITEMS = toSelectItems(ESTADO_FACTURA_OPTIONS);
-
 // ─── TipoOperacion (constantes, no dropdown) ─────────────────────────────────
 
 export const TIPO_OPERACION = { COMPRA: 1, VENTA: 2 } as const;
@@ -69,6 +57,7 @@ export const TASA_IVA_OPTIONS = [
   { value: 0,    label: "0%"    },
   { value: 10.5, label: "10.5%" },
   { value: 21,   label: "21%"   },
+  { value: 27,   label: "27%"   },
 ] as const;
 
 export const TASA_IVA_ITEMS = toSelectItems(TASA_IVA_OPTIONS);

@@ -17,7 +17,6 @@ export type FacturaDetalle = {
   EntidadLegal:        EntidadInfo | null;
   Id_CondicionPago:    number;
   FechaVencimiento:    string | null;
-  Id_EstadoFactura:    number;
   Subtotal:            number;
   Iva10_5:             number;
   Iva21:               number;
