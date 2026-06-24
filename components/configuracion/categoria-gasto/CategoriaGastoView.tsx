@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,7 +31,6 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
   const [formErrors, setFormErrors] = useState<Errors>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); setModalOpen(true); };
   const openEdit = (cat: CategoriaGasto) => {
@@ -45,15 +45,19 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
     if (!form.Nombre.trim()) errors.Nombre = "Obligatorio";
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
     setSaving(true);
-    try { editing ? await onUpdate(editing.Id_CategoriaGasto, form) : await onCreate(form); closeModal(); }
-    catch (err: unknown) { setFormErrors({ Nombre: err instanceof Error ? err.message : "Error al guardar." }); }
+    try {
+      editing ? await onUpdate(editing.Id_CategoriaGasto, form) : await onCreate(form);
+      toast.success(editing ? "Categoría actualizada." : "Categoría creada.");
+      closeModal();
+    }
+    catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
     setDeleting(true);
-    try { await onDelete(id); setDeleteConfirmId(null); }
-    catch (err: unknown) { setDeleteError(err instanceof Error ? err.message : "No se pudo eliminar."); }
+    try { await onDelete(id); setDeleteConfirmId(null); toast.success("Categoría eliminada."); }
+    catch (err: unknown) { toast.error(err instanceof Error ? err.message : "No se pudo eliminar."); }
     finally { setDeleting(false); }
   };
 
@@ -75,7 +79,7 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
           <div className="flex items-center gap-1 justify-end">
             <Button variant="ghost" size="icon-sm" onClick={() => openEdit(cat)}><Pencil size={15} /></Button>
             <Button variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10"
-              onClick={() => { setDeleteError(null); setDeleteConfirmId(cat.Id_CategoriaGasto); }}><Trash2 size={15} /></Button>
+              onClick={() => { setDeleteConfirmId(cat.Id_CategoriaGasto); }}><Trash2 size={15} /></Button>
           </div>
         );
       },
@@ -86,11 +90,6 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
     <PageShell title="Categorías de Gasto" description="Categorías de gastos de compra utilizadas en las facturas"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
-      {deleteError && (
-        <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive flex items-center justify-between">
-          {deleteError}<Button variant="link" size="xs" onClick={() => setDeleteError(null)}>Cerrar</Button>
-        </div>
-      )}
       <DataTable data={categorias} columns={columns} loading={loading} />
 
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>

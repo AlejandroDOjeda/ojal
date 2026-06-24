@@ -17,12 +17,10 @@ type Props = {
   setForm: (form: ProfileFormData) => void;
   loading: boolean;
   saving: boolean;
-  successMessage: string | null;
-  errorMessage: string | null;
   onSave: (data: ProfileFormData) => Promise<void>;
 };
 
-export default function ProfileView({ userEmail, form, setForm, loading, saving, successMessage, errorMessage, onSave }: Props) {
+export default function ProfileView({ userEmail, form, setForm, loading, saving, onSave }: Props) {
   const [formErrors, setFormErrors] = useState<Errors>({});
 
   const setInput = (field: keyof ProfileFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,9 +79,6 @@ export default function ProfileView({ userEmail, form, setForm, loading, saving,
             </div>
           </div>
         </SectionCard>
-
-        {successMessage && <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-400">{successMessage}</div>}
-        {errorMessage && <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{errorMessage}</div>}
 
         <div className="flex justify-end">
           <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>

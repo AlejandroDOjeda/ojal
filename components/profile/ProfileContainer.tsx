@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuthContext } from "@/contexts/AuthContext";
 import ProfileView from "./ProfileView";
@@ -25,8 +26,6 @@ export default function ProfileContainer() {
   const [form, setForm] = useState<ProfileFormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     if (!userId) return;
@@ -50,7 +49,7 @@ export default function ProfileContainer() {
 
   const handleSave = async (data: ProfileFormData) => {
     if (!userId) return;
-    setSaving(true); setSuccessMessage(null); setErrorMessage(null);
+    setSaving(true);
 
     const { error } = await supabase.from("Profile").update({
       Nombre: data.Nombre || null,
@@ -62,11 +61,8 @@ export default function ProfileContainer() {
       Telefono: data.Telefono || null,
     }).eq("Id_Profile", userId);
 
-    if (error) setErrorMessage("No se pudo guardar el perfil. Intentá de nuevo.");
-    else {
-      setSuccessMessage("Perfil actualizado correctamente.");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    }
+    if (error) toast.error("No se pudo guardar el perfil. Intentá de nuevo.");
+    else toast.success("Perfil actualizado correctamente.");
     setSaving(false);
   };
 
@@ -74,7 +70,6 @@ export default function ProfileContainer() {
     <ProfileView
       userEmail={userEmail} form={form} setForm={setForm}
       loading={loading} saving={saving}
-      successMessage={successMessage} errorMessage={errorMessage}
       onSave={handleSave}
     />
   );

@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ type Props = {
 let keyCounter = 0;
 const newKey = () => String(++keyCounter);
 
+type ItemHaciendaErrors = Partial<Record<"Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
+
 export default function NuevaVentaView({ entidades, categorias, loadingData, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(EMPTY_HEADER);
@@ -36,6 +39,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
+  const [itemErrors, setItemErrors] = useState<Record<string, ItemHaciendaErrors>>({});
   const [showExitDialog, setShowExitDialog] = useState(false);
   const isDirty = useRef(false);
 
@@ -47,7 +51,11 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
   };
 
   const addItem = () => { markDirty(); setItems((p) => [...p, { _key: newKey(), ...EMPTY_ITEM_HACIENDA }]); };
-  const removeItem = (key: string) => { markDirty(); setItems((p) => p.filter((i) => i._key !== key)); };
+  const removeItem = (key: string) => {
+    markDirty();
+    setItems((p) => p.filter((i) => i._key !== key));
+    setItemErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+  };
 
   const updateItem = (key: string, field: keyof Omit<ItemHaciendaForm, "_key">, value: string) => {
     markDirty();
@@ -60,6 +68,22 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
       }
       return updated;
     }));
+    setItemErrors((prev) => {
+      const itemErr = prev[key];
+      if (!itemErr) return prev;
+      if (field === "Modalidad") {
+        const { KgPromedio: _a, PrecioPorKg: _b, PrecioPorCabeza: _c, ...rest } = itemErr;
+        const result = { ...prev, [key]: rest };
+        if (Object.keys(rest).length === 0) delete result[key];
+        return result;
+      }
+      if (!itemErr[field as keyof ItemHaciendaErrors]) return prev;
+      const next = { ...itemErr };
+      delete next[field as keyof ItemHaciendaErrors];
+      const result = { ...prev, [key]: next };
+      if (Object.keys(next).length === 0) delete result[key];
+      return result;
+    });
   };
 
   const validate = (): boolean => {
@@ -69,29 +93,34 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
     if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
+    const newItemErrors: Record<string, ItemHaciendaErrors> = {};
     for (const item of items) {
-      if (!item.Id_CategoriaHacienda) { setError("Todos los ítems deben tener categoría."); return false; }
-      if (!item.Cabezas || parseInt(item.Cabezas) <= 0) { setError("La cantidad de cabezas debe ser mayor a 0."); return false; }
+      const err: ItemHaciendaErrors = {};
+      if (!item.Id_CategoriaHacienda) err.Id_CategoriaHacienda = true;
+      if (!item.Cabezas || parseInt(item.Cabezas) <= 0) err.Cabezas = true;
       if (item.Modalidad === "1") {
-        if (!item.KgPromedio || parseFloat(item.KgPromedio) <= 0) { setError("Ingresá el peso promedio."); return false; }
-        if (!item.PrecioPorKg || parseFloat(item.PrecioPorKg) <= 0) { setError("Ingresá el precio por kg."); return false; }
+        if (!item.KgPromedio || parseFloat(item.KgPromedio) <= 0) err.KgPromedio = true;
+        if (!item.PrecioPorKg || parseFloat(item.PrecioPorKg) <= 0) err.PrecioPorKg = true;
       } else {
-        if (!item.PrecioPorCabeza || parseFloat(item.PrecioPorCabeza) <= 0) { setError("Ingresá el precio por cabeza."); return false; }
+        if (!item.PrecioPorCabeza || parseFloat(item.PrecioPorCabeza) <= 0) err.PrecioPorCabeza = true;
       }
+      if (Object.keys(err).length > 0) newItemErrors[item._key] = err;
     }
+    setItemErrors(newItemErrors);
+    if (Object.keys(newItemErrors).length > 0) { setError("Completá todos los campos obligatorios de los ítems."); return false; }
     return Object.keys(hErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!validate()) return;
+    if (!validate()) { toast.error("Complete los campos obligatorios"); return; }
     setSaving(true); setError(null);
     try { await onSave(header, items); }
-    catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
+    catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
   };
 
-  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas"); };
+  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas?tab=ventas"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const totales = calcTotalesHacienda(items);
@@ -135,10 +164,11 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
                         value={item.Id_CategoriaHacienda}
                         onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v)}
                         placeholder="— Categoría —"
+                        error={!!itemErrors[item._key]?.Id_CategoriaHacienda}
                       />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="1" step="1" value={item.Cabezas} onChange={(e) => updateItem(item._key, "Cabezas", e.target.value)} className="text-right" placeholder="0" />
+                      <Input type="number" min="1" step="1" value={item.Cabezas} onChange={(e) => updateItem(item._key, "Cabezas", e.target.value)} className={"text-right" + (itemErrors[item._key]?.Cabezas ? " border-destructive" : "")} placeholder="0" />
                     </TableCell>
                     <TableCell className="px-3">
                       <SelectBox
@@ -149,14 +179,14 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
                     </TableCell>
                     <TableCell className="px-3">
                       {item.Modalidad === "1" ? (
-                        <Input type="number" min="0" step="0.1" value={item.KgPromedio} onChange={(e) => updateItem(item._key, "KgPromedio", e.target.value)} className="text-right" placeholder="0,0" />
+                        <Input type="number" min="0" step="0.1" value={item.KgPromedio} onChange={(e) => updateItem(item._key, "KgPromedio", e.target.value)} className={"text-right" + (itemErrors[item._key]?.KgPromedio ? " border-destructive" : "")} placeholder="0,0" />
                       ) : <span className="block text-right text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="px-3">
                       {item.Modalidad === "1" ? (
-                        <Input type="number" min="0" step="0.01" value={item.PrecioPorKg} onChange={(e) => updateItem(item._key, "PrecioPorKg", e.target.value)} className="text-right" placeholder="$/kg" />
+                        <Input type="number" min="0" step="0.01" value={item.PrecioPorKg} onChange={(e) => updateItem(item._key, "PrecioPorKg", e.target.value)} className={"text-right" + (itemErrors[item._key]?.PrecioPorKg ? " border-destructive" : "")} placeholder="$/kg" />
                       ) : (
-                        <Input type="number" min="0" step="0.01" value={item.PrecioPorCabeza} onChange={(e) => updateItem(item._key, "PrecioPorCabeza", e.target.value)} className="text-right" placeholder="$/cab." />
+                        <Input type="number" min="0" step="0.01" value={item.PrecioPorCabeza} onChange={(e) => updateItem(item._key, "PrecioPorCabeza", e.target.value)} className={"text-right" + (itemErrors[item._key]?.PrecioPorCabeza ? " border-destructive" : "")} placeholder="$/cab." />
                       )}
                     </TableCell>
                     <TableCell className="px-3">
@@ -197,7 +227,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
           <p className="text-sm text-muted-foreground">Se perderán todos los cambios realizados en esta factura.</p>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setShowExitDialog(false)}>Quedarme</Button>
-            <Button variant="destructive" onClick={() => router.push("/facturas")}>Salir</Button>
+            <Button variant="destructive" onClick={() => router.push("/facturas?tab=ventas")}>Salir</Button>
           </div>
         </DialogContent>
       </Dialog>
