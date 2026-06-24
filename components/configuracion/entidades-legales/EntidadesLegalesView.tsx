@@ -13,6 +13,7 @@ import { TIPO_PERSONA_OPTIONS, TIPO_PERSONA_ITEMS, CONDICION_IVA_OPTIONS, CONDIC
 import type { EntidadLegal, EntidadLegalFormData } from "./EntidadesLegalesContainer";
 
 const EMPTY_FORM: EntidadLegalFormData = { RazonSocial: "", CuitCuil: "", Id_TipoPersona: "", Id_CondicionIva: "", Email: "", Telefono: "" };
+type Errors = Partial<Record<keyof EntidadLegalFormData, string>>;
 
 type Props = {
   entidades: EntidadLegal[];
@@ -28,32 +29,43 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
   const [editing, setEditing] = useState<EntidadLegal | null>(null);
   const [form, setForm] = useState<EntidadLegalFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Errors>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormError(null); setModalOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); setModalOpen(true); };
   const openEdit = (e: EntidadLegal) => {
     setEditing(e);
     setForm({ RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil, Id_TipoPersona: String(e.Id_TipoPersona), Id_CondicionIva: String(e.Id_CondicionIva), Email: e.Email ?? "", Telefono: e.Telefono ?? "" });
-    setFormError(null); setModalOpen(true);
+    setFormErrors({}); setModalOpen(true);
   };
-  const closeModal = () => { setModalOpen(false); setEditing(null); setForm(EMPTY_FORM); setFormError(null); };
-  const setField = (field: keyof EntidadLegalFormData, value: string) => setForm(f => ({ ...f, [field]: value }));
+  const closeModal = () => { setModalOpen(false); setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); };
+
+  const setField = (field: keyof EntidadLegalFormData, value: string) => {
+    setForm(f => ({ ...f, [field]: value }));
+    if (formErrors[field]) setFormErrors(e => ({ ...e, [field]: undefined }));
+  };
+
+  const validate = (): Errors => {
+    const e: Errors = {};
+    if (!form.RazonSocial.trim())      e.RazonSocial   = "Obligatorio";
+    if (!form.CuitCuil.trim())         e.CuitCuil      = "Obligatorio";
+    else if (!validarCuit(form.CuitCuil)) e.CuitCuil   = "CUIT/CUIL inválido";
+    if (!form.Id_TipoPersona)          e.Id_TipoPersona  = "Obligatorio";
+    if (!form.Id_CondicionIva)         e.Id_CondicionIva = "Obligatorio";
+    if (form.Email && !validarEmail(form.Email))       e.Email    = "Email inválido";
+    if (form.Telefono && !validarTelefono(form.Telefono)) e.Telefono = "Teléfono inválido";
+    return e;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.RazonSocial.trim()) { setFormError("La razón social es obligatoria."); return; }
-    if (!form.CuitCuil.trim()) { setFormError("El CUIT/CUIL es obligatorio."); return; }
-    if (!validarCuit(form.CuitCuil)) { setFormError("El CUIT/CUIL no es válido. Verificá los 11 dígitos y el dígito verificador."); return; }
-    if (!form.Id_TipoPersona) { setFormError("Seleccioná el tipo de persona."); return; }
-    if (!form.Id_CondicionIva) { setFormError("Seleccioná la condición frente al IVA."); return; }
-    if (form.Email && !validarEmail(form.Email)) { setFormError("El formato del email no es válido."); return; }
-    if (form.Telefono && !validarTelefono(form.Telefono)) { setFormError("El teléfono debe tener entre 8 y 12 dígitos."); return; }
-    setSaving(true); setFormError(null);
+    const errors = validate();
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    setSaving(true);
     try { editing ? await onUpdate(editing.Id_EntidadLegal, form) : await onCreate(form); closeModal(); }
-    catch (err: unknown) { setFormError(err instanceof Error ? err.message : "Error al guardar."); }
+    catch (err: unknown) { setFormErrors({ RazonSocial: err instanceof Error ? err.message : "Error al guardar." }); }
     finally { setSaving(false); }
   };
 
@@ -112,35 +124,32 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Editar entidad legal" : "Nueva entidad legal"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-            <FormField label="Razón Social" required>
-              <Input value={form.RazonSocial} onChange={(e) => setField("RazonSocial", e.target.value)} placeholder="Ej: García & Asociados S.A." />
+            <FormField label="Razón Social" required error={formErrors.RazonSocial}>
+              <Input value={form.RazonSocial} onChange={(e) => setField("RazonSocial", e.target.value)}
+                placeholder="Ej: García & Asociados S.A." aria-invalid={!!formErrors.RazonSocial} />
             </FormField>
-            <FormField label="CUIT / CUIL" required>
-              <Input value={formatCuit(form.CuitCuil)} onChange={(e) => setField("CuitCuil", cuitToDigits(e.target.value))} placeholder="XX-XXXXXXXX-X" maxLength={13} />
+            <FormField label="CUIT / CUIL" required error={formErrors.CuitCuil}>
+              <Input value={formatCuit(form.CuitCuil)} onChange={(e) => setField("CuitCuil", cuitToDigits(e.target.value))}
+                placeholder="XX-XXXXXXXX-X" maxLength={13} aria-invalid={!!formErrors.CuitCuil} />
             </FormField>
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Tipo" required>
-                <SelectBox
-                  options={TIPO_PERSONA_OPTIONS}
-                  value={form.Id_TipoPersona}
-                  onValueChange={(v) => setField("Id_TipoPersona", v)}
-                />
+              <FormField label="Tipo" required error={formErrors.Id_TipoPersona}>
+                <SelectBox options={TIPO_PERSONA_OPTIONS} value={form.Id_TipoPersona}
+                  onValueChange={(v) => setField("Id_TipoPersona", v)} error={!!formErrors.Id_TipoPersona} />
               </FormField>
-              <FormField label="Condición IVA" required>
-                <SelectBox
-                  options={CONDICION_IVA_OPTIONS}
-                  value={form.Id_CondicionIva}
-                  onValueChange={(v) => setField("Id_CondicionIva", v)}
-                />
+              <FormField label="Condición IVA" required error={formErrors.Id_CondicionIva}>
+                <SelectBox options={CONDICION_IVA_OPTIONS} value={form.Id_CondicionIva}
+                  onValueChange={(v) => setField("Id_CondicionIva", v)} error={!!formErrors.Id_CondicionIva} />
               </FormField>
             </div>
-            <FormField label="Email">
-              <Input value={form.Email} onChange={(e) => setField("Email", e.target.value)} type="email" placeholder="Ej: contacto@empresa.com" />
+            <FormField label="Email" error={formErrors.Email}>
+              <Input value={form.Email} onChange={(e) => setField("Email", e.target.value)}
+                type="email" placeholder="Ej: contacto@empresa.com" aria-invalid={!!formErrors.Email} />
             </FormField>
-            <FormField label="Teléfono">
-              <Input value={form.Telefono} onChange={(e) => setField("Telefono", formatTelefono(e.target.value))} placeholder="Ej: 011 15-1234-5678" />
+            <FormField label="Teléfono" error={formErrors.Telefono}>
+              <Input value={form.Telefono} onChange={(e) => setField("Telefono", formatTelefono(e.target.value))}
+                placeholder="Ej: 011 15-1234-5678" aria-invalid={!!formErrors.Telefono} />
             </FormField>
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2"><Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button></div>
           </form>
         </DialogContent>

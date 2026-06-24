@@ -11,6 +11,7 @@ import { TASA_IVA_OPTIONS } from "@/lib/opciones";
 import type { CategoriaGasto, CategoriaGastoFormData } from "./CategoriaGastoContainer";
 
 const EMPTY_FORM: CategoriaGastoFormData = { Nombre: "", Descripcion: "", TasaIvaHabitual: 21.0 };
+type Errors = Partial<Record<keyof CategoriaGastoFormData, string>>;
 
 type Props = {
   categorias: CategoriaGasto[];
@@ -26,24 +27,26 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
   const [editing, setEditing] = useState<CategoriaGasto | null>(null);
   const [form, setForm] = useState<CategoriaGastoFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Errors>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormError(null); setModalOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); setModalOpen(true); };
   const openEdit = (cat: CategoriaGasto) => {
     setEditing(cat); setForm({ Nombre: cat.Nombre, Descripcion: cat.Descripcion ?? "", TasaIvaHabitual: cat.TasaIvaHabitual });
-    setFormError(null); setModalOpen(true);
+    setFormErrors({}); setModalOpen(true);
   };
-  const closeModal = () => { setModalOpen(false); setEditing(null); setForm(EMPTY_FORM); setFormError(null); };
+  const closeModal = () => { setModalOpen(false); setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.Nombre.trim()) { setFormError("El nombre es obligatorio."); return; }
-    setSaving(true); setFormError(null);
+    const errors: Errors = {};
+    if (!form.Nombre.trim()) errors.Nombre = "Obligatorio";
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    setSaving(true);
     try { editing ? await onUpdate(editing.Id_CategoriaGasto, form) : await onCreate(form); closeModal(); }
-    catch (err: unknown) { setFormError(err instanceof Error ? err.message : "Error al guardar."); }
+    catch (err: unknown) { setFormErrors({ Nombre: err instanceof Error ? err.message : "Error al guardar." }); }
     finally { setSaving(false); }
   };
 
@@ -94,20 +97,17 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Editar categoría" : "Nueva categoría de gasto"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-            <FormField label="Nombre" required>
-              <Input value={form.Nombre} onChange={(e) => setForm(f => ({ ...f, Nombre: e.target.value }))} placeholder="Ej: Combustible" />
+            <FormField label="Nombre" required error={formErrors.Nombre}>
+              <Input value={form.Nombre} onChange={(e) => { setForm(f => ({ ...f, Nombre: e.target.value })); setFormErrors({}); }}
+                placeholder="Ej: Combustible" aria-invalid={!!formErrors.Nombre} />
             </FormField>
             <FormField label="Descripción">
               <Input value={form.Descripcion} onChange={(e) => setForm(f => ({ ...f, Descripcion: e.target.value }))} placeholder="Ej: Gasoil, nafta y lubricantes" />
             </FormField>
             <FormField label="IVA habitual" required>
-              <SelectBox
-                options={TASA_IVA_OPTIONS}
-                value={String(form.TasaIvaHabitual)}
-                onValueChange={(v) => setForm(f => ({ ...f, TasaIvaHabitual: parseFloat(v || "21") }))}
-              />
+              <SelectBox options={TASA_IVA_OPTIONS} value={String(form.TasaIvaHabitual)}
+                onValueChange={(v) => setForm(f => ({ ...f, TasaIvaHabitual: parseFloat(v || "21") }))} />
             </FormField>
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2"><Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button></div>
           </form>
         </DialogContent>

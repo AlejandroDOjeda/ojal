@@ -8,4 +8,5 @@ export { ComboboxEntidad } from "./ComboboxEntidad";
 export type { EntidadOption } from "./ComboboxEntidad";
 export { SelectBox } from "./SelectBox";
 export type { SelectOption } from "./SelectBox";
+export { Combobox } from "./Combobox";
 export { DatePicker } from "./DatePicker";

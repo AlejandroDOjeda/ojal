@@ -12,6 +12,7 @@ type Props = {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  error?: boolean;
 };
 
 export function SelectBox({
@@ -21,6 +22,7 @@ export function SelectBox({
   placeholder = "— Seleccioná —",
   className,
   disabled,
+  error,
 }: Props) {
   const items = Object.fromEntries(options.map((o) => [String(o.value), o.label]));
 
@@ -31,7 +33,7 @@ export function SelectBox({
       onValueChange={(v) => onValueChange(v ?? "")}
       disabled={disabled}
     >
-      <SelectTrigger className={cn("w-full", className)}>
+      <SelectTrigger className={cn("w-full", error && "border-destructive focus-visible:ring-destructive/20", className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

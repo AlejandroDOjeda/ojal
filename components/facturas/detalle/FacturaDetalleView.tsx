@@ -3,21 +3,11 @@
 import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, SectionCard } from "@/components/app";
 import { formatARS } from "@/components/facturas/types";
-import { TIPO_COMPROBANTE_ITEMS, CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS, ESTADO_FACTURA_OPTIONS } from "@/lib/opciones";
+import { TIPO_COMPROBANTE_ITEMS, CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
 import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle } from "./FacturaDetalleContainer";
-
-const ESTADO_LABEL = Object.fromEntries(ESTADO_FACTURA_OPTIONS.map(o => [o.value, o.label]));
-const ESTADO_VARIANT: Record<number, string> = { 1: "secondary", 2: "outline", 3: "outline", 4: "outline", 5: "destructive" };
-const ESTADO_CLASS: Record<number, string> = {
-  1: "", 5: "",
-  2: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
-  3: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-  4: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-};
 
 const formatFecha = (d: string) => new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
@@ -67,14 +57,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
   const condIvaLabel = factura.EntidadLegal ? (CONDICION_IVA_ITEMS[String(factura.EntidadLegal.Id_CondicionIva)] ?? "—") : "—";
 
   return (
-    <PageShell
-      title={titulo} description={isCompra ? "Factura de Compra" : "Factura de Venta"} back={backLink}
-      action={
-        <Badge variant={ESTADO_VARIANT[factura.Id_EstadoFactura] as "default" | "secondary" | "destructive" | "outline"} className={ESTADO_CLASS[factura.Id_EstadoFactura]}>
-          {ESTADO_LABEL[factura.Id_EstadoFactura] ?? "—"}
-        </Badge>
-      }
-      className="max-w-4xl">
+    <PageShell title={titulo} description={isCompra ? "Factura de Compra" : "Factura de Venta"} back={backLink} className="max-w-4xl">
       <div className="space-y-6">
         <SectionCard title="Datos del comprobante">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

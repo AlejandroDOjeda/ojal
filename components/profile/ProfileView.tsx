@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageShell, SectionCard, FormField, SelectBox } from "@/components/app";
 import { formatCuit, cuitToDigits } from "@/lib/formato";
+import { validarCuit } from "@/lib/validaciones";
 import { TIPO_PERSONA_OPTIONS, CONDICION_IVA_OPTIONS } from "@/lib/opciones";
 import type { ProfileFormData } from "./ProfileContainer";
+
+type Errors = Partial<Record<keyof ProfileFormData, string>>;
 
 type Props = {
   userEmail: string | null;
@@ -19,16 +23,30 @@ type Props = {
 };
 
 export default function ProfileView({ userEmail, form, setForm, loading, saving, successMessage, errorMessage, onSave }: Props) {
-  const setInput = (field: keyof ProfileFormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const [formErrors, setFormErrors] = useState<Errors>({});
+
+  const setInput = (field: keyof ProfileFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [field]: e.target.value });
-  const setSelect = (field: keyof ProfileFormData) => (value: string) =>
+    if (formErrors[field]) setFormErrors(ev => ({ ...ev, [field]: undefined }));
+  };
+  const setSelect = (field: keyof ProfileFormData) => (value: string) => {
     setForm({ ...form, [field]: value });
+    if (formErrors[field]) setFormErrors(ev => ({ ...ev, [field]: undefined }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: Errors = {};
+    if (form.CuitCuil && !validarCuit(form.CuitCuil)) errors.CuitCuil = "CUIT/CUIL inválido";
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    onSave(form);
+  };
 
   if (loading) return <PageShell title="Mi perfil" className="max-w-2xl"><p className="text-muted-foreground">Cargando perfil...</p></PageShell>;
 
   return (
     <PageShell title="Mi perfil" description="Información personal y fiscal de tu cuenta" className="max-w-2xl">
-      <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <SectionCard title="Acceso" description="Datos de tu cuenta en el sistema">
           <FormField label="Email"><Input value={userEmail ?? ""} disabled className="opacity-60" /></FormField>
         </SectionCard>
@@ -48,23 +66,17 @@ export default function ProfileView({ userEmail, form, setForm, loading, saving,
             <FormField label="Razón Social">
               <Input value={form.RazonSocial} onChange={setInput("RazonSocial")} placeholder="Ej: García Juan Carlos o García & Hijos S.A." />
             </FormField>
-            <FormField label="CUIT / CUIL" required>
-              <Input value={formatCuit(form.CuitCuil)} onChange={(e) => setForm({ ...form, CuitCuil: cuitToDigits(e.target.value) })} placeholder="XX-XXXXXXXX-X" maxLength={13} />
+            <FormField label="CUIT / CUIL" error={formErrors.CuitCuil}>
+              <Input value={formatCuit(form.CuitCuil)} aria-invalid={!!formErrors.CuitCuil}
+                onChange={(e) => { setForm({ ...form, CuitCuil: cuitToDigits(e.target.value) }); setFormErrors({}); }}
+                placeholder="XX-XXXXXXXX-X" maxLength={13} />
             </FormField>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Tipo de persona" required>
-                <SelectBox
-                  options={TIPO_PERSONA_OPTIONS}
-                  value={form.Id_TipoPersona}
-                  onValueChange={setSelect("Id_TipoPersona")}
-                />
+                <SelectBox options={TIPO_PERSONA_OPTIONS} value={form.Id_TipoPersona} onValueChange={setSelect("Id_TipoPersona")} />
               </FormField>
               <FormField label="Condición frente al IVA" required>
-                <SelectBox
-                  options={CONDICION_IVA_OPTIONS}
-                  value={form.Id_CondicionIva}
-                  onValueChange={setSelect("Id_CondicionIva")}
-                />
+                <SelectBox options={CONDICION_IVA_OPTIONS} value={form.Id_CondicionIva} onValueChange={setSelect("Id_CondicionIva")} />
               </FormField>
             </div>
           </div>

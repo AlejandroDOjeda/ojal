@@ -30,6 +30,7 @@ type Props = {
   onValueChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  error?: boolean;
 };
 
 export function ComboboxEntidad({
@@ -38,6 +39,7 @@ export function ComboboxEntidad({
   onValueChange,
   placeholder = "— Seleccioná —",
   disabled = false,
+  error,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -51,7 +53,8 @@ export function ComboboxEntidad({
           "flex h-8 w-full items-center justify-between rounded-lg border border-input bg-background px-2.5 py-1 text-sm transition-colors outline-none",
           "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          !selected && "text-muted-foreground"
+          !selected && "text-muted-foreground",
+          error && "border-destructive focus-visible:ring-destructive/20"
         )}
       >
         <span className="truncate">

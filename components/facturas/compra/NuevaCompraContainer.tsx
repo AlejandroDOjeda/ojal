@@ -43,7 +43,6 @@ export default function NuevaCompraContainer() {
         Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
         Id_CondicionPago:   parseInt(header.Id_CondicionPago),
         FechaVencimiento:   esCuentaCorriente ? header.FechaVencimiento || null : null,
-        Id_EstadoFactura:   2, // Confirmada
         Subtotal:           totales.Subtotal,
         Iva10_5:            totales.Iva10_5,
         Iva21:              totales.Iva21,

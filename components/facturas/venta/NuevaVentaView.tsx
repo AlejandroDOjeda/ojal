@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageShell, SectionCard, SelectBox } from "@/components/app";
-import { FacturaHeaderForm } from "@/components/facturas/FacturaHeaderForm";
+import { FacturaHeaderForm, type FacturaHeaderErrors } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
 import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS } from "@/lib/opciones";
@@ -35,6 +35,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
   const [items, setItems] = useState<ItemHaciendaForm[]>([{ _key: newKey(), ...EMPTY_ITEM_HACIENDA }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
   const [showExitDialog, setShowExitDialog] = useState(false);
   const isDirty = useRef(false);
 
@@ -61,28 +62,30 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
     }));
   };
 
-  const validate = (): string | null => {
-    if (!header.Id_TipoComprobante) return "Seleccioná el tipo de comprobante.";
-    if (!header.Fecha) return "La fecha es obligatoria.";
-    if (!header.Id_EntidadLegal) return "Seleccioná el cliente.";
-    if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) return "Ingresá la fecha de vencimiento.";
-    if (items.length === 0) return "Agregá al menos un ítem.";
+  const validate = (): boolean => {
+    const hErrors: FacturaHeaderErrors = {};
+    if (!header.Id_TipoComprobante) hErrors.Id_TipoComprobante = "Obligatorio";
+    if (!header.Fecha) hErrors.Fecha = "Obligatorio";
+    if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
+    if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
+    if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
     for (const item of items) {
-      if (!item.Id_CategoriaHacienda) return "Todos los ítems deben tener categoría.";
-      if (!item.Cabezas || parseInt(item.Cabezas) <= 0) return "La cantidad de cabezas debe ser mayor a 0.";
+      if (!item.Id_CategoriaHacienda) { setError("Todos los ítems deben tener categoría."); return false; }
+      if (!item.Cabezas || parseInt(item.Cabezas) <= 0) { setError("La cantidad de cabezas debe ser mayor a 0."); return false; }
       if (item.Modalidad === "1") {
-        if (!item.KgPromedio || parseFloat(item.KgPromedio) <= 0) return "Ingresá el peso promedio.";
-        if (!item.PrecioPorKg || parseFloat(item.PrecioPorKg) <= 0) return "Ingresá el precio por kg.";
+        if (!item.KgPromedio || parseFloat(item.KgPromedio) <= 0) { setError("Ingresá el peso promedio."); return false; }
+        if (!item.PrecioPorKg || parseFloat(item.PrecioPorKg) <= 0) { setError("Ingresá el precio por kg."); return false; }
       } else {
-        if (!item.PrecioPorCabeza || parseFloat(item.PrecioPorCabeza) <= 0) return "Ingresá el precio por cabeza.";
+        if (!item.PrecioPorCabeza || parseFloat(item.PrecioPorCabeza) <= 0) { setError("Ingresá el precio por cabeza."); return false; }
       }
     }
-    return null;
+    return Object.keys(hErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const v = validate(); if (v) { setError(v); return; }
+    setError(null);
+    if (!validate()) return;
     setSaving(true); setError(null);
     try { await onSave(header, items); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
@@ -103,7 +106,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
   return (
     <PageShell title="Nueva Factura de Venta" back={backLink} className="max-w-5xl">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <FacturaHeaderForm data={header} entidades={entidades} entidadLabel="Cliente" onChange={setHeaderField} />
+        <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Cliente" onChange={setHeaderField} />
 
         <SectionCard title="Hacienda">
           <div className="flex justify-end mb-3">

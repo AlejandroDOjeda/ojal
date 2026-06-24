@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageShell, SectionCard, SelectBox } from "@/components/app";
-import { FacturaHeaderForm } from "@/components/facturas/FacturaHeaderForm";
+import { PageShell, SectionCard, SelectBox, Combobox } from "@/components/app";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { FacturaHeaderForm, type FacturaHeaderErrors } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
 import { TASA_IVA_OPTIONS } from "@/lib/opciones";
@@ -35,6 +36,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
   const [items, setItems] = useState<ItemGastoForm[]>([{ _key: newKey(), ...EMPTY_ITEM_GASTO }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
   const [showExitDialog, setShowExitDialog] = useState(false);
   const isDirty = useRef(false);
 
@@ -61,23 +63,26 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
     }));
   };
 
-  const validate = (): string | null => {
-    if (!header.Id_TipoComprobante) return "Seleccioná el tipo de comprobante.";
-    if (!header.Fecha) return "La fecha es obligatoria.";
-    if (!header.Id_EntidadLegal) return "Seleccioná el proveedor.";
-    if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) return "Ingresá la fecha de vencimiento.";
-    if (items.length === 0) return "Agregá al menos un ítem.";
+  const validate = (): boolean => {
+    const hErrors: FacturaHeaderErrors = {};
+    if (!header.Id_TipoComprobante) hErrors.Id_TipoComprobante = "Obligatorio";
+    if (!header.Fecha) hErrors.Fecha = "Obligatorio";
+    if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
+    if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
+    if (Object.keys(hErrors).length > 0) { setHeaderErrors(hErrors); }
+    if (items.length === 0) { setError("Agregá al menos un ítem."); return false; }
     for (const item of items) {
-      if (!item.Descripcion.trim()) return "Todos los ítems deben tener descripción.";
-      if (!item.Cantidad || parseFloat(item.Cantidad) <= 0) return "La cantidad debe ser mayor a 0.";
-      if (!item.PrecioUnitario || parseFloat(item.PrecioUnitario) <= 0) return "El precio unitario debe ser mayor a 0.";
+      if (!item.Descripcion.trim()) { setError("Todos los ítems deben tener descripción."); return false; }
+      if (!item.Cantidad || parseFloat(item.Cantidad) <= 0) { setError("La cantidad debe ser mayor a 0."); return false; }
+      if (!item.PrecioUnitario || parseFloat(item.PrecioUnitario) <= 0) { setError("El precio unitario debe ser mayor a 0."); return false; }
     }
-    return null;
+    return Object.keys(hErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const v = validate(); if (v) { setError(v); return; }
+    setError(null);
+    if (!validate()) return;
     setSaving(true); setError(null);
     try { await onSave(header, items); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
@@ -98,7 +103,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
   return (
     <PageShell title="Nueva Factura de Compra" back={backLink} className="max-w-5xl">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <FacturaHeaderForm data={header} entidades={entidades} entidadLabel="Proveedor" onChange={setHeaderField} />
+        <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Proveedor" onChange={setHeaderField} />
 
         <SectionCard title="Ítems">
           <div className="flex justify-end mb-3">
@@ -124,7 +129,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                       <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <SelectBox
+                      <Combobox
                         options={categoriasOptions}
                         value={item.Id_CategoriaGasto}
                         onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v)}
@@ -132,10 +137,13 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                       />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="0" step="0.001" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className="text-right" />
+                      <Input type="number" min="0" step="0.01" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className="text-right" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
+                      <InputGroup>
+                        <InputGroupAddon>$</InputGroupAddon>
+                        <InputGroupInput type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
+                      </InputGroup>
                     </TableCell>
                     <TableCell className="px-3">
                       <SelectBox

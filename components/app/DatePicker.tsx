@@ -14,6 +14,7 @@ type Props = {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  error?: boolean;
 };
 
 export function DatePicker({
@@ -22,6 +23,7 @@ export function DatePicker({
   placeholder = "Seleccioná una fecha",
   className,
   disabled,
+  error,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -36,6 +38,7 @@ export function DatePicker({
           "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           !date && "text-muted-foreground",
+          error && "border-destructive focus-visible:ring-destructive/20",
           className
         )}
       >

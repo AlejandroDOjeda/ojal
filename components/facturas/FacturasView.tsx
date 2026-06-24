@@ -6,21 +6,9 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Plus, ShoppingCart, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageShell, DataTable } from "@/components/app";
-import { TIPO_COMPROBANTE_ITEMS, ESTADO_FACTURA_OPTIONS } from "@/lib/opciones";
+import { TIPO_COMPROBANTE_ITEMS } from "@/lib/opciones";
 import type { FacturaResumen } from "./FacturasContainer";
-
-const ESTADO_LABEL = Object.fromEntries(ESTADO_FACTURA_OPTIONS.map(o => [o.value, o.label]));
-const ESTADO_VARIANT: Record<number, "default" | "secondary" | "destructive" | "outline"> = {
-  1: "secondary", 2: "outline", 3: "outline", 4: "outline", 5: "destructive",
-};
-const ESTADO_CLASS: Record<number, string> = {
-  1: "", 5: "",
-  2: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
-  3: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-  4: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-};
 
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
   const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
@@ -62,15 +50,6 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
       cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
     },
     {
-      accessorKey: "Id_EstadoFactura",
-      header: "Estado",
-      cell: ({ row }) => (
-        <Badge variant={ESTADO_VARIANT[row.original.Id_EstadoFactura]} className={ESTADO_CLASS[row.original.Id_EstadoFactura]}>
-          {ESTADO_LABEL[row.original.Id_EstadoFactura] ?? "—"}
-        </Badge>
-      ),
-    },
-    {
       id: "ver", header: "", enableSorting: false, size: 60,
       cell: ({ row }) => <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>,
     },
@@ -100,15 +79,6 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
       cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
     },
     {
-      accessorKey: "Id_EstadoFactura",
-      header: "Estado",
-      cell: ({ row }) => (
-        <Badge variant={ESTADO_VARIANT[row.original.Id_EstadoFactura]} className={ESTADO_CLASS[row.original.Id_EstadoFactura]}>
-          {ESTADO_LABEL[row.original.Id_EstadoFactura] ?? "—"}
-        </Badge>
-      ),
-    },
-    {
       id: "ver", header: "", enableSorting: false, size: 60,
       cell: ({ row }) => <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>,
     },
@@ -118,7 +88,6 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
     <PageShell title="Facturas" description="Comprobantes de compra y venta">
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
 
-      {/* Tabs + botón */}
       <div className="flex items-end justify-between mb-4 border-b border-border">
         <div className="flex gap-1">
           <button onClick={() => setTab("compras")}
@@ -138,10 +107,8 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
         </Button>
       </div>
 
-      {/* key={tab} resetea la búsqueda al cambiar de pestaña */}
       {tab === "compras" ? (
-        <DataTable key="compras" data={compras} columns={columnsCompras} loading={loading}
-           />
+        <DataTable key="compras" data={compras} columns={columnsCompras} loading={loading} />
       ) : (
         <DataTable key="ventas" data={ventas} columns={columnsVentas} loading={loading} />
       )}
