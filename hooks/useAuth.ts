@@ -43,11 +43,33 @@ export default function useAuth() {
     if (error) throw error;
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+  const signUpWithEmail = useCallback(async (email: string, password: string, profileData?: {
+    nombre?: string; apellido?: string; telefono?: string;
+    razonSocial?: string; cuitCuil?: string; idTipoPersona?: string; idCondicionIva?: string;
+  }) => {
+    const meta: Record<string, unknown> = {};
+    if (profileData?.nombre?.trim())      meta.nombre      = profileData.nombre.trim();
+    if (profileData?.apellido?.trim())    meta.apellido    = profileData.apellido.trim();
+    if (profileData?.telefono?.trim())    meta.telefono    = profileData.telefono.trim();
+    if (profileData?.razonSocial?.trim()) meta.razonSocial = profileData.razonSocial.trim();
+    if (profileData?.cuitCuil?.trim())    meta.cuitCuil    = profileData.cuitCuil.trim();
+    if (profileData?.idTipoPersona)       meta.idTipoPersona  = parseInt(profileData.idTipoPersona);
+    if (profileData?.idCondicionIva)      meta.idCondicionIva = parseInt(profileData.idCondicionIva);
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: Object.keys(meta).length > 0 ? meta : undefined,
+      },
+    });
+    if (error) throw error;
+  }, []);
+
+  const resetPasswordForEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) throw error;
   }, []);
@@ -59,5 +81,5 @@ export default function useAuth() {
 
   const userEmail = session?.user?.email ?? session?.user?.user_metadata?.email ?? null;
 
-  return { session, userEmail, loading, signOut, signInWithEmail, signUpWithEmail } as const;
+  return { session, userEmail, loading, signOut, signInWithEmail, signUpWithEmail, resetPasswordForEmail } as const;
 }
