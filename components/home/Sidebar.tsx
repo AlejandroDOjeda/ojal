@@ -73,7 +73,7 @@ export default function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Rodeo" isActive={pathname.startsWith("/rodeo")} render={<Link href="/rodeo/carga-inicial" />}>
+                <SidebarMenuButton tooltip="Rodeo" isActive={pathname.startsWith("/rodeo")} render={<Link href="/rodeo" />}>
                   <Package />
                   <span>Rodeo</span>
                 </SidebarMenuButton>
