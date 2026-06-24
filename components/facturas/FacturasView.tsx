@@ -143,8 +143,7 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
         <DataTable key="compras" data={compras} columns={columnsCompras} loading={loading}
            />
       ) : (
-        <DataTable key="ventas" data={ventas} columns={columnsVentas} loading={loading}
-          searchPlaceholder="Buscar por cliente, comprobante..." />
+        <DataTable key="ventas" data={ventas} columns={columnsVentas} loading={loading} />
       )}
     </PageShell>
   );

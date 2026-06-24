@@ -6,14 +6,13 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageShell, SectionCard } from "@/components/app";
+import { PageShell, SectionCard, SelectBox } from "@/components/app";
 import { FacturaHeaderForm } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
-import { MODALIDAD_PRECIO_OPTIONS, MODALIDAD_PRECIO_ITEMS, TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
+import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS } from "@/lib/opciones";
 import {
   EMPTY_HEADER, EMPTY_ITEM_HACIENDA, calcItemHaciendaSubtotal, calcTotalesHacienda, formatARS,
   type FacturaHeaderData, type ItemHaciendaForm,
@@ -91,6 +90,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
 
   const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas"); };
 
+  const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const totales = calcTotalesHacienda(items);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
@@ -127,22 +127,22 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
                 {items.map((item) => (
                   <TableRow key={item._key} className="hover:bg-transparent">
                     <TableCell className="pr-3">
-                      <Select
-                        items={Object.fromEntries(categorias.map((c) => [String(c.id), c.Nombre]))}
-                        value={item.Id_CategoriaHacienda || null}
-                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v ?? "")}>
-                        <SelectTrigger className="w-full"><SelectValue placeholder="— Categoría —" /></SelectTrigger>
-                        <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.Nombre}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <SelectBox
+                        options={categoriasOptions}
+                        value={item.Id_CategoriaHacienda}
+                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v)}
+                        placeholder="— Categoría —"
+                      />
                     </TableCell>
                     <TableCell className="px-3">
                       <Input type="number" min="1" step="1" value={item.Cabezas} onChange={(e) => updateItem(item._key, "Cabezas", e.target.value)} className="text-right" placeholder="0" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select items={MODALIDAD_PRECIO_ITEMS} value={item.Modalidad} onValueChange={(v) => updateItem(item._key, "Modalidad", v ?? "por_kg")}>
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>{MODALIDAD_PRECIO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <SelectBox
+                        options={MODALIDAD_PRECIO_OPTIONS}
+                        value={item.Modalidad}
+                        onValueChange={(v) => updateItem(item._key, "Modalidad", v || "1")}
+                      />
                     </TableCell>
                     <TableCell className="px-3">
                       {item.Modalidad === "1" ? (
@@ -157,10 +157,11 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, onS
                       )}
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select items={TASA_IVA_ITEMS} value={item.TasaIva} onValueChange={(v) => updateItem(item._key, "TasaIva", v ?? "10.5")}>
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>{TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <SelectBox
+                        options={TASA_IVA_OPTIONS}
+                        value={item.TasaIva}
+                        onValueChange={(v) => updateItem(item._key, "TasaIva", v || "10.5")}
+                      />
                     </TableCell>
                     <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemHaciendaSubtotal(item))}</TableCell>
                     <TableCell className="pl-2">

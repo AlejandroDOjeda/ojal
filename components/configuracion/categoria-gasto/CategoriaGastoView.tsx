@@ -5,10 +5,9 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageShell, DataTable, FormField } from "@/components/app";
-import { TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
+import { PageShell, DataTable, FormField, SelectBox } from "@/components/app";
+import { TASA_IVA_OPTIONS } from "@/lib/opciones";
 import type { CategoriaGasto, CategoriaGastoFormData } from "./CategoriaGastoContainer";
 
 const EMPTY_FORM: CategoriaGastoFormData = { Nombre: "", Descripcion: "", TasaIvaHabitual: 21.0 };
@@ -102,11 +101,11 @@ export default function CategoriaGastoView({ categorias, loading, error, onCreat
               <Input value={form.Descripcion} onChange={(e) => setForm(f => ({ ...f, Descripcion: e.target.value }))} placeholder="Ej: Gasoil, nafta y lubricantes" />
             </FormField>
             <FormField label="IVA habitual" required>
-              <Select items={TASA_IVA_ITEMS} value={String(form.TasaIvaHabitual)}
-                onValueChange={(v) => setForm(f => ({ ...f, TasaIvaHabitual: parseFloat(v ?? "21") }))}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>{TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
+              <SelectBox
+                options={TASA_IVA_OPTIONS}
+                value={String(form.TasaIvaHabitual)}
+                onValueChange={(v) => setForm(f => ({ ...f, TasaIvaHabitual: parseFloat(v || "21") }))}
+              />
             </FormField>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2"><Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button></div>

@@ -2,10 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PageShell, SectionCard, FormField } from "@/components/app";
+import { PageShell, SectionCard, FormField, SelectBox } from "@/components/app";
 import { formatCuit, cuitToDigits } from "@/lib/formato";
-import { TIPO_PERSONA_OPTIONS, TIPO_PERSONA_ITEMS, CONDICION_IVA_OPTIONS, CONDICION_IVA_ITEMS } from "@/lib/opciones";
+import { TIPO_PERSONA_OPTIONS, CONDICION_IVA_OPTIONS } from "@/lib/opciones";
 import type { ProfileFormData } from "./ProfileContainer";
 
 type Props = {
@@ -22,8 +21,8 @@ type Props = {
 export default function ProfileView({ userEmail, form, setForm, loading, saving, successMessage, errorMessage, onSave }: Props) {
   const setInput = (field: keyof ProfileFormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [field]: e.target.value });
-  const setSelect = (field: keyof ProfileFormData) => (value: string | null) =>
-    setForm({ ...form, [field]: value ?? "" });
+  const setSelect = (field: keyof ProfileFormData) => (value: string) =>
+    setForm({ ...form, [field]: value });
 
   if (loading) return <PageShell title="Mi perfil" className="max-w-2xl"><p className="text-muted-foreground">Cargando perfil...</p></PageShell>;
 
@@ -54,16 +53,18 @@ export default function ProfileView({ userEmail, form, setForm, loading, saving,
             </FormField>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Tipo de persona" required>
-                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || null} onValueChange={setSelect("Id_TipoPersona")}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
-                  <SelectContent>{TIPO_PERSONA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <SelectBox
+                  options={TIPO_PERSONA_OPTIONS}
+                  value={form.Id_TipoPersona}
+                  onValueChange={setSelect("Id_TipoPersona")}
+                />
               </FormField>
               <FormField label="Condición frente al IVA" required>
-                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || null} onValueChange={setSelect("Id_CondicionIva")}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
-                  <SelectContent>{CONDICION_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <SelectBox
+                  options={CONDICION_IVA_OPTIONS}
+                  value={form.Id_CondicionIva}
+                  onValueChange={setSelect("Id_CondicionIva")}
+                />
               </FormField>
             </div>
           </div>

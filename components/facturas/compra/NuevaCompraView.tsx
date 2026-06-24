@@ -6,14 +6,13 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageShell, SectionCard } from "@/components/app";
+import { PageShell, SectionCard, SelectBox } from "@/components/app";
 import { FacturaHeaderForm } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
-import { TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
+import { TASA_IVA_OPTIONS } from "@/lib/opciones";
 import {
   EMPTY_HEADER, EMPTY_ITEM_GASTO, calcItemGastoSubtotal, calcTotalesGasto, formatARS,
   type FacturaHeaderData, type ItemGastoForm,
@@ -86,6 +85,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
 
   const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas"); };
 
+  const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const totales = calcTotalesGasto(items);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
@@ -124,13 +124,12 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                       <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select
-                        items={Object.fromEntries(categorias.map((c) => [String(c.id), c.Nombre]))}
-                        value={item.Id_CategoriaGasto || null}
-                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v ?? "")}>
-                        <SelectTrigger className="w-full"><SelectValue placeholder="— Sin categoría —" /></SelectTrigger>
-                        <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.Nombre}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <SelectBox
+                        options={categoriasOptions}
+                        value={item.Id_CategoriaGasto}
+                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v)}
+                        placeholder="— Sin categoría —"
+                      />
                     </TableCell>
                     <TableCell className="px-3">
                       <Input type="number" min="0" step="0.001" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className="text-right" />
@@ -139,10 +138,11 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                       <Input type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Select items={TASA_IVA_ITEMS} value={item.TasaIva} onValueChange={(v) => updateItem(item._key, "TasaIva", v ?? "21")}>
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>{TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <SelectBox
+                        options={TASA_IVA_OPTIONS}
+                        value={item.TasaIva}
+                        onValueChange={(v) => updateItem(item._key, "TasaIva", v || "21")}
+                      />
                     </TableCell>
                     <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemGastoSubtotal(item))}</TableCell>
                     <TableCell className="pl-2">

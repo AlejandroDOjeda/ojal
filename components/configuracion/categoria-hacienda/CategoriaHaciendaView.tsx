@@ -5,10 +5,9 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageShell, DataTable, FormField } from "@/components/app";
-import { TASA_IVA_OPTIONS, TASA_IVA_ITEMS } from "@/lib/opciones";
+import { PageShell, DataTable, FormField, SelectBox } from "@/components/app";
+import { TASA_IVA_OPTIONS } from "@/lib/opciones";
 import type { CategoriaHacienda, CategoriaHaciendaFormData } from "./CategoriaHaciendaContainer";
 
 const EMPTY_FORM: CategoriaHaciendaFormData = { Nombre: "", Descripcion: "", TasaIva: 10.5 };
@@ -102,11 +101,11 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
               <Input value={form.Descripcion} onChange={(e) => setForm(f => ({ ...f, Descripcion: e.target.value }))} placeholder="Ej: Macho menor de 1 año" />
             </FormField>
             <FormField label="Tasa IVA" required>
-              <Select items={TASA_IVA_ITEMS} value={String(form.TasaIva)}
-                onValueChange={(v) => setForm(f => ({ ...f, TasaIva: parseFloat(v ?? "10.5") }))}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>{TASA_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
+              <SelectBox
+                options={TASA_IVA_OPTIONS}
+                value={String(form.TasaIva)}
+                onValueChange={(v) => setForm(f => ({ ...f, TasaIva: parseFloat(v || "10.5") }))}
+              />
             </FormField>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
             <div className="flex justify-end pt-2"><Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button></div>

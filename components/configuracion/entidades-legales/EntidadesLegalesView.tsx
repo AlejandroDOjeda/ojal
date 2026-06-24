@@ -6,8 +6,7 @@ import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PageShell, DataTable, FormField, EmptyState } from "@/components/app";
+import { PageShell, DataTable, FormField, EmptyState, SelectBox } from "@/components/app";
 import { formatCuit, cuitToDigits } from "@/lib/formato";
 import { validarCuit, validarEmail, validarTelefono, formatTelefono } from "@/lib/validaciones";
 import { TIPO_PERSONA_OPTIONS, TIPO_PERSONA_ITEMS, CONDICION_IVA_OPTIONS, CONDICION_IVA_ITEMS } from "@/lib/opciones";
@@ -65,33 +64,13 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
     finally { setDeleting(false); }
   };
 
-  // ── Definición de columnas ────────────────────────────────────
   const columns = useMemo<ColumnDef<EntidadLegal, unknown>[]>(() => [
+    { accessorKey: "RazonSocial", header: "Razón Social", cell: ({ row }) => <span className="font-medium">{row.original.RazonSocial}</span> },
+    { accessorKey: "CuitCuil", header: "CUIT / CUIL", cell: ({ row }) => <span className="text-muted-foreground">{formatCuit(row.original.CuitCuil)}</span> },
+    { accessorKey: "Id_TipoPersona", header: "Tipo", cell: ({ row }) => <span className="text-muted-foreground">{TIPO_PERSONA_ITEMS[String(row.original.Id_TipoPersona)] ?? "—"}</span> },
+    { accessorKey: "Id_CondicionIva", header: "Condición IVA", cell: ({ row }) => <span className="text-muted-foreground">{CONDICION_IVA_ITEMS[String(row.original.Id_CondicionIva)] ?? "—"}</span> },
     {
-      accessorKey: "RazonSocial",
-      header: "Razón Social",
-      cell: ({ row }) => <span className="font-medium">{row.original.RazonSocial}</span>,
-    },
-    {
-      accessorKey: "CuitCuil",
-      header: "CUIT / CUIL",
-      cell: ({ row }) => <span className="text-muted-foreground">{formatCuit(row.original.CuitCuil)}</span>,
-    },
-    {
-      accessorKey: "Id_TipoPersona",
-      header: "Tipo",
-      cell: ({ row }) => <span className="text-muted-foreground">{TIPO_PERSONA_ITEMS[String(row.original.Id_TipoPersona)] ?? "—"}</span>,
-    },
-    {
-      accessorKey: "Id_CondicionIva",
-      header: "Condición IVA",
-      cell: ({ row }) => <span className="text-muted-foreground">{CONDICION_IVA_ITEMS[String(row.original.Id_CondicionIva)] ?? "—"}</span>,
-    },
-    {
-      id: "acciones",
-      header: "",
-      enableSorting: false,
-      size: 120,
+      id: "acciones", header: "", enableSorting: false, size: 120,
       cell: ({ row }) => {
         const e = row.original;
         return deleteConfirmId === e.Id_EntidadLegal ? (
@@ -114,25 +93,19 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
   return (
     <PageShell title="Entidades Legales" description="Administrá las entidades legales del sistema"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
-
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
       {deleteError && (
         <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive flex items-center justify-between">
           {deleteError}<Button variant="link" size="xs" onClick={() => setDeleteError(null)}>Cerrar</Button>
         </div>
       )}
-
       {entidades.length === 0 && !loading ? (
         <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card text-center p-8">
           <EmptyState icon={<Building2 size={48} />} title="No hay entidades legales" description="Creá la primera entidad para comenzar."
             action={<Button onClick={openCreate}><Plus />Nueva Entidad Legal</Button>} />
         </div>
       ) : (
-        <DataTable
-          data={entidades}
-          columns={columns}
-          loading={loading}
-        />
+        <DataTable data={entidades} columns={columns} loading={loading} />
       )}
 
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
@@ -147,16 +120,18 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
             </FormField>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Tipo" required>
-                <Select items={TIPO_PERSONA_ITEMS} value={form.Id_TipoPersona || null} onValueChange={(v) => setField("Id_TipoPersona", v ?? "")}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
-                  <SelectContent>{TIPO_PERSONA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <SelectBox
+                  options={TIPO_PERSONA_OPTIONS}
+                  value={form.Id_TipoPersona}
+                  onValueChange={(v) => setField("Id_TipoPersona", v)}
+                />
               </FormField>
               <FormField label="Condición IVA" required>
-                <Select items={CONDICION_IVA_ITEMS} value={form.Id_CondicionIva || null} onValueChange={(v) => setField("Id_CondicionIva", v ?? "")}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="— Seleccioná —" /></SelectTrigger>
-                  <SelectContent>{CONDICION_IVA_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <SelectBox
+                  options={CONDICION_IVA_OPTIONS}
+                  value={form.Id_CondicionIva}
+                  onValueChange={(v) => setField("Id_CondicionIva", v)}
+                />
               </FormField>
             </div>
             <FormField label="Email">
