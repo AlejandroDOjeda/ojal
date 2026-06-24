@@ -6,7 +6,10 @@
       "Bash(npx shadcn@latest add popover command --yes)",
       "Bash(npx shadcn@latest add calendar --yes)",
       "Bash(node -e \"require\\('date-fns'\\); console.log\\('ok'\\)\")",
-      "Bash(mkdir -p \"c:/Users/ale_4/OneDrive/Escritorio/Aqui vamos otra vez/ojal/app/\\(auth\\)/facturas/[id]/edit\")"
+      "Bash(mkdir -p \"c:/Users/ale_4/OneDrive/Escritorio/Aqui vamos otra vez/ojal/app/\\(auth\\)/facturas/[id]/edit\")",
+      "Bash(gh run *)",
+      "PowerShell(node \"C:\\\\Users\\\\ale_4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-ale-4-OneDrive-Escritorio-Aqui-vamos-otra-vez-ojal\\\\eab26b56-dd91-435d-8b34-95be1154d299\\\\scratchpad\\\\verify.cjs\" 2>&1)",
+      "Read(//c/Users/ale_4/AppData/Local/Temp/**)"
     ],
     "additionalDirectories": [
       "c:\\Users\\ale_4\\OneDrive\\Escritorio\\Aqui vamos otra vez\\ojal\\app\\(auth)\\facturas\\[id]"
