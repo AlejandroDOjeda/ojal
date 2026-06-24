@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Plus, ShoppingCart, TrendingUp } from "lucide-react";
+import { Pencil, Plus, ShoppingCart, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageShell, DataTable } from "@/components/app";
@@ -51,8 +51,13 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
       cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
     },
     {
-      id: "ver", header: "", enableSorting: false, size: 60,
-      cell: ({ row }) => <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>,
+      id: "acciones", header: "", enableSorting: false, size: 110,
+      cell: ({ row }) => (
+        <div className="flex gap-1">
+          <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>
+          <Link href={`/facturas/${row.original.Id_Factura}/edit`}><Button variant="ghost" size="xs"><Pencil size={13} /></Button></Link>
+        </div>
+      ),
     },
   ], []);
 
@@ -80,8 +85,13 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
       cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
     },
     {
-      id: "ver", header: "", enableSorting: false, size: 60,
-      cell: ({ row }) => <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>,
+      id: "acciones", header: "", enableSorting: false, size: 110,
+      cell: ({ row }) => (
+        <div className="flex gap-1">
+          <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>
+          <Link href={`/facturas/${row.original.Id_Factura}/edit`}><Button variant="ghost" size="xs"><Pencil size={13} /></Button></Link>
+        </div>
+      ),
     },
   ], []);
 
