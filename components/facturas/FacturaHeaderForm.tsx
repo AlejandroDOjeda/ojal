@@ -33,10 +33,10 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
             />
           </FormField>
           <FormField label="Pto. venta">
-            <Input value={data.PuntoVenta} onChange={(e) => onChange("PuntoVenta", e.target.value)} placeholder="0001" maxLength={4} />
+            <Input value={data.PuntoVenta} onChange={(e) => onChange("PuntoVenta", e.target.value.replace(/\D/g, ""))} placeholder="0001" maxLength={4} inputMode="numeric" />
           </FormField>
           <FormField label="Número">
-            <Input value={data.Numero} onChange={(e) => onChange("Numero", e.target.value)} placeholder="00000001" maxLength={8} />
+            <Input value={data.Numero} onChange={(e) => onChange("Numero", e.target.value.replace(/\D/g, ""))} placeholder="00000001" maxLength={8} inputMode="numeric" />
           </FormField>
           <FormField label="Fecha" required error={errors.Fecha}>
             <DatePicker value={data.Fecha} onChange={(v) => onChange("Fecha", v)} error={!!errors.Fecha} />
