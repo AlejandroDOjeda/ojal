@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ShoppingCart, TrendingUp, FileText } from "lucide-react";
+import { type ColumnDef } from "@tanstack/react-table";
+import { Plus, ShoppingCart, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageShell, GridContainer, EmptyState } from "@/components/app";
-import { TIPO_OPERACION, TIPO_COMPROBANTE_ITEMS, ESTADO_FACTURA_OPTIONS } from "@/lib/opciones";
+import { PageShell, DataTable } from "@/components/app";
+import { TIPO_COMPROBANTE_ITEMS, ESTADO_FACTURA_OPTIONS } from "@/lib/opciones";
 import type { FacturaResumen } from "./FacturasContainer";
 
-// Mapas por Id para display
 const ESTADO_LABEL = Object.fromEntries(ESTADO_FACTURA_OPTIONS.map(o => [o.value, o.label]));
-const ESTADO_VARIANT: Record<number, string> = { 1: "secondary", 2: "outline", 3: "outline", 4: "outline", 5: "destructive" };
+const ESTADO_VARIANT: Record<number, "default" | "secondary" | "destructive" | "outline"> = {
+  1: "secondary", 2: "outline", 3: "outline", 4: "outline", 5: "destructive",
+};
 const ESTADO_CLASS: Record<number, string> = {
-  1: "",
+  1: "", 5: "",
   2: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
   3: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
   4: "border-green-300 text-green-700 dark:border-green-700 dark:text-green-300",
-  5: "",
 };
 
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
@@ -28,7 +28,8 @@ const formatNumero = (tipoId: number | null, punto: string | null, numero: strin
   return `${label} ${punto ?? "0000"}-${numero ?? "00000000"}`;
 };
 
-const formatMonto = (n: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n);
+const formatMonto = (n: number) =>
+  new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n);
 
 type Tab = "compras" | "ventas";
 type Props = { compras: FacturaResumen[]; ventas: FacturaResumen[]; loading: boolean; error: string | null };
@@ -36,13 +37,89 @@ type Props = { compras: FacturaResumen[]; ventas: FacturaResumen[]; loading: boo
 export default function FacturasView({ compras, ventas, loading, error }: Props) {
   const [tab, setTab] = useState<Tab>("compras");
   const router = useRouter();
-  const filas = tab === "compras" ? compras : ventas;
+
+  const columnsCompras = useMemo<ColumnDef<FacturaResumen, unknown>[]>(() => [
+    {
+      accessorKey: "Fecha",
+      header: "Fecha",
+      cell: ({ row }) => <span className="text-muted-foreground">{new Date(row.original.Fecha).toLocaleDateString("es-AR")}</span>,
+    },
+    {
+      id: "comprobante",
+      header: "Comprobante",
+      accessorFn: (row) => `${TIPO_COMPROBANTE_ITEMS[String(row.Id_TipoComprobante)] ?? ""} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero)}</span>,
+    },
+    {
+      id: "entidad",
+      header: "Proveedor",
+      accessorFn: (row) => row.EntidadLegal?.RazonSocial ?? "",
+      cell: ({ row }) => <span className="font-medium">{row.original.EntidadLegal?.RazonSocial ?? "—"}</span>,
+    },
+    {
+      accessorKey: "Total",
+      header: "Total",
+      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
+    },
+    {
+      accessorKey: "Id_EstadoFactura",
+      header: "Estado",
+      cell: ({ row }) => (
+        <Badge variant={ESTADO_VARIANT[row.original.Id_EstadoFactura]} className={ESTADO_CLASS[row.original.Id_EstadoFactura]}>
+          {ESTADO_LABEL[row.original.Id_EstadoFactura] ?? "—"}
+        </Badge>
+      ),
+    },
+    {
+      id: "ver", header: "", enableSorting: false, size: 60,
+      cell: ({ row }) => <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>,
+    },
+  ], []);
+
+  const columnsVentas = useMemo<ColumnDef<FacturaResumen, unknown>[]>(() => [
+    {
+      accessorKey: "Fecha",
+      header: "Fecha",
+      cell: ({ row }) => <span className="text-muted-foreground">{new Date(row.original.Fecha).toLocaleDateString("es-AR")}</span>,
+    },
+    {
+      id: "comprobante",
+      header: "Comprobante",
+      accessorFn: (row) => `${TIPO_COMPROBANTE_ITEMS[String(row.Id_TipoComprobante)] ?? ""} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero)}</span>,
+    },
+    {
+      id: "entidad",
+      header: "Cliente",
+      accessorFn: (row) => row.EntidadLegal?.RazonSocial ?? "",
+      cell: ({ row }) => <span className="font-medium">{row.original.EntidadLegal?.RazonSocial ?? "—"}</span>,
+    },
+    {
+      accessorKey: "Total",
+      header: "Total",
+      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
+    },
+    {
+      accessorKey: "Id_EstadoFactura",
+      header: "Estado",
+      cell: ({ row }) => (
+        <Badge variant={ESTADO_VARIANT[row.original.Id_EstadoFactura]} className={ESTADO_CLASS[row.original.Id_EstadoFactura]}>
+          {ESTADO_LABEL[row.original.Id_EstadoFactura] ?? "—"}
+        </Badge>
+      ),
+    },
+    {
+      id: "ver", header: "", enableSorting: false, size: 60,
+      cell: ({ row }) => <Link href={`/facturas/${row.original.Id_Factura}`}><Button variant="ghost" size="xs">Ver</Button></Link>,
+    },
+  ], []);
 
   return (
     <PageShell title="Facturas" description="Comprobantes de compra y venta">
-      {error && <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
+      {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
 
-      <div className="flex items-end justify-between mb-6 border-b border-border">
+      {/* Tabs + botón */}
+      <div className="flex items-end justify-between mb-4 border-b border-border">
         <div className="flex gap-1">
           <button onClick={() => setTab("compras")}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${tab === "compras" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
@@ -61,49 +138,13 @@ export default function FacturasView({ compras, ventas, loading, error }: Props)
         </Button>
       </div>
 
-      {loading ? (
-        <GridContainer state="loading"><p className="text-muted-foreground">Cargando...</p></GridContainer>
-      ) : filas.length === 0 ? (
-        <GridContainer state="empty">
-          <EmptyState icon={<FileText size={48} />}
-            title={`No hay ${tab === "compras" ? "facturas de compra" : "facturas de venta"}`}
-            description={`Las ${tab} que cargues aparecerán acá.`} />
-        </GridContainer>
+      {/* key={tab} resetea la búsqueda al cambiar de pestaña */}
+      {tab === "compras" ? (
+        <DataTable key="compras" data={compras} columns={columnsCompras} loading={loading}
+           />
       ) : (
-        <GridContainer>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent bg-muted/50">
-                <TableHead className="text-muted-foreground">Fecha</TableHead>
-                <TableHead className="text-muted-foreground">Comprobante</TableHead>
-                <TableHead className="text-muted-foreground">{tab === "compras" ? "Proveedor" : "Cliente"}</TableHead>
-                <TableHead className="text-muted-foreground text-right">Total</TableHead>
-                <TableHead className="text-muted-foreground">Estado</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filas.map((f) => (
-                <TableRow key={f.Id_Factura}>
-                  <TableCell className="text-muted-foreground">{new Date(f.Fecha).toLocaleDateString("es-AR")}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatNumero(f.Id_TipoComprobante, f.PuntoVenta, f.Numero)}</TableCell>
-                  <TableCell className="font-medium">{f.EntidadLegal?.RazonSocial ?? "—"}</TableCell>
-                  <TableCell className="text-right font-medium">{formatMonto(f.Total)}</TableCell>
-                  <TableCell>
-                    <Badge variant={ESTADO_VARIANT[f.Id_EstadoFactura] as "default" | "secondary" | "destructive" | "outline"} className={ESTADO_CLASS[f.Id_EstadoFactura]}>
-                      {ESTADO_LABEL[f.Id_EstadoFactura] ?? "—"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/facturas/${f.Id_Factura}`}>
-                      <Button variant="ghost" size="xs">Ver</Button>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </GridContainer>
+        <DataTable key="ventas" data={ventas} columns={columnsVentas} loading={loading}
+          searchPlaceholder="Buscar por cliente, comprobante..." />
       )}
     </PageShell>
   );
