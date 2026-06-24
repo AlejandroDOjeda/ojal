@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemGastoSubtotal, calcTotalesGasto, type FacturaHeaderData, type ItemGastoForm } from "@/components/facturas/types";
@@ -68,7 +69,8 @@ export default function NuevaCompraContainer() {
       await supabase.from("Factura").delete().eq("Id_Factura", facturaData.Id_Factura);
       throw new Error(itemsError.message);
     }
-    router.push("/facturas");
+    toast.success("Factura de compra guardada.");
+    router.push("/facturas?tab=compras");
   };
 
   return <NuevaCompraView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;

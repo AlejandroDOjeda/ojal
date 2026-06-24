@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ type Props = {
 let keyCounter = 0;
 const newKey = () => String(++keyCounter);
 
+type ItemGastoErrors = Partial<Record<"Descripcion" | "Cantidad" | "PrecioUnitario", true>>;
+
 export default function NuevaCompraView({ entidades, categorias, loadingData, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(EMPTY_HEADER);
@@ -37,6 +40,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
+  const [itemErrors, setItemErrors] = useState<Record<string, ItemGastoErrors>>({});
   const [showExitDialog, setShowExitDialog] = useState(false);
   const isDirty = useRef(false);
 
@@ -48,7 +52,11 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
   };
 
   const addItem = () => { markDirty(); setItems((p) => [...p, { _key: newKey(), ...EMPTY_ITEM_GASTO }]); };
-  const removeItem = (key: string) => { markDirty(); setItems((p) => p.filter((i) => i._key !== key)); };
+  const removeItem = (key: string) => {
+    markDirty();
+    setItems((p) => p.filter((i) => i._key !== key));
+    setItemErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+  };
 
   const updateItem = (key: string, field: keyof Omit<ItemGastoForm, "_key">, value: string) => {
     markDirty();
@@ -61,6 +69,15 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
       }
       return updated;
     }));
+    setItemErrors((prev) => {
+      const itemErr = prev[key];
+      if (!itemErr?.[field as keyof ItemGastoErrors]) return prev;
+      const next = { ...itemErr };
+      delete next[field as keyof ItemGastoErrors];
+      const result = { ...prev, [key]: next };
+      if (Object.keys(next).length === 0) delete result[key];
+      return result;
+    });
   };
 
   const validate = (): boolean => {
@@ -69,26 +86,31 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
-    if (Object.keys(hErrors).length > 0) { setHeaderErrors(hErrors); }
+    if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
     if (items.length === 0) { setError("Agregá al menos un ítem."); return false; }
+    const newItemErrors: Record<string, ItemGastoErrors> = {};
     for (const item of items) {
-      if (!item.Descripcion.trim()) { setError("Todos los ítems deben tener descripción."); return false; }
-      if (!item.Cantidad || parseFloat(item.Cantidad) <= 0) { setError("La cantidad debe ser mayor a 0."); return false; }
-      if (!item.PrecioUnitario || parseFloat(item.PrecioUnitario) <= 0) { setError("El precio unitario debe ser mayor a 0."); return false; }
+      const err: ItemGastoErrors = {};
+      if (!item.Descripcion.trim()) err.Descripcion = true;
+      if (!item.Cantidad || parseFloat(item.Cantidad) <= 0) err.Cantidad = true;
+      if (!item.PrecioUnitario || parseFloat(item.PrecioUnitario) <= 0) err.PrecioUnitario = true;
+      if (Object.keys(err).length > 0) newItemErrors[item._key] = err;
     }
+    setItemErrors(newItemErrors);
+    if (Object.keys(newItemErrors).length > 0) { setError("Completá todos los campos obligatorios de los ítems."); return false; }
     return Object.keys(hErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!validate()) return;
+    if (!validate()) { toast.error("Complete los campos obligatorios"); return; }
     setSaving(true); setError(null);
     try { await onSave(header, items); }
-    catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
+    catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
   };
 
-  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas"); };
+  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push("/facturas?tab=compras"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const totales = calcTotalesGasto(items);
@@ -126,7 +148,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                 {items.map((item) => (
                   <TableRow key={item._key} className="hover:bg-transparent">
                     <TableCell className="pr-3">
-                      <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" />
+                      <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" className={itemErrors[item._key]?.Descripcion ? "border-destructive" : undefined} />
                     </TableCell>
                     <TableCell className="px-3">
                       <Combobox
@@ -137,10 +159,10 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
                       />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="0" step="0.01" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className="text-right" />
+                      <Input type="number" min="0" step="0.01" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className={"text-right" + (itemErrors[item._key]?.Cantidad ? " border-destructive" : "")} />
                     </TableCell>
                     <TableCell className="px-3">
-                      <InputGroup>
+                      <InputGroup className={itemErrors[item._key]?.PrecioUnitario ? "border-destructive" : undefined}>
                         <InputGroupAddon>$</InputGroupAddon>
                         <InputGroupInput type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
                       </InputGroup>
@@ -183,7 +205,7 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, on
           <p className="text-sm text-muted-foreground">Se perderán todos los cambios realizados en esta factura.</p>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setShowExitDialog(false)}>Quedarme</Button>
-            <Button variant="destructive" onClick={() => router.push("/facturas")}>Salir</Button>
+            <Button variant="destructive" onClick={() => router.push("/facturas?tab=compras")}>Salir</Button>
           </div>
         </DialogContent>
       </Dialog>

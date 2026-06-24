@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Plus, ShoppingCart, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +23,8 @@ type Tab = "compras" | "ventas";
 type Props = { compras: FacturaResumen[]; ventas: FacturaResumen[]; loading: boolean; error: string | null };
 
 export default function FacturasView({ compras, ventas, loading, error }: Props) {
-  const [tab, setTab] = useState<Tab>("compras");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => searchParams.get("tab") === "ventas" ? "ventas" : "compras");
   const router = useRouter();
 
   const columnsCompras = useMemo<ColumnDef<FacturaResumen, unknown>[]>(() => [

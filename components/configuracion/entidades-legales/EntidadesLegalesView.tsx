@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,6 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
   const [formErrors, setFormErrors] = useState<Errors>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); setModalOpen(true); };
   const openEdit = (e: EntidadLegal) => {
@@ -64,15 +64,19 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
     const errors = validate();
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
     setSaving(true);
-    try { editing ? await onUpdate(editing.Id_EntidadLegal, form) : await onCreate(form); closeModal(); }
-    catch (err: unknown) { setFormErrors({ RazonSocial: err instanceof Error ? err.message : "Error al guardar." }); }
+    try {
+      editing ? await onUpdate(editing.Id_EntidadLegal, form) : await onCreate(form);
+      toast.success(editing ? "Entidad actualizada." : "Entidad creada.");
+      closeModal();
+    }
+    catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    setDeleting(true); setDeleteError(null);
-    try { await onDelete(id); setDeleteConfirmId(null); }
-    catch (err: unknown) { setDeleteError(err instanceof Error ? err.message : "No se pudo eliminar."); }
+    setDeleting(true);
+    try { await onDelete(id); setDeleteConfirmId(null); toast.success("Entidad eliminada."); }
+    catch (err: unknown) { toast.error(err instanceof Error ? err.message : "No se pudo eliminar."); }
     finally { setDeleting(false); }
   };
 
@@ -95,7 +99,7 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
           <div className="flex items-center gap-1 justify-end">
             <Button variant="ghost" size="icon-sm" onClick={() => openEdit(e)}><Pencil size={15} /></Button>
             <Button variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10"
-              onClick={() => { setDeleteError(null); setDeleteConfirmId(e.Id_EntidadLegal); }}><Trash2 size={15} /></Button>
+              onClick={() => { setDeleteConfirmId(e.Id_EntidadLegal); }}><Trash2 size={15} /></Button>
           </div>
         );
       },
@@ -106,11 +110,6 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
     <PageShell title="Entidades Legales" description="Administrá las entidades legales del sistema"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
-      {deleteError && (
-        <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive flex items-center justify-between">
-          {deleteError}<Button variant="link" size="xs" onClick={() => setDeleteError(null)}>Cerrar</Button>
-        </div>
-      )}
       {entidades.length === 0 && !loading ? (
         <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card text-center p-8">
           <EmptyState icon={<Building2 size={48} />} title="No hay entidades legales" description="Creá la primera entidad para comenzar."

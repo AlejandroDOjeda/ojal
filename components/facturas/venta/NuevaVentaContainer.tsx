@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
@@ -69,7 +70,8 @@ export default function NuevaVentaContainer() {
       await supabase.from("Factura").delete().eq("Id_Factura", facturaData.Id_Factura);
       throw new Error(itemsError.message);
     }
-    router.push("/facturas");
+    toast.success("Factura de venta guardada.");
+    router.push("/facturas?tab=ventas");
   };
 
   return <NuevaVentaView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
