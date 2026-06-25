@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Settings } from "lucide-react";
+import { Settings, Plus } from "lucide-react";
 import type { StockFila } from "./StockActualContainer";
 
 type Props = {
@@ -39,13 +39,22 @@ export default function StockActualView({ filas, loading, error, sinDatos }: Pro
             Stock actual de hacienda por categoría.
           </p>
         </div>
-        <Link
-          href="/rodeo/carga-inicial"
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <Settings size={14} />
-          Editar stock inicial
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/rodeo/carga-inicial"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Settings size={14} />
+            Editar stock inicial
+          </Link>
+          <Link
+            href="/rodeo/nuevo-movimiento"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Plus size={14} />
+            Registrar movimiento
+          </Link>
+        </div>
       </div>
 
       {sinDatos && (
