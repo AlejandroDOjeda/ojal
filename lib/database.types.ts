@@ -158,6 +158,23 @@ export interface Database {
         Update: { Descripcion?: string; Id_CategoriaGasto?: number | null; Cantidad?: number; PrecioUnitario?: number; TasaIva?: number; Subtotal?: number };
         Relationships: [];
       };
+
+      Rodeo: {
+        Row: { Id_Rodeo: number; Id_CategoriaHacienda: number; Cabezas: number; CreatedAt: string; UpdatedAt: string };
+        Insert: { Id_CategoriaHacienda: number; Cabezas?: number };
+        Update: { Cabezas?: number };
+        Relationships: [{ foreignKeyName: "Rodeo_Id_CategoriaHacienda_fkey"; columns: ["Id_CategoriaHacienda"]; referencedRelation: "CategoriaHacienda"; referencedColumns: ["Id_CategoriaHacienda"] }];
+      };
+
+      MovimientoRodeo: {
+        Row: { Id_MovimientoRodeo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura: number | null; Observaciones: string | null; CreatedAt: string };
+        Insert: { TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura?: number | null; Observaciones?: string | null };
+        Update: { TipoMovimiento?: string; Id_CategoriaHacienda?: number; Cabezas?: number; Fecha?: string; Id_Factura?: number | null; Observaciones?: string | null };
+        Relationships: [
+          { foreignKeyName: "MovimientoRodeo_Id_CategoriaHacienda_fkey"; columns: ["Id_CategoriaHacienda"]; referencedRelation: "CategoriaHacienda"; referencedColumns: ["Id_CategoriaHacienda"] },
+          { foreignKeyName: "MovimientoRodeo_Id_Factura_fkey"; columns: ["Id_Factura"]; referencedRelation: "Factura"; referencedColumns: ["Id_Factura"] }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

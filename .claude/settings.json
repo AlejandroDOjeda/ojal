@@ -5,7 +5,19 @@
       "Bash(node -e \"const s = require\\('c:/Users/ale_4/OneDrive/Escritorio/Aqui vamos otra vez/ojal/node_modules/@base-ui/react/dist/cjs/select/root/select-root.js'\\); console.log\\(Object.keys\\(s\\)\\)\")",
       "Bash(npx shadcn@latest add popover command --yes)",
       "Bash(npx shadcn@latest add calendar --yes)",
-      "Bash(node -e \"require\\('date-fns'\\); console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('date-fns'\\); console.log\\('ok'\\)\")",
+      "Bash(mkdir -p \"c:/Users/ale_4/OneDrive/Escritorio/Aqui vamos otra vez/ojal/app/\\(auth\\)/facturas/[id]/edit\")",
+      "Bash(gh run *)",
+      "PowerShell(node \"C:\\\\Users\\\\ale_4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-ale-4-OneDrive-Escritorio-Aqui-vamos-otra-vez-ojal\\\\eab26b56-dd91-435d-8b34-95be1154d299\\\\scratchpad\\\\verify.cjs\" 2>&1)",
+      "Read(//c/Users/ale_4/AppData/Local/Temp/**)",
+      "Bash(gh issue *)",
+      "PowerShell(node \"C:\\\\Users\\\\ale_4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-ale-4-OneDrive-Escritorio-Aqui-vamos-otra-vez-ojal\\\\eab26b56-dd91-435d-8b34-95be1154d299\\\\scratchpad\\\\verify15.cjs\" 2>&1)",
+      "PowerShell(node \"C:\\\\Users\\\\ale_4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-ale-4-OneDrive-Escritorio-Aqui-vamos-otra-vez-ojal\\\\eab26b56-dd91-435d-8b34-95be1154d299\\\\scratchpad\\\\verify-dashboard.cjs\" 2>&1)",
+      "PowerShell(node \"C:\\\\Users\\\\ale_4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-ale-4-OneDrive-Escritorio-Aqui-vamos-otra-vez-ojal\\\\eab26b56-dd91-435d-8b34-95be1154d299\\\\scratchpad\\\\verify-iva.cjs\" 2>&1)",
+      "PowerShell(node \"C:\\\\Users\\\\ale_4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-ale-4-OneDrive-Escritorio-Aqui-vamos-otra-vez-ojal\\\\eab26b56-dd91-435d-8b34-95be1154d299\\\\scratchpad\\\\verify-rodeo-card.cjs\" 2>&1)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\ale_4\\OneDrive\\Escritorio\\Aqui vamos otra vez\\ojal\\app\\(auth)\\facturas\\[id]"
     ]
   }
 }

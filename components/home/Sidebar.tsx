@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, HelpCircle, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -69,6 +69,13 @@ export default function AppSidebar() {
                 <SidebarMenuButton tooltip="Facturas" isActive={pathname.startsWith("/facturas")} render={<Link href="/facturas" />}>
                   <ReceiptText />
                   <span>Facturas</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Rodeo" isActive={pathname.startsWith("/rodeo")} render={<Link href="/rodeo" />}>
+                  <Package />
+                  <span>Rodeo</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
