@@ -3,6 +3,7 @@
 import { useAuthContext } from "@/contexts/AuthContext";
 import ResumenMensualContainer from "./ResumenMensualContainer";
 import PosicionIvaContainer from "./PosicionIvaContainer";
+import ResumenRodeoContainer from "./ResumenRodeoContainer";
 
 export default function MainContent() {
   const { userEmail } = useAuthContext();
@@ -17,8 +18,9 @@ export default function MainContent() {
           <ResumenMensualContainer />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <PosicionIvaContainer />
+          <ResumenRodeoContainer />
         </div>
       </div>
     </main>
