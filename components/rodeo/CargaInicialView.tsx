@@ -10,6 +10,7 @@ type Props = {
   loading: boolean;
   error: string | null;
   yaConfigurado: boolean;
+  sinCampo: boolean;
   onGuardar: (cabezasMap: Record<number, number>) => Promise<void>;
 };
 
@@ -18,6 +19,7 @@ export default function CargaInicialView({
   loading,
   error,
   yaConfigurado,
+  sinCampo,
   onGuardar,
 }: Props) {
   const [cabezas, setCabezas] = useState<Record<number, number>>({});
@@ -55,6 +57,17 @@ export default function CargaInicialView({
   };
 
   const totalCabezas = Object.values(cabezas).reduce((a, b) => a + b, 0);
+
+  if (sinCampo) {
+    return (
+      <main className="p-8 max-w-2xl">
+        <h1 className="text-2xl font-bold text-foreground mb-2">Carga inicial del rodeo</h1>
+        <p className="text-sm text-muted-foreground">
+          Seleccioná un campo en el selector del encabezado para editar su stock inicial.
+        </p>
+      </main>
+    );
+  }
 
   if (loading) {
     return (

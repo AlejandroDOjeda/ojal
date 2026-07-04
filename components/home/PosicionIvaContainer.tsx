@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampoContext } from "@/contexts/CampoContext";
 import PosicionIvaCard from "./PosicionIvaCard";
 
 export type PosicionIva = {
@@ -25,6 +26,7 @@ function nombreMes() {
 }
 
 export default function PosicionIvaContainer() {
+  const { campoActivo } = useCampoContext();
   const [posicion, setPosicion] = useState<PosicionIva | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,11 +35,15 @@ export default function PosicionIvaContainer() {
     const fetch = async () => {
       const { inicio, fin } = rangoMesActual();
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("Factura")
         .select("Id_TipoOperacion, Iva10_5, Iva21")
         .gte("Fecha", inicio)
         .lte("Fecha", fin);
+
+      if (campoActivo) query = query.eq("Id_Campo", campoActivo.Id_Campo);
+
+      const { data, error } = await query;
 
       if (error) {
         setError(error.message);
@@ -66,7 +72,7 @@ export default function PosicionIvaContainer() {
     };
 
     fetch();
-  }, []);
+  }, [campoActivo]);
 
   return <PosicionIvaCard posicion={posicion} loading={loading} error={error} />;
 }

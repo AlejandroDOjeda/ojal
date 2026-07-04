@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampoContext } from "@/contexts/CampoContext";
 import ResumenMensualCards from "./ResumenMensualCards";
 
 export type ResumenMensual = {
@@ -24,6 +25,7 @@ function nombreMes() {
 }
 
 export default function ResumenMensualContainer() {
+  const { campoActivo } = useCampoContext();
   const [resumen, setResumen] = useState<ResumenMensual | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +34,15 @@ export default function ResumenMensualContainer() {
     const fetch = async () => {
       const { inicio, fin } = rangoMesActual();
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("Factura")
         .select("Id_TipoOperacion, Total")
         .gte("Fecha", inicio)
         .lte("Fecha", fin);
+
+      if (campoActivo) query = query.eq("Id_Campo", campoActivo.Id_Campo);
+
+      const { data, error } = await query;
 
       if (error) {
         setError(error.message);
@@ -56,7 +62,7 @@ export default function ResumenMensualContainer() {
     };
 
     fetch();
-  }, []);
+  }, [campoActivo]);
 
   return <ResumenMensualCards resumen={resumen} loading={loading} error={error} />;
 }

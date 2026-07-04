@@ -33,12 +33,13 @@ const SENTIDO_OPTIONS = [
 type Props = {
   categorias: CategoriaOption[];
   loading: boolean;
+  sinCampo: boolean;
   onGuardar: (form: MovimientoFormData) => Promise<void>;
 };
 
 const hoy = () => new Date().toISOString().split("T")[0];
 
-export default function NuevoMovimientoView({ categorias, loading, onGuardar }: Props) {
+export default function NuevoMovimientoView({ categorias, loading, sinCampo, onGuardar }: Props) {
   const [tipo, setTipo] = useState<MovimientoFormData["tipoMovimiento"] | "">("");
   const [sentido, setSentido] = useState<MovimientoFormData["sentidoAjuste"]>("incremento");
   const [idCategoria, setIdCategoria] = useState<string>("");
@@ -87,6 +88,25 @@ export default function NuevoMovimientoView({ categorias, loading, onGuardar }: 
     value: c.Id_CategoriaHacienda,
     label: c.Nombre,
   }));
+
+  if (sinCampo) {
+    return (
+      <PageShell
+        title="Nuevo movimiento"
+        description="Registrá nacimientos, muertes o ajustes de inventario."
+        back={
+          <Link href="/rodeo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={14} />
+            Volver al rodeo
+          </Link>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Seleccioná un campo en el selector del encabezado para registrar un movimiento.
+        </p>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

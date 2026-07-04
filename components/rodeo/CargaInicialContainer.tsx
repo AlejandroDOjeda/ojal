@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampoContext } from "@/contexts/CampoContext";
 import CargaInicialView from "./CargaInicialView";
 
 export type RodeoFila = {
@@ -12,17 +13,22 @@ export type RodeoFila = {
 };
 
 export default function CargaInicialContainer() {
+  const { campoActivo } = useCampoContext();
   const [filas, setFilas] = useState<RodeoFila[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRodeo = useCallback(async () => {
+    if (!campoActivo) {
+      setFilas([]); setLoading(false); return;
+    }
     setLoading(true);
     setError(null);
 
     const { data, error } = await supabase
       .from("Rodeo")
-      .select("Id_Rodeo, Id_CategoriaHacienda, Cabezas, CategoriaHacienda(Nombre)");
+      .select("Id_Rodeo, Id_CategoriaHacienda, Cabezas, CategoriaHacienda(Nombre)")
+      .eq("Id_Campo", campoActivo.Id_Campo);
 
     if (error) {
       setError(error.message);
@@ -39,7 +45,7 @@ export default function CargaInicialContainer() {
     }
 
     setLoading(false);
-  }, []);
+  }, [campoActivo]);
 
   useEffect(() => {
     fetchRodeo();
@@ -68,6 +74,7 @@ export default function CargaInicialContainer() {
       loading={loading}
       error={error}
       yaConfigurado={yaConfigurado}
+      sinCampo={!campoActivo}
       onGuardar={handleGuardar}
     />
   );
