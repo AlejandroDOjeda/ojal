@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageShell, DataTable, FormField, EmptyState } from "@/components/app";
+import { formatRenspa, renspaToDigits } from "@/lib/formato";
+import { validarRenspa } from "@/lib/validaciones";
 import type { CampoRow, CampoFormData } from "./CamposContainer";
 
 const EMPTY_FORM: CampoFormData = { Nombre: "", Renspa: "", Ubicacion: "", Superficie: "" };
@@ -36,7 +38,7 @@ export default function CamposView({ campos, loading, error, onCreate, onUpdate,
     setEditing(c);
     setForm({
       Nombre:     c.Nombre,
-      Renspa:     c.Renspa ?? "",
+      Renspa:     (c.Renspa ?? "").replace(/\D/g, ""),  // guardar dígitos en state
       Ubicacion:  c.Ubicacion ?? "",
       Superficie: c.Superficie != null ? String(c.Superficie) : "",
     });
@@ -52,7 +54,11 @@ export default function CamposView({ campos, loading, error, onCreate, onUpdate,
   const validate = (): Errors => {
     const e: Errors = {};
     if (!form.Nombre.trim()) e.Nombre = "Obligatorio";
-    if (form.Superficie && isNaN(parseFloat(form.Superficie))) e.Superficie = "Debe ser un número";
+    if (form.Renspa && !validarRenspa(form.Renspa)) e.Renspa = "Formato inválido — debe tener 13 dígitos (XX.XXX.X.XXXXX/XX)";
+    if (form.Superficie) {
+      const sup = parseFloat(form.Superficie);
+      if (isNaN(sup) || sup <= 0) e.Superficie = "Debe ser un número mayor que 0";
+    }
     return e;
   };
 
@@ -175,9 +181,12 @@ export default function CamposView({ campos, loading, error, onCreate, onUpdate,
             </FormField>
             <FormField label="RENSPA" error={formErrors.Renspa}>
               <Input
-                value={form.Renspa}
-                onChange={(e) => setField("Renspa", e.target.value)}
-                placeholder="Ej: 12.345.6.78901/12"
+                value={formatRenspa(form.Renspa)}
+                onChange={(e) => setField("Renspa", renspaToDigits(e.target.value))}
+                placeholder="12.345.6.78901/12"
+                inputMode="numeric"
+                maxLength={18}
+                aria-invalid={!!formErrors.Renspa}
               />
             </FormField>
             <FormField label="Ubicación" error={formErrors.Ubicacion}>
@@ -193,6 +202,7 @@ export default function CamposView({ campos, loading, error, onCreate, onUpdate,
                 onChange={(e) => setField("Superficie", e.target.value)}
                 placeholder="Ej: 1500"
                 inputMode="decimal"
+                min={0}
                 aria-invalid={!!formErrors.Superficie}
               />
             </FormField>
