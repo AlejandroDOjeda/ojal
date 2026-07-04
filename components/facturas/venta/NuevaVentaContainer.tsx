@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
+import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaVentaView from "./NuevaVentaView";
 
 export type CategoriaHaciendaOption = { id: number; Nombre: string; TasaIva: number };
@@ -13,6 +14,7 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaVentaContainer() {
   const router = useRouter();
+  const { campoActivo } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -30,12 +32,14 @@ export default function NuevaVentaContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
+    if (!campoActivo) throw new Error("Seleccioná un campo en el encabezado antes de guardar una factura.");
     const totales = calcTotalesHacienda(items);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { data: facturaData, error: facturaError } = await supabase
       .from("Factura")
       .insert({
+        Id_Campo:           campoActivo.Id_Campo,
         Id_TipoOperacion:   TIPO_OPERACION.VENTA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
         PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
@@ -73,6 +77,17 @@ export default function NuevaVentaContainer() {
     toast.success("Factura de venta guardada.");
     router.push("/facturas?tab=ventas");
   };
+
+  if (!campoActivo) {
+    return (
+      <div className="p-8 max-w-2xl">
+        <h1 className="text-2xl font-bold text-foreground mb-2">Nueva venta</h1>
+        <p className="text-sm text-muted-foreground">
+          Seleccioná un campo en el selector del encabezado antes de cargar una factura.
+        </p>
+      </div>
+    );
+  }
 
   return <NuevaVentaView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
 }
