@@ -46,7 +46,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <AppSidebar />
           <SidebarInset>
             <Header />
-            <div className="flex-1 overflow-hidden">{children}</div>
+            <div className="flex-1 overflow-y-auto">{children}</div>
           </SidebarInset>
         </SidebarProvider>
       </CampoProvider>
