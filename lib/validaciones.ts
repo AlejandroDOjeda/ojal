@@ -45,3 +45,10 @@ export function validarTelefono(telefono: string): boolean {
 export function formatTelefono(raw: string): string {
   return raw.replace(/[^\d\s\-\(\)\+]/g, "");
 }
+
+/**
+ * Valida que el RENSPA tenga exactamente 13 dígitos (XX.XXX.X.XXXXX/XX).
+ */
+export function validarRenspa(renspa: string): boolean {
+  return renspa.replace(/\D/g, "").length === 13;
+}

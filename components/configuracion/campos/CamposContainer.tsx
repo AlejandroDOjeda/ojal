@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCampoContext } from "@/contexts/CampoContext";
+import { formatRenspa } from "@/lib/formato";
 import CamposView from "./CamposView";
 
 export type CampoRow = {
@@ -43,10 +44,11 @@ export default function CamposContainer() {
 
   const handleCreate = async (f: CampoFormData) => {
     if (!userId) throw new Error("Sin sesión activa.");
+    const renspaFormateado = f.Renspa ? formatRenspa(f.Renspa) : null;
     const { error } = await supabase.from("Campo").insert({
       Id_Profile:  userId,
       Nombre:      f.Nombre.trim(),
-      Renspa:      f.Renspa.trim() || null,
+      Renspa:      renspaFormateado && renspaFormateado.length > 0 ? renspaFormateado : null,
       Ubicacion:   f.Ubicacion.trim() || null,
       Superficie:  f.Superficie ? parseFloat(f.Superficie) : null,
     });
@@ -56,9 +58,10 @@ export default function CamposContainer() {
   };
 
   const handleUpdate = async (id: number, f: CampoFormData) => {
+    const renspaFormateado = f.Renspa ? formatRenspa(f.Renspa) : null;
     const { error } = await supabase.from("Campo").update({
       Nombre:     f.Nombre.trim(),
-      Renspa:     f.Renspa.trim() || null,
+      Renspa:     renspaFormateado && renspaFormateado.length > 0 ? renspaFormateado : null,
       Ubicacion:  f.Ubicacion.trim() || null,
       Superficie: f.Superficie ? parseFloat(f.Superficie) : null,
     }).eq("Id_Campo", id);
