@@ -199,7 +199,12 @@ export default function CamposView({ campos, loading, error, onCreate, onUpdate,
             <FormField label="Superficie (hectáreas)" error={formErrors.Superficie}>
               <Input
                 value={form.Superficie}
-                onChange={(e) => setField("Superficie", e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9.]/g, "");
+                  const parts = v.split(".");
+                  const clean = parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : v;
+                  setField("Superficie", clean);
+                }}
                 placeholder="Ej: 1500"
                 inputMode="decimal"
                 min={0}
