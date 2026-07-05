@@ -11,7 +11,7 @@ type Props = {
 
 export function PageShell({ title, description, action, back, className, children }: Props) {
   return (
-    <div className={cn("p-8 flex flex-col h-full overflow-y-auto", className)}>
+    <div className={cn("p-8 flex flex-col w-full mx-auto", className)}>
       <div className="mb-6">
         {back && <div className="mb-3">{back}</div>}
         <div className="flex items-start justify-between">

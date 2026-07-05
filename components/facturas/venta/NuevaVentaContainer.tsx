@@ -32,7 +32,6 @@ export default function NuevaVentaContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
-    if (!campoActivo) throw new Error("Seleccioná un campo en el encabezado antes de guardar una factura.");
     const totales = calcTotalesHacienda(items);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
@@ -78,23 +77,12 @@ export default function NuevaVentaContainer() {
     router.push("/facturas?tab=ventas");
   };
 
-  if (!campoActivo) {
-    return (
-      <div className="p-8 max-w-2xl">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Nueva venta</h1>
-        <p className="text-sm text-muted-foreground">
-          Seleccioná un campo en el selector del encabezado antes de cargar una factura.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <NuevaVentaView
       entidades={entidades}
       categorias={categorias}
       campos={campos}
-      campoActivoId={campoActivo.Id_Campo}
+      campoActivoId={campoActivo?.Id_Campo ?? null}
       loadingData={loadingData}
       onSave={handleSave}
     />
