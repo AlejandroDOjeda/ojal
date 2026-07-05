@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
+import { parseISO } from "date-fns";
 import { Pencil, Plus, Search, ShoppingCart, Trash2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -16,6 +17,11 @@ const formatNumero = (tipoId: number | null, punto: string | null, numero: strin
   if (!punto && !numero) return label || "—";
   return `${label} ${punto ?? "00000"}-${numero ?? "00000000"}`;
 };
+
+// parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
+// interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
+// mostrar el día anterior.
+const formatFecha = (fecha: string) => parseISO(fecha).toLocaleDateString("es-AR");
 
 const formatMonto = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n);
@@ -116,7 +122,7 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     {
       accessorKey: "Fecha",
       header: "Fecha",
-      cell: ({ row }) => <span className="text-muted-foreground">{new Date(row.original.Fecha).toLocaleDateString("es-AR")}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatFecha(row.original.Fecha)}</span>,
     },
     {
       id: "comprobante",
@@ -141,7 +147,7 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     {
       accessorKey: "Fecha",
       header: "Fecha",
-      cell: ({ row }) => <span className="text-muted-foreground">{new Date(row.original.Fecha).toLocaleDateString("es-AR")}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatFecha(row.original.Fecha)}</span>,
     },
     {
       id: "comprobante",

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { parseISO } from "date-fns";
 import { ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,7 +10,10 @@ import { formatARS } from "@/components/facturas/types";
 import { TIPO_COMPROBANTE_ITEMS, CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
 import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle } from "./FacturaDetalleContainer";
 
-const formatFecha = (d: string) => new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+// parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
+// interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
+// mostrar el día anterior.
+const formatFecha = (d: string) => parseISO(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
   const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
   if (!punto && !numero) return label || "—";

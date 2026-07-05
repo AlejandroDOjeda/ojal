@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import { parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { SectionCard, FormField, SelectBox, DatePicker, ComboboxEntidad } from "@/components/app";
 import type { EntidadOption } from "@/components/app";
 import { TIPO_COMPROBANTE_OPTIONS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
 import { formatCuit } from "@/lib/formato";
+import { toDateStr } from "@/lib/fecha";
 import type { FacturaHeaderData } from "./types";
 
 export type FacturaHeaderErrors = Partial<Record<keyof FacturaHeaderData, string>>;
@@ -88,9 +90,9 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
 
   const handleDiasVenc = (dias: string) => {
     if (dias && data.Fecha) {
-      const d = new Date(data.Fecha);
+      const d = parseISO(data.Fecha);
       d.setDate(d.getDate() + parseInt(dias));
-      onChange("FechaVencimiento", d.toISOString().split("T")[0]);
+      onChange("FechaVencimiento", toDateStr(d));
     } else {
       onChange("FechaVencimiento", "");
     }

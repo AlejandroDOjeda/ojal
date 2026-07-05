@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
+import { toDateStr, hoyStr } from "@/lib/fecha";
 import { useCampoContext } from "@/contexts/CampoContext";
 import FacturasView from "./FacturasView";
 
@@ -22,11 +23,7 @@ export type FacturaResumen = {
 
 function primerDiaDelMes() {
   const hoy = new Date();
-  return new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split("T")[0];
-}
-
-function hoyStr() {
-  return new Date().toISOString().split("T")[0];
+  return toDateStr(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 }
 
 const FACTURA_SELECT = "Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Subtotal, Iva10_5, Iva21, Total, EntidadLegal(RazonSocial)";
