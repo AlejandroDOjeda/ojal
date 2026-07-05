@@ -7,7 +7,7 @@ import { Pencil, Plus, Search, ShoppingCart, Trash2, TrendingUp } from "lucide-r
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PageShell, DataTable } from "@/components/app";
+import { PageShell, DataTable, DatePicker, FormField } from "@/components/app";
 import { TIPO_COMPROBANTE_ITEMS } from "@/lib/opciones";
 import type { FacturaResumen } from "./FacturasContainer";
 
@@ -20,16 +20,26 @@ const formatNumero = (tipoId: number | null, punto: string | null, numero: strin
 const formatMonto = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n);
 
+const sumColumn = (rows: { original: FacturaResumen }[], field: "Subtotal" | "Iva" | "Total") =>
+  rows.reduce((s, row) => {
+    if (field === "Iva") return s + row.original.Iva10_5 + row.original.Iva21;
+    return s + row.original[field];
+  }, 0);
+
 type Tab = "compras" | "ventas";
 type Props = {
-  compras:  FacturaResumen[];
-  ventas:   FacturaResumen[];
-  loading:  boolean;
-  error:    string | null;
-  onDelete: (id: number) => Promise<void>;
+  compras:            FacturaResumen[];
+  ventas:             FacturaResumen[];
+  loading:            boolean;
+  error:              string | null;
+  fechaDesde:         string;
+  fechaHasta:         string;
+  onFechaDesdeChange: (value: string) => void;
+  onFechaHastaChange: (value: string) => void;
+  onDelete:           (id: number) => Promise<void>;
 };
 
-export default function FacturasView({ compras, ventas, loading, error, onDelete }: Props) {
+export default function FacturasView({ compras, ventas, loading, error, fechaDesde, fechaHasta, onFechaDesdeChange, onFechaHastaChange, onDelete }: Props) {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => searchParams.get("tab") === "ventas" ? "ventas" : "compras");
   const router = useRouter();
@@ -77,6 +87,31 @@ export default function FacturasView({ compras, ventas, loading, error, onDelete
     );
   };
 
+  const montoColumnas = (): ColumnDef<FacturaResumen, unknown>[] => [
+    {
+      accessorKey: "Subtotal",
+      header: "Neto",
+      meta: { align: "right" },
+      cell: ({ row }) => <span className="text-right block">{formatMonto(row.original.Subtotal)}</span>,
+      footer: ({ table }) => `Total: ${formatMonto(sumColumn(table.getFilteredRowModel().rows, "Subtotal"))}`,
+    },
+    {
+      id: "iva",
+      header: "IVA",
+      meta: { align: "right" },
+      accessorFn: (row) => row.Iva10_5 + row.Iva21,
+      cell: ({ row }) => <span className="text-right block">{formatMonto(row.original.Iva10_5 + row.original.Iva21)}</span>,
+      footer: ({ table }) => `Total: ${formatMonto(sumColumn(table.getFilteredRowModel().rows, "Iva"))}`,
+    },
+    {
+      accessorKey: "Total",
+      header: "Bruto",
+      meta: { align: "right" },
+      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
+      footer: ({ table }) => <span className="font-semibold">{`Total: ${formatMonto(sumColumn(table.getFilteredRowModel().rows, "Total"))}`}</span>,
+    },
+  ];
+
   const columnsCompras = useMemo<ColumnDef<FacturaResumen, unknown>[]>(() => [
     {
       accessorKey: "Fecha",
@@ -95,11 +130,7 @@ export default function FacturasView({ compras, ventas, loading, error, onDelete
       accessorFn: (row) => row.EntidadLegal?.RazonSocial ?? "",
       cell: ({ row }) => <span className="font-medium">{row.original.EntidadLegal?.RazonSocial ?? "—"}</span>,
     },
-    {
-      accessorKey: "Total",
-      header: "Total",
-      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
-    },
+    ...montoColumnas(),
     {
       id: "acciones", header: "", enableSorting: false, size: 130,
       cell: ({ row }) => accionesCell(row),
@@ -124,11 +155,7 @@ export default function FacturasView({ compras, ventas, loading, error, onDelete
       accessorFn: (row) => row.EntidadLegal?.RazonSocial ?? "",
       cell: ({ row }) => <span className="font-medium">{row.original.EntidadLegal?.RazonSocial ?? "—"}</span>,
     },
-    {
-      accessorKey: "Total",
-      header: "Total",
-      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
-    },
+    ...montoColumnas(),
     {
       id: "acciones", header: "", enableSorting: false, size: 130,
       cell: ({ row }) => accionesCell(row),
@@ -138,6 +165,15 @@ export default function FacturasView({ compras, ventas, loading, error, onDelete
   return (
     <PageShell title="Facturas" description="Comprobantes de compra y venta">
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
+
+      <div className="flex items-end gap-3 mb-4">
+        <FormField label="Desde" className="w-40">
+          <DatePicker value={fechaDesde} onChange={onFechaDesdeChange} />
+        </FormField>
+        <FormField label="Hasta" className="w-40">
+          <DatePicker value={fechaHasta} onChange={onFechaHastaChange} />
+        </FormField>
+      </div>
 
       <div className="flex items-end justify-between mb-4 border-b border-border">
         <div className="flex gap-1">

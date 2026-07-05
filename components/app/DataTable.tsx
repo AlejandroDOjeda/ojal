@@ -15,7 +15,14 @@ import { ArrowUp, ArrowDown, ArrowUpDown, Search, FileText } from "lucide-react"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData, TValue> {
+    align?: "left" | "right";
+  }
+}
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -52,6 +59,7 @@ export function DataTable<T>({
 
   const totalFiltered = table.getFilteredRowModel().rows.length;
   const pageCount = table.getPageCount();
+  const hasFooter = columns.some((c) => c.footer);
 
   // ── Loading ───────────────────────────────────────────────────
   if (loading) {
@@ -84,11 +92,19 @@ export function DataTable<T>({
                 {hg.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
+                  const alignRight = header.column.columnDef.meta?.align === "right";
                   return (
-                    <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}>
+                    <TableHead
+                      key={header.id}
+                      className={alignRight ? "text-right" : undefined}
+                      style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                    >
                       {header.isPlaceholder ? null : canSort ? (
                         <button
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors -ml-0.5"
+                          className={cn(
+                            "inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors",
+                            alignRight ? "-mr-0.5" : "-ml-0.5"
+                          )}
                           onClick={header.column.getToggleSortingHandler()}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -133,6 +149,22 @@ export function DataTable<T>({
               ))
             )}
           </TableBody>
+          {hasFooter && (
+            <TableFooter>
+              {table.getFooterGroups().map((fg) => (
+                <TableRow key={fg.id} className="hover:bg-transparent">
+                  {fg.headers.map((header) => (
+                    <TableCell
+                      key={header.id}
+                      className={header.column.columnDef.meta?.align === "right" ? "text-right" : undefined}
+                    >
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableFooter>
+          )}
         </Table>
       </div>
 

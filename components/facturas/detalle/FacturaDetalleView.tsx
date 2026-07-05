@@ -31,13 +31,15 @@ type Props = {
   notFound: boolean;
 };
 
-const backLink = (
-  <Link href="/facturas">
+const backLinkFor = (tab: "compras" | "ventas") => (
+  <Link href={`/facturas?tab=${tab}`}>
     <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
   </Link>
 );
 
 export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, loading, notFound }: Props) {
+  const backLink = backLinkFor(factura?.Id_TipoOperacion === 1 ? "compras" : "ventas");
+
   if (loading) return <PageShell title="Detalle de Factura" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   if (notFound || !factura) {

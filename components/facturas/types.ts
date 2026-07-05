@@ -44,7 +44,7 @@ export type Totales = {
 // Valores iniciales
 export const EMPTY_HEADER: FacturaHeaderData = {
   Id_TipoComprobante: "",
-  PuntoVenta: "00001",
+  PuntoVenta: "",
   Numero: "",
   Fecha: new Date().toISOString().split("T")[0],
   Id_EntidadLegal: "",

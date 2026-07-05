@@ -126,10 +126,10 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, in
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-5xl">
+    <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
         <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Proveedor" onChange={setHeaderField} />
 
@@ -137,62 +137,60 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, in
           <div className="flex justify-end mb-3">
             <Button type="button" variant="ghost" size="sm" onClick={addItem} className="gap-1.5"><Plus size={15} />Agregar ítem</Button>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">Descripción</TableHead>
-                  <TableHead className="text-muted-foreground w-44">Categoría</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-24">Cantidad</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-32">Precio unit.</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-24">IVA %</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-32">Subtotal</TableHead>
-                  <TableHead className="w-8" />
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-muted-foreground min-w-48">Descripción</TableHead>
+                <TableHead className="text-muted-foreground min-w-44">Categoría</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-24">Cantidad</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-32">Precio unit.</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-24">IVA %</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-32">Subtotal</TableHead>
+                <TableHead className="w-8" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item._key} className="hover:bg-transparent">
+                  <TableCell className="pr-3">
+                    <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" className={itemErrors[item._key]?.Descripcion ? "border-destructive" : undefined} />
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <Combobox
+                      options={categoriasOptions}
+                      value={item.Id_CategoriaGasto}
+                      onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v)}
+                      placeholder="— Sin categoría —"
+                    />
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <Input type="number" min="0" step="0.01" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className={"text-right" + (itemErrors[item._key]?.Cantidad ? " border-destructive" : "")} />
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <InputGroup className={itemErrors[item._key]?.PrecioUnitario ? "border-destructive" : undefined}>
+                      <InputGroupAddon>$</InputGroupAddon>
+                      <InputGroupInput type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
+                    </InputGroup>
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <SelectBox
+                      options={TASA_IVA_OPTIONS}
+                      value={item.TasaIva}
+                      onValueChange={(v) => updateItem(item._key, "TasaIva", v || "21")}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemGastoSubtotal(item))}</TableCell>
+                  <TableCell className="pl-2">
+                    {items.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item._key)}>
+                        <Trash2 size={14} />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item._key} className="hover:bg-transparent">
-                    <TableCell className="pr-3">
-                      <Input value={item.Descripcion} onChange={(e) => updateItem(item._key, "Descripcion", e.target.value)} placeholder="Descripción" className={itemErrors[item._key]?.Descripcion ? "border-destructive" : undefined} />
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <Combobox
-                        options={categoriasOptions}
-                        value={item.Id_CategoriaGasto}
-                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaGasto", v)}
-                        placeholder="— Sin categoría —"
-                      />
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <Input type="number" min="0" step="0.01" value={item.Cantidad} onChange={(e) => updateItem(item._key, "Cantidad", e.target.value)} className={"text-right" + (itemErrors[item._key]?.Cantidad ? " border-destructive" : "")} />
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <InputGroup className={itemErrors[item._key]?.PrecioUnitario ? "border-destructive" : undefined}>
-                        <InputGroupAddon>$</InputGroupAddon>
-                        <InputGroupInput type="number" min="0" step="0.01" value={item.PrecioUnitario} onChange={(e) => updateItem(item._key, "PrecioUnitario", e.target.value)} placeholder="0,00" className="text-right" />
-                      </InputGroup>
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <SelectBox
-                        options={TASA_IVA_OPTIONS}
-                        value={item.TasaIva}
-                        onValueChange={(v) => updateItem(item._key, "TasaIva", v || "21")}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemGastoSubtotal(item))}</TableCell>
-                    <TableCell className="pl-2">
-                      {items.length > 1 && (
-                        <Button type="button" variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item._key)}>
-                          <Trash2 size={14} />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         </SectionCard>
 
         <FacturaTotales totales={totales} />

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { SectionCard, FormField, SelectBox, DatePicker, ComboboxEntidad } from "@/components/app";
 import type { EntidadOption } from "@/components/app";
 import { TIPO_COMPROBANTE_OPTIONS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
+import { formatCuit } from "@/lib/formato";
 import type { FacturaHeaderData } from "./types";
 
 export type FacturaHeaderErrors = Partial<Record<keyof FacturaHeaderData, string>>;
@@ -74,6 +75,7 @@ type Props = {
 
 export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, onChange }: Props) {
   const esCuentaCorriente = data.Id_CondicionPago === "2";
+  const entidadSeleccionada = entidades.find((e) => String(e.id) === data.Id_EntidadLegal);
 
   // Deriva los días de vencimiento desde las fechas almacenadas, para pre-seleccionar la opción correcta al editar.
   const diasVenc = useMemo(() => {
@@ -131,13 +133,18 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FormField label={entidadLabel} required className="sm:col-span-2" error={errors.Id_EntidadLegal}>
+          <FormField label={entidadLabel} required error={errors.Id_EntidadLegal}>
             <ComboboxEntidad
               entidades={entidades}
               value={data.Id_EntidadLegal}
               onValueChange={(v) => onChange("Id_EntidadLegal", v)}
               error={!!errors.Id_EntidadLegal}
             />
+          </FormField>
+          <FormField label="CUIT/CUIL">
+            <div className="flex h-8 items-center px-2.5 text-sm text-muted-foreground font-mono">
+              {entidadSeleccionada ? formatCuit(entidadSeleccionada.CuitCuil) : "—"}
+            </div>
           </FormField>
           <FormField label="Condición de pago">
             <SelectBox
