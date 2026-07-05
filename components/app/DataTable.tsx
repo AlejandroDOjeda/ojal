@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -43,6 +43,8 @@ export function DataTable<T>({
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [colWidths, setColWidths] = useState<number[]>([]);
 
   const table = useReactTable({
     data,
@@ -60,6 +62,21 @@ export function DataTable<T>({
   const totalFiltered = table.getFilteredRowModel().rows.length;
   const pageCount = table.getPageCount();
   const hasFooter = columns.some((c) => c.footer);
+
+  // El footer de totales vive en una tabla separada (para poder anclarla al
+  // fondo de la grilla en vez de que quede pegada a la última fila cargada).
+  // Estas medidas mantienen sus columnas alineadas con las del header/body.
+  useLayoutEffect(() => {
+    if (!hasFooter) return;
+    const ths = bodyRef.current?.querySelectorAll("thead th");
+    if (!ths || ths.length === 0) return;
+    const cells = Array.from(ths) as HTMLElement[];
+    const measure = () => setColWidths(cells.map((c) => c.getBoundingClientRect().width));
+    measure();
+    const ro = new ResizeObserver(measure);
+    cells.forEach((c) => ro.observe(c));
+    return () => ro.disconnect();
+  }, [hasFooter]);
 
   // ── Loading ───────────────────────────────────────────────────
   if (loading) {
@@ -84,88 +101,100 @@ export function DataTable<T>({
       </div>
 
       {/* Tabla */}
-      <div className="min-h-0 flex-1 rounded-lg border border-border bg-card overflow-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="hover:bg-transparent bg-muted/50">
-                {hg.headers.map((header) => {
-                  const canSort = header.column.getCanSort();
-                  const sorted = header.column.getIsSorted();
-                  const alignRight = header.column.columnDef.meta?.align === "right";
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={alignRight ? "text-right" : undefined}
-                      style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
-                    >
-                      {header.isPlaceholder ? null : canSort ? (
-                        <button
-                          className={cn(
-                            "inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors",
-                            alignRight ? "-mr-0.5" : "-ml-0.5"
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {sorted === "asc"  ? <ArrowUp size={13} /> :
-                           sorted === "desc" ? <ArrowDown size={13} /> :
-                           <ArrowUpDown size={13} className="opacity-40" />}
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                        </span>
-                      )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="py-16 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <FileText size={36} className="opacity-30" />
-                    <p className="text-sm">
-                      {globalFilter
-                        ? `Sin resultados para "${globalFilter}"`
-                        : "No hay datos."}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-          {hasFooter && (
-            <TableFooter>
-              {table.getFooterGroups().map((fg) => (
-                <TableRow key={fg.id} className="hover:bg-transparent">
-                  {fg.headers.map((header) => (
-                    <TableCell
-                      key={header.id}
-                      className={header.column.columnDef.meta?.align === "right" ? "text-right" : undefined}
-                    >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
-                    </TableCell>
-                  ))}
+      <div className="min-h-0 flex-1 flex flex-col rounded-lg border border-border bg-card overflow-hidden">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-auto">
+          <Table className="h-full">
+            <TableHeader>
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id} className="hover:bg-transparent bg-muted/50">
+                  {hg.headers.map((header) => {
+                    const canSort = header.column.getCanSort();
+                    const sorted = header.column.getIsSorted();
+                    const alignRight = header.column.columnDef.meta?.align === "right";
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={alignRight ? "text-right" : undefined}
+                        style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                      >
+                        {header.isPlaceholder ? null : canSort ? (
+                          <button
+                            className={cn(
+                              "inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors",
+                              alignRight ? "-mr-0.5" : "-ml-0.5"
+                            )}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {sorted === "asc"  ? <ArrowUp size={13} /> :
+                             sorted === "desc" ? <ArrowDown size={13} /> :
+                             <ArrowUpDown size={13} className="opacity-40" />}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
+                        )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
-            </TableFooter>
-          )}
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <FileText size={36} className="opacity-30" />
+                      <p className="text-sm">
+                        {globalFilter
+                          ? `Sin resultados para "${globalFilter}"`
+                          : "No hay datos."}
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {hasFooter && (
+          <div className="shrink-0 overflow-x-auto">
+            <Table>
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={i} style={{ width: w }} />
+                ))}
+              </colgroup>
+              <TableFooter>
+                {table.getFooterGroups().map((fg) => (
+                  <TableRow key={fg.id} className="hover:bg-transparent">
+                    {fg.headers.map((header) => (
+                      <TableCell
+                        key={header.id}
+                        className={header.column.columnDef.meta?.align === "right" ? "text-right" : undefined}
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableFooter>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Pie: selector de página + total + paginación */}
