@@ -36,6 +36,7 @@ export type ItemGastoDetalle = {
 
 export type ItemHaciendaDetalle = {
   Id_ItemHacienda:   number;
+  Campo:             { Nombre: string } | null;
   CategoriaHacienda: { Nombre: string } | null;
   Cabezas:           number;
   KgPromedio:        number | null;
@@ -78,7 +79,7 @@ export default function FacturaDetalleContainer() {
       } else { // Venta
         const { data: items } = await supabase
           .from("ItemHacienda")
-          .select("*, CategoriaHacienda(Nombre)")
+          .select("*, CategoriaHacienda(Nombre), Campo(Nombre)")
           .eq("Id_Factura", parseInt(id))
           .order("CreatedAt");
         setItemsHacienda((items ?? []) as unknown as ItemHaciendaDetalle[]);

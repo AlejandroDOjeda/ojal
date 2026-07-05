@@ -26,25 +26,46 @@ export default function FacturasContainer() {
 
   const fetchFacturas = useCallback(async () => {
     setLoading(true); setError(null);
-    let query = supabase
+
+    // Las compras no están ligadas a un campo. Las ventas sí, pero a nivel de
+    // ítem (ItemHacienda), no de Factura: se filtran vía join con ese campo.
+    const comprasQuery = supabase
       .from("Factura")
       .select("Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Total, EntidadLegal(RazonSocial)")
+      .eq("Id_TipoOperacion", TIPO_OPERACION.COMPRA)
       .order("Fecha", { ascending: false });
 
-    if (campoActivo) query = query.eq("Id_Campo", campoActivo.Id_Campo);
+    let ventasQuery = supabase
+      .from("Factura")
+      .select("Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Total, EntidadLegal(RazonSocial), ItemHacienda!inner(Id_Campo)")
+      .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
+      .order("Fecha", { ascending: false });
 
-    const { data, error } = await query;
+    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
 
-    if (error) { setError(error.message); }
-    else {
-      const rows = (data ?? []) as FacturaResumen[];
-      setCompras(rows.filter((f) => f.Id_TipoOperacion === TIPO_OPERACION.COMPRA));
-      setVentas(rows.filter((f) => f.Id_TipoOperacion === TIPO_OPERACION.VENTA));
+    const [{ data: comprasData, error: comprasError }, { data: ventasData, error: ventasError }] =
+      await Promise.all([comprasQuery, ventasQuery]);
+
+    if (comprasError || ventasError) {
+      setError((comprasError ?? ventasError)!.message);
+    } else {
+      setCompras((comprasData ?? []) as FacturaResumen[]);
+      setVentas((ventasData ?? []) as FacturaResumen[]);
     }
     setLoading(false);
   }, [campoActivo]);
 
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 
-  return <FacturasView compras={compras} ventas={ventas} loading={loading} error={error} />;
+  const handleDelete = async (id: number) => {
+    await Promise.all([
+      supabase.from("ItemGasto").delete().eq("Id_Factura", id),
+      supabase.from("ItemHacienda").delete().eq("Id_Factura", id),
+    ]);
+    const { error: delError } = await supabase.from("Factura").delete().eq("Id_Factura", id);
+    if (delError) throw new Error(delError.message);
+    await fetchFacturas();
+  };
+
+  return <FacturasView compras={compras} ventas={ventas} loading={loading} error={error} onDelete={handleDelete} />;
 }

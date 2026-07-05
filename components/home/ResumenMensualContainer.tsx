@@ -34,26 +34,33 @@ export default function ResumenMensualContainer() {
     const fetch = async () => {
       const { inicio, fin } = rangoMesActual();
 
-      let query = supabase
+      // Compras: no están ligadas a un campo. Ventas: sí, pero a nivel de
+      // ítem (ItemHacienda), no de Factura.
+      const comprasQuery = supabase
         .from("Factura")
-        .select("Id_TipoOperacion, Total")
+        .select("Total")
+        .eq("Id_TipoOperacion", 1)
         .gte("Fecha", inicio)
         .lte("Fecha", fin);
 
-      if (campoActivo) query = query.eq("Id_Campo", campoActivo.Id_Campo);
+      let ventasQuery = supabase
+        .from("Factura")
+        .select("Total, ItemHacienda!inner(Id_Campo)")
+        .eq("Id_TipoOperacion", 2)
+        .gte("Fecha", inicio)
+        .lte("Fecha", fin);
 
-      const { data, error } = await query;
+      if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
 
-      if (error) {
-        setError(error.message);
+      const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
+        await Promise.all([comprasQuery, ventasQuery]);
+
+      if (comprasError || ventasError) {
+        setError((comprasError ?? ventasError)!.message);
       } else {
-        const filas = data ?? [];
-        const totalCompras = filas
-          .filter((f: any) => f.Id_TipoOperacion === 1)
-          .reduce((sum: number, f: any) => sum + (f.Total ?? 0), 0);
-        const totalVentas = filas
-          .filter((f: any) => f.Id_TipoOperacion === 2)
-          .reduce((sum: number, f: any) => sum + (f.Total ?? 0), 0);
+        const sumTotal = (filas: { Total: number }[]) => filas.reduce((sum, f) => sum + (f.Total ?? 0), 0);
+        const totalCompras = sumTotal((compras ?? []) as { Total: number }[]);
+        const totalVentas = sumTotal((ventas ?? []) as { Total: number }[]);
 
         setResumen({ totalCompras, totalVentas, mes: nombreMes() });
       }

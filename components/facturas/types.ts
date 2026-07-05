@@ -24,6 +24,7 @@ export type ItemGastoForm = {
 
 export type ItemHaciendaForm = {
   _key: string;
+  Id_Campo: string;
   Id_CategoriaHacienda: string;
   Cabezas: string;
   Modalidad: "1" | "2"; // "1"=Por kg, "2"=Por cabeza
@@ -43,7 +44,7 @@ export type Totales = {
 // Valores iniciales
 export const EMPTY_HEADER: FacturaHeaderData = {
   Id_TipoComprobante: "",
-  PuntoVenta: "0001",
+  PuntoVenta: "00001",
   Numero: "",
   Fecha: new Date().toISOString().split("T")[0],
   Id_EntidadLegal: "",
@@ -60,6 +61,7 @@ export const EMPTY_ITEM_GASTO: Omit<ItemGastoForm, "_key"> = {
 };
 
 export const EMPTY_ITEM_HACIENDA: Omit<ItemHaciendaForm, "_key"> = {
+  Id_Campo: "",
   Id_CategoriaHacienda: "",
   Cabezas: "",
   Modalidad: "1", // Por kg por defecto

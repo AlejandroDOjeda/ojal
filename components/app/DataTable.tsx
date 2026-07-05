@@ -63,7 +63,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3 min-h-0">
+    <div className="flex flex-1 flex-col gap-3 min-h-0 min-w-0">
       {/* Buscador */}
       <div className="relative max-w-xs">
         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />

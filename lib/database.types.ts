@@ -123,7 +123,6 @@ export interface Database {
       Factura: {
         Row: {
           Id_Factura:          number;
-          Id_Campo:            number;
           Id_TipoOperacion:    number;
           Id_TipoComprobante:  number | null;
           PuntoVenta:          string | null;
@@ -141,7 +140,6 @@ export interface Database {
           UpdatedAt:           string;
         };
         Insert: {
-          Id_Campo:            number;
           Id_TipoOperacion:    number;
           Id_TipoComprobante?: number | null;
           PuntoVenta?:         string | null;
@@ -157,7 +155,6 @@ export interface Database {
           Observaciones?:      string | null;
         };
         Update: {
-          Id_Campo?:           number;
           Id_TipoComprobante?: number | null;
           PuntoVenta?:         string | null;
           Numero?:             string | null;
@@ -175,8 +172,8 @@ export interface Database {
       };
 
       ItemHacienda: {
-        Row: { Id_ItemHacienda: number; Id_Factura: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number; Subtotal: number; CreatedAt: string };
-        Insert: { Id_Factura: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal: number };
+        Row: { Id_ItemHacienda: number; Id_Factura: number; Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number; Subtotal: number; CreatedAt: string };
+        Insert: { Id_Factura: number; Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal: number };
         Update: { Cabezas?: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal?: number };
         Relationships: [];
       };
