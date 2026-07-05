@@ -20,9 +20,13 @@ import {
 } from "@/components/facturas/types";
 import type { CategoriaHaciendaOption, EntidadOption } from "./NuevaVentaContainer";
 
+export type CampoOption = { Id_Campo: number; Nombre: string };
+
 type Props = {
   entidades: EntidadOption[];
   categorias: CategoriaHaciendaOption[];
+  campos: CampoOption[];
+  campoActivoId: number | null;
   loadingData: boolean;
   initialHeader?: FacturaHeaderData;
   initialItems?: ItemHaciendaForm[];
@@ -34,12 +38,13 @@ type Props = {
 let keyCounter = 0;
 const newKey = () => String(++keyCounter);
 
-type ItemHaciendaErrors = Partial<Record<"Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
+type ItemHaciendaErrors = Partial<Record<"Id_Campo" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 
-export default function NuevaVentaView({ entidades, categorias, loadingData, initialHeader, initialItems, title, cancelPath, onSave }: Props) {
+export default function NuevaVentaView({ entidades, categorias, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
-  const [items, setItems] = useState<ItemHaciendaForm[]>(initialItems ?? [{ _key: newKey(), ...EMPTY_ITEM_HACIENDA }]);
+  const nuevoItem = () => ({ _key: newKey(), ...EMPTY_ITEM_HACIENDA, Id_Campo: campoActivoId ? String(campoActivoId) : "" });
+  const [items, setItems] = useState<ItemHaciendaForm[]>(initialItems ?? [nuevoItem()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
@@ -54,7 +59,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
     markDirty(); setHeader((h) => ({ ...h, [field]: value }));
   };
 
-  const addItem = () => { markDirty(); setItems((p) => [...p, { _key: newKey(), ...EMPTY_ITEM_HACIENDA }]); };
+  const addItem = () => { markDirty(); setItems((p) => [...p, nuevoItem()]); };
   const removeItem = (key: string) => {
     markDirty();
     setItems((p) => p.filter((i) => i._key !== key));
@@ -93,6 +98,8 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
   const validate = (): boolean => {
     const hErrors: FacturaHeaderErrors = {};
     if (!header.Id_TipoComprobante) hErrors.Id_TipoComprobante = "Obligatorio";
+    if (!header.PuntoVenta || parseInt(header.PuntoVenta) <= 0) hErrors.PuntoVenta = "Obligatorio";
+    if (!header.Numero || parseInt(header.Numero) <= 0) hErrors.Numero = "Obligatorio";
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
@@ -100,6 +107,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
     const newItemErrors: Record<string, ItemHaciendaErrors> = {};
     for (const item of items) {
       const err: ItemHaciendaErrors = {};
+      if (!item.Id_Campo) err.Id_Campo = true;
       if (!item.Id_CategoriaHacienda) err.Id_CategoriaHacienda = true;
       if (!item.Cabezas || parseInt(item.Cabezas) <= 0) err.Cabezas = true;
       if (item.Modalidad === "1") {
@@ -127,6 +135,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
   const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=ventas"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
+  const camposOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
   const totales = calcTotalesHacienda(items);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
@@ -149,6 +158,7 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-muted-foreground w-36">Campo</TableHead>
                   <TableHead className="text-muted-foreground w-40">Categoría</TableHead>
                   <TableHead className="text-muted-foreground text-right w-24">Cabezas</TableHead>
                   <TableHead className="text-muted-foreground w-32">Precio por</TableHead>
@@ -164,6 +174,15 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
                   <TableRow key={item._key} className="hover:bg-transparent">
                     <TableCell className="pr-3">
                       <SelectBox
+                        options={camposOptions}
+                        value={item.Id_Campo}
+                        onValueChange={(v) => updateItem(item._key, "Id_Campo", v)}
+                        placeholder="— Campo —"
+                        error={!!itemErrors[item._key]?.Id_Campo}
+                      />
+                    </TableCell>
+                    <TableCell className="pr-3">
+                      <SelectBox
                         options={categoriasOptions}
                         value={item.Id_CategoriaHacienda}
                         onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v)}
@@ -172,7 +191,14 @@ export default function NuevaVentaView({ entidades, categorias, loadingData, ini
                       />
                     </TableCell>
                     <TableCell className="px-3">
-                      <Input type="number" min="1" step="1" value={item.Cabezas} onChange={(e) => updateItem(item._key, "Cabezas", e.target.value)} className={"text-right" + (itemErrors[item._key]?.Cabezas ? " border-destructive" : "")} placeholder="0" />
+                      <Input
+                        type="number" min="1" step="1"
+                        value={item.Cabezas}
+                        onChange={(e) => updateItem(item._key, "Cabezas", e.target.value.replace(/\./g, ""))}
+                        onKeyDown={(e) => { if ([".", ",", "e", "E", "+", "-"].includes(e.key)) e.preventDefault(); }}
+                        className={"text-right" + (itemErrors[item._key]?.Cabezas ? " border-destructive" : "")}
+                        placeholder="0"
+                      />
                     </TableCell>
                     <TableCell className="px-3">
                       <SelectBox

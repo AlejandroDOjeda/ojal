@@ -87,6 +87,8 @@ export default function NuevaCompraView({ entidades, categorias, loadingData, in
   const validate = (): boolean => {
     const hErrors: FacturaHeaderErrors = {};
     if (!header.Id_TipoComprobante) hErrors.Id_TipoComprobante = "Obligatorio";
+    if (!header.PuntoVenta || parseInt(header.PuntoVenta) <= 0) hErrors.PuntoVenta = "Obligatorio";
+    if (!header.Numero || parseInt(header.Numero) <= 0) hErrors.Numero = "Obligatorio";
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";

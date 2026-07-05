@@ -14,7 +14,7 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaVentaContainer() {
   const router = useRouter();
-  const { campoActivo } = useCampoContext();
+  const { campoActivo, campos } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -39,11 +39,10 @@ export default function NuevaVentaContainer() {
     const { data: facturaData, error: facturaError } = await supabase
       .from("Factura")
       .insert({
-        Id_Campo:           campoActivo.Id_Campo,
         Id_TipoOperacion:   TIPO_OPERACION.VENTA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
-        PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
-        Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+        PuntoVenta:         header.PuntoVenta || null,
+        Numero:             header.Numero || null,
         Fecha:              header.Fecha,
         Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
         Id_CondicionPago:   parseInt(header.Id_CondicionPago),
@@ -60,6 +59,7 @@ export default function NuevaVentaContainer() {
 
     const itemsPayload = items.map((item) => ({
       Id_Factura:           facturaData.Id_Factura,
+      Id_Campo:             parseInt(item.Id_Campo),
       Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
       Cabezas:              parseInt(item.Cabezas),
       KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -89,5 +89,14 @@ export default function NuevaVentaContainer() {
     );
   }
 
-  return <NuevaVentaView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
+  return (
+    <NuevaVentaView
+      entidades={entidades}
+      categorias={categorias}
+      campos={campos}
+      campoActivoId={campoActivo.Id_Campo}
+      loadingData={loadingData}
+      onSave={handleSave}
+    />
+  );
 }

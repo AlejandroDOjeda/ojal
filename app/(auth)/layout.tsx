@@ -44,9 +44,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           style={{ "--sidebar-width-icon": "3.5rem" } as React.CSSProperties}
         >
           <AppSidebar />
-          <SidebarInset>
+          <SidebarInset className="min-w-0">
             <Header />
-            <div className="flex-1 overflow-y-auto">{children}</div>
+            <div className="flex-1 overflow-y-auto min-w-0">{children}</div>
           </SidebarInset>
         </SidebarProvider>
       </CampoProvider>

@@ -15,6 +15,7 @@ import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaV
 import NuevaCompraView from "@/components/facturas/compra/NuevaCompraView";
 import NuevaVentaView from "@/components/facturas/venta/NuevaVentaView";
 import { PageShell } from "@/components/app";
+import { useCampoContext } from "@/contexts/CampoContext";
 
 let keyCounter = 0;
 const newKey = () => String(++keyCounter);
@@ -22,6 +23,7 @@ const newKey = () => String(++keyCounter);
 export default function EditarFacturaContainer() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { campos, campoActivo } = useCampoContext();
 
   const [tipoOperacion, setTipoOperacion] = useState<number | null>(null);
   const [initialHeader, setInitialHeader] = useState<FacturaHeaderData | null>(null);
@@ -59,7 +61,7 @@ export default function EditarFacturaContainer() {
     setTipoOperacion(f.Id_TipoOperacion);
     setInitialHeader({
       Id_TipoComprobante: f.Id_TipoComprobante ? String(f.Id_TipoComprobante) : "",
-      PuntoVenta: f.PuntoVenta ?? "0001",
+      PuntoVenta: f.PuntoVenta ?? "00001",
       Numero: f.Numero ?? "",
       Fecha: f.Fecha,
       Id_EntidadLegal: String(f.Id_EntidadLegal),
@@ -86,9 +88,10 @@ export default function EditarFacturaContainer() {
     } else {
       const { data: items } = await supabase.from("ItemHacienda").select("*").eq("Id_Factura", facId).order("CreatedAt");
       setInitialItemsHacienda((items ?? []).map((item: {
-        Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
+        Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
       }) => ({
         _key: newKey(),
+        Id_Campo: String(item.Id_Campo),
         Id_CategoriaHacienda: String(item.Id_CategoriaHacienda),
         Cabezas: String(item.Cabezas),
         Modalidad: item.KgPromedio !== null ? "1" as const : "2" as const,
@@ -111,8 +114,8 @@ export default function EditarFacturaContainer() {
 
     const { error: updateError } = await supabase.from("Factura").update({
       Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
-      PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
-      Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+      PuntoVenta:         header.PuntoVenta || null,
+      Numero:             header.Numero || null,
       Fecha:              header.Fecha,
       Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
       Id_CondicionPago:   parseInt(header.Id_CondicionPago),
@@ -142,7 +145,7 @@ export default function EditarFacturaContainer() {
     if (insertError) throw new Error(insertError.message);
 
     toast.success("Factura de compra actualizada.");
-    router.push(`/facturas/${id}`);
+    router.push("/facturas?tab=compras");
   };
 
   const handleUpdateVenta = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
@@ -152,8 +155,8 @@ export default function EditarFacturaContainer() {
 
     const { error: updateError } = await supabase.from("Factura").update({
       Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
-      PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
-      Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+      PuntoVenta:         header.PuntoVenta || null,
+      Numero:             header.Numero || null,
       Fecha:              header.Fecha,
       Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
       Id_CondicionPago:   parseInt(header.Id_CondicionPago),
@@ -172,6 +175,7 @@ export default function EditarFacturaContainer() {
     const { error: insertError } = await supabase.from("ItemHacienda").insert(
       items.map((item) => ({
         Id_Factura:           facId,
+        Id_Campo:             parseInt(item.Id_Campo),
         Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
         Cabezas:              parseInt(item.Cabezas),
         KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -184,7 +188,7 @@ export default function EditarFacturaContainer() {
     if (insertError) throw new Error(insertError.message);
 
     toast.success("Factura de venta actualizada.");
-    router.push(`/facturas/${id}`);
+    router.push("/facturas?tab=ventas");
   };
 
   if (loading) {
@@ -212,7 +216,7 @@ export default function EditarFacturaContainer() {
         initialHeader={initialHeader!}
         initialItems={initialItemsGasto!}
         title="Editar Factura de Compra"
-        cancelPath={`/facturas/${id}`}
+        cancelPath="/facturas?tab=compras"
         onSave={handleUpdateCompra}
       />
     );
@@ -222,11 +226,13 @@ export default function EditarFacturaContainer() {
     <NuevaVentaView
       entidades={entidades}
       categorias={categoriasHacienda}
+      campos={campos}
+      campoActivoId={campoActivo?.Id_Campo ?? null}
       loadingData={false}
       initialHeader={initialHeader!}
       initialItems={initialItemsHacienda!}
       title="Editar Factura de Venta"
-      cancelPath={`/facturas/${id}`}
+      cancelPath="/facturas?tab=ventas"
       onSave={handleUpdateVenta}
     />
   );

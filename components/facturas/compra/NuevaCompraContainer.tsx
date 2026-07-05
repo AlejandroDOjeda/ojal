@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemGastoSubtotal, calcTotalesGasto, type FacturaHeaderData, type ItemGastoForm } from "@/components/facturas/types";
-import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaCompraView from "./NuevaCompraView";
 
 export type CategoriaGastoOption = { id: number; Nombre: string; TasaIvaHabitual: number };
@@ -14,7 +13,6 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaCompraContainer() {
   const router = useRouter();
-  const { campoActivo } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaGastoOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -32,18 +30,16 @@ export default function NuevaCompraContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemGastoForm[]) => {
-    if (!campoActivo) throw new Error("Seleccioná un campo en el encabezado antes de guardar una factura.");
     const totales = calcTotalesGasto(items);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { data: facturaData, error: facturaError } = await supabase
       .from("Factura")
       .insert({
-        Id_Campo:           campoActivo.Id_Campo,
         Id_TipoOperacion:   TIPO_OPERACION.COMPRA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
-        PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
-        Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+        PuntoVenta:         header.PuntoVenta || null,
+        Numero:             header.Numero || null,
         Fecha:              header.Fecha,
         Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
         Id_CondicionPago:   parseInt(header.Id_CondicionPago),
@@ -76,17 +72,6 @@ export default function NuevaCompraContainer() {
     toast.success("Factura de compra guardada.");
     router.push("/facturas?tab=compras");
   };
-
-  if (!campoActivo) {
-    return (
-      <div className="p-8 max-w-2xl">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Nueva compra</h1>
-        <p className="text-sm text-muted-foreground">
-          Seleccioná un campo en el selector del encabezado antes de cargar una factura.
-        </p>
-      </div>
-    );
-  }
 
   return <NuevaCompraView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
 }
