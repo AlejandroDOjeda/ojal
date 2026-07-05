@@ -13,7 +13,7 @@ const formatFecha = (d: string) => new Date(d).toLocaleDateString("es-AR", { day
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
   const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
   if (!punto && !numero) return label || "—";
-  return `${label} ${punto ?? "0000"}-${numero ?? "00000000"}`;
+  return `${label} ${punto ?? "00000"}-${numero ?? "00000000"}`;
 };
 
 const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
