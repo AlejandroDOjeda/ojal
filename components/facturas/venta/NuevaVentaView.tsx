@@ -143,10 +143,10 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-5xl">
+    <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
         <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Cliente" onChange={setHeaderField} />
 
@@ -154,91 +154,89 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
           <div className="flex justify-end mb-3">
             <Button type="button" variant="ghost" size="sm" onClick={addItem} className="gap-1.5"><Plus size={15} />Agregar ítem</Button>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-muted-foreground w-36">Campo</TableHead>
-                  <TableHead className="text-muted-foreground w-40">Categoría</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-24">Cabezas</TableHead>
-                  <TableHead className="text-muted-foreground w-32">Precio por</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-28">Kg prom.</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-28">Precio</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-20">IVA %</TableHead>
-                  <TableHead className="text-muted-foreground text-right w-32">Subtotal</TableHead>
-                  <TableHead className="w-8" />
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-muted-foreground min-w-36">Campo</TableHead>
+                <TableHead className="text-muted-foreground min-w-40">Categoría</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-24">Cabezas</TableHead>
+                <TableHead className="text-muted-foreground min-w-36">Precio por</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-28">Kg prom.</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-32">Precio</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-24">IVA %</TableHead>
+                <TableHead className="text-muted-foreground text-right min-w-32">Subtotal</TableHead>
+                <TableHead className="w-8" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item._key} className="hover:bg-transparent">
+                  <TableCell className="pr-3">
+                    <SelectBox
+                      options={camposOptions}
+                      value={item.Id_Campo}
+                      onValueChange={(v) => updateItem(item._key, "Id_Campo", v)}
+                      placeholder="— Campo —"
+                      error={!!itemErrors[item._key]?.Id_Campo}
+                    />
+                  </TableCell>
+                  <TableCell className="pr-3">
+                    <SelectBox
+                      options={categoriasOptions}
+                      value={item.Id_CategoriaHacienda}
+                      onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v)}
+                      placeholder="— Categoría —"
+                      error={!!itemErrors[item._key]?.Id_CategoriaHacienda}
+                    />
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <Input
+                      type="number" min="1" step="1"
+                      value={item.Cabezas}
+                      onChange={(e) => updateItem(item._key, "Cabezas", e.target.value.replace(/\./g, ""))}
+                      onKeyDown={(e) => { if ([".", ",", "e", "E", "+", "-"].includes(e.key)) e.preventDefault(); }}
+                      className={"text-right" + (itemErrors[item._key]?.Cabezas ? " border-destructive" : "")}
+                      placeholder="0"
+                    />
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <SelectBox
+                      options={MODALIDAD_PRECIO_OPTIONS}
+                      value={item.Modalidad}
+                      onValueChange={(v) => updateItem(item._key, "Modalidad", v || "1")}
+                    />
+                  </TableCell>
+                  <TableCell className="px-3">
+                    {item.Modalidad === "1" ? (
+                      <Input type="number" min="0" step="0.1" value={item.KgPromedio} onChange={(e) => updateItem(item._key, "KgPromedio", e.target.value)} className={"text-right" + (itemErrors[item._key]?.KgPromedio ? " border-destructive" : "")} placeholder="0,0" />
+                    ) : <span className="block text-right text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="px-3">
+                    {item.Modalidad === "1" ? (
+                      <Input type="number" min="0" step="0.01" value={item.PrecioPorKg} onChange={(e) => updateItem(item._key, "PrecioPorKg", e.target.value)} className={"text-right" + (itemErrors[item._key]?.PrecioPorKg ? " border-destructive" : "")} placeholder="$/kg" />
+                    ) : (
+                      <Input type="number" min="0" step="0.01" value={item.PrecioPorCabeza} onChange={(e) => updateItem(item._key, "PrecioPorCabeza", e.target.value)} className={"text-right" + (itemErrors[item._key]?.PrecioPorCabeza ? " border-destructive" : "")} placeholder="$/cab." />
+                    )}
+                  </TableCell>
+                  <TableCell className="px-3">
+                    <SelectBox
+                      options={TASA_IVA_OPTIONS}
+                      value={item.TasaIva}
+                      onValueChange={(v) => updateItem(item._key, "TasaIva", v || "10.5")}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemHaciendaSubtotal(item))}</TableCell>
+                  <TableCell className="pl-2">
+                    {items.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item._key)}>
+                        <Trash2 size={14} />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item._key} className="hover:bg-transparent">
-                    <TableCell className="pr-3">
-                      <SelectBox
-                        options={camposOptions}
-                        value={item.Id_Campo}
-                        onValueChange={(v) => updateItem(item._key, "Id_Campo", v)}
-                        placeholder="— Campo —"
-                        error={!!itemErrors[item._key]?.Id_Campo}
-                      />
-                    </TableCell>
-                    <TableCell className="pr-3">
-                      <SelectBox
-                        options={categoriasOptions}
-                        value={item.Id_CategoriaHacienda}
-                        onValueChange={(v) => updateItem(item._key, "Id_CategoriaHacienda", v)}
-                        placeholder="— Categoría —"
-                        error={!!itemErrors[item._key]?.Id_CategoriaHacienda}
-                      />
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <Input
-                        type="number" min="1" step="1"
-                        value={item.Cabezas}
-                        onChange={(e) => updateItem(item._key, "Cabezas", e.target.value.replace(/\./g, ""))}
-                        onKeyDown={(e) => { if ([".", ",", "e", "E", "+", "-"].includes(e.key)) e.preventDefault(); }}
-                        className={"text-right" + (itemErrors[item._key]?.Cabezas ? " border-destructive" : "")}
-                        placeholder="0"
-                      />
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <SelectBox
-                        options={MODALIDAD_PRECIO_OPTIONS}
-                        value={item.Modalidad}
-                        onValueChange={(v) => updateItem(item._key, "Modalidad", v || "1")}
-                      />
-                    </TableCell>
-                    <TableCell className="px-3">
-                      {item.Modalidad === "1" ? (
-                        <Input type="number" min="0" step="0.1" value={item.KgPromedio} onChange={(e) => updateItem(item._key, "KgPromedio", e.target.value)} className={"text-right" + (itemErrors[item._key]?.KgPromedio ? " border-destructive" : "")} placeholder="0,0" />
-                      ) : <span className="block text-right text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="px-3">
-                      {item.Modalidad === "1" ? (
-                        <Input type="number" min="0" step="0.01" value={item.PrecioPorKg} onChange={(e) => updateItem(item._key, "PrecioPorKg", e.target.value)} className={"text-right" + (itemErrors[item._key]?.PrecioPorKg ? " border-destructive" : "")} placeholder="$/kg" />
-                      ) : (
-                        <Input type="number" min="0" step="0.01" value={item.PrecioPorCabeza} onChange={(e) => updateItem(item._key, "PrecioPorCabeza", e.target.value)} className={"text-right" + (itemErrors[item._key]?.PrecioPorCabeza ? " border-destructive" : "")} placeholder="$/cab." />
-                      )}
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <SelectBox
-                        options={TASA_IVA_OPTIONS}
-                        value={item.TasaIva}
-                        onValueChange={(v) => updateItem(item._key, "TasaIva", v || "10.5")}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium whitespace-nowrap pl-3">{formatARS(calcItemHaciendaSubtotal(item))}</TableCell>
-                    <TableCell className="pl-2">
-                      {items.length > 1 && (
-                        <Button type="button" variant="ghost" size="icon-sm" className="hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item._key)}>
-                          <Trash2 size={14} />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         </SectionCard>
 
         <FacturaTotales totales={totales} />

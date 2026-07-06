@@ -3,6 +3,8 @@
 // como strings en el estado del formulario para compatibilidad con Select,
 // y se parsean a integer al guardar en Supabase.
 
+import { hoyStr } from "@/lib/fecha";
+
 export type FacturaHeaderData = {
   Id_TipoComprobante: string; // "1","2","3" — vacío si no se eligió
   PuntoVenta: string;
@@ -44,9 +46,9 @@ export type Totales = {
 // Valores iniciales
 export const EMPTY_HEADER: FacturaHeaderData = {
   Id_TipoComprobante: "",
-  PuntoVenta: "00001",
+  PuntoVenta: "",
   Numero: "",
-  Fecha: new Date().toISOString().split("T")[0],
+  Fecha: hoyStr(),
   Id_EntidadLegal: "",
   Id_CondicionPago: "1", // Contado por defecto
   FechaVencimiento: "",
