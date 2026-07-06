@@ -63,7 +63,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
   const condIvaLabel = factura.EntidadLegal ? (CONDICION_IVA_ITEMS[String(factura.EntidadLegal.Id_CondicionIva)] ?? "—") : "—";
 
   return (
-    <PageShell title={titulo} description={isCompra ? "Factura de Compra" : "Factura de Venta"} back={backLink} className="max-w-4xl">
+    <PageShell title={titulo} back={backLink} className="max-w-4xl">
       <div className="space-y-6">
         <SectionCard title="Datos del comprobante">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

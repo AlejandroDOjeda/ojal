@@ -93,7 +93,6 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
     return (
       <PageShell
         title="Nuevo movimiento"
-        description="Registrá nacimientos, muertes o ajustes de inventario."
         back={
           <Link href="/rodeo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft size={14} />
@@ -111,7 +110,6 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
   return (
     <PageShell
       title="Nuevo movimiento"
-      description="Registrá nacimientos, muertes o ajustes de inventario."
       back={
         <Link
           href="/rodeo"

@@ -107,7 +107,7 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
   ], [deleteConfirmId, deleting]);
 
   return (
-    <PageShell title="Entidades Legales" description="Administrá las entidades legales del sistema"
+    <PageShell title="Entidades Legales"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
       {entidades.length === 0 && !loading ? (

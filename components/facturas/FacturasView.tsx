@@ -169,7 +169,7 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
   ], [deleteConfirmId, deleting]);
 
   return (
-    <PageShell title="Facturas" description="Comprobantes de compra y venta">
+    <PageShell title="Facturas">
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
 
       <div className="flex items-end gap-3 mb-4">
