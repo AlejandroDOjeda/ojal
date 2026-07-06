@@ -237,7 +237,7 @@ export default function EditarFacturaContainer() {
 
   if (loading) {
     return (
-      <PageShell title="Editar Factura" className="max-w-5xl">
+      <PageShell title="Editar Factura" className="max-w-none">
         <p className="text-muted-foreground">Cargando...</p>
       </PageShell>
     );
@@ -245,7 +245,7 @@ export default function EditarFacturaContainer() {
 
   if (notFound) {
     return (
-      <PageShell title="Editar Factura" className="max-w-5xl">
+      <PageShell title="Editar Factura" className="max-w-none">
         <p className="text-muted-foreground">Factura no encontrada.</p>
       </PageShell>
     );

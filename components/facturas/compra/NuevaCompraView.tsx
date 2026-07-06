@@ -194,10 +194,10 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-5xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-5xl">
+    <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
         <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Proveedor" onChange={setHeaderField} />
 
