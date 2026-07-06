@@ -22,6 +22,12 @@ export function FacturaTotales({ totales }: { totales: Totales }) {
             <span className="font-medium text-foreground">{formatARS(totales.Iva21)}</span>
           </div>
         )}
+        {totales.NoGravado > 0 && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">No Gravado</span>
+            <span className="font-medium text-foreground">{formatARS(totales.NoGravado)}</span>
+          </div>
+        )}
         <div className="flex justify-between border-t border-border pt-2">
           <span className="font-semibold text-foreground text-base">Total</span>
           <span className="font-bold text-foreground text-base">{formatARS(totales.Total)}</span>

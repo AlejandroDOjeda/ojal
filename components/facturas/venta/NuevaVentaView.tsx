@@ -136,7 +136,7 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const camposOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
-  const totales = calcTotalesHacienda(items);
+  const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
       <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>

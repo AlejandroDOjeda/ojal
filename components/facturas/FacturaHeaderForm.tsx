@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { SectionCard, FormField, SelectBox, DatePicker, ComboboxEntidad } from "@/components/app";
 import type { EntidadOption } from "@/components/app";
 import { TIPO_COMPROBANTE_OPTIONS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
@@ -74,6 +77,9 @@ type Props = {
 
 export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, onChange }: Props) {
   const esCuentaCorriente = data.Id_CondicionPago === "2";
+  const [mostrarNoGravado, setMostrarNoGravado] = useState(() => !!data.NoGravado);
+
+  const quitarNoGravado = () => { setMostrarNoGravado(false); onChange("NoGravado", ""); };
 
   // Deriva los días de vencimiento desde las fechas almacenadas, para pre-seleccionar la opción correcta al editar.
   const diasVenc = useMemo(() => {
@@ -158,6 +164,29 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
               error={!!errors.FechaVencimiento}
             />
           </FormField>
+        )}
+
+        {mostrarNoGravado ? (
+          <FormField label="Monto no gravado" className="max-w-xs">
+            <div className="flex items-center gap-2">
+              <InputGroup>
+                <InputGroupAddon>$</InputGroupAddon>
+                <InputGroupInput
+                  type="number" min="0" step="0.01"
+                  value={data.NoGravado}
+                  onChange={(e) => onChange("NoGravado", e.target.value)}
+                  placeholder="0,00"
+                />
+              </InputGroup>
+              <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" onClick={quitarNoGravado}>
+                <X size={14} />
+              </Button>
+            </div>
+          </FormField>
+        ) : (
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" onClick={() => setMostrarNoGravado(true)}>
+            <Plus size={14} />Agregar monto no gravado
+          </Button>
         )}
       </div>
     </SectionCard>
