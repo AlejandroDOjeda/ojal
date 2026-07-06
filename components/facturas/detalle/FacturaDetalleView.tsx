@@ -83,7 +83,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
           ) : <p className="text-sm text-muted-foreground">Sin información de entidad.</p>}
         </SectionCard>
 
-        {isCompra ? (
+        {isCompra && itemsGasto.length > 0 && (
           <SectionCard title="Ítems">
             <Table>
               <TableHeader>
@@ -110,7 +110,9 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
               </TableBody>
             </Table>
           </SectionCard>
-        ) : (
+        )}
+
+        {(!isCompra || itemsHacienda.length > 0) && (
           <SectionCard title="Hacienda">
             <Table>
               <TableHeader>
@@ -148,6 +150,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (sin IVA)</span><span className="font-medium">{formatARS(factura.Subtotal)}</span></div>
             {factura.Iva10_5 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 10.5%</span><span className="font-medium">{formatARS(factura.Iva10_5)}</span></div>}
             {factura.Iva21 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 21%</span><span className="font-medium">{formatARS(factura.Iva21)}</span></div>}
+            {factura.NoGravado > 0 && <div className="flex justify-between"><span className="text-muted-foreground">No Gravado</span><span className="font-medium">{formatARS(factura.NoGravado)}</span></div>}
             <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold text-base">Total</span><span className="font-bold text-base">{formatARS(factura.Total)}</span></div>
           </div>
         </SectionCard>

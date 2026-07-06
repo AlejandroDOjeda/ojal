@@ -32,7 +32,7 @@ export default function NuevaVentaContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
-    const totales = calcTotalesHacienda(items);
+    const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { data: facturaData, error: facturaError } = await supabase
@@ -49,6 +49,7 @@ export default function NuevaVentaContainer() {
         Subtotal:           totales.Subtotal,
         Iva10_5:            totales.Iva10_5,
         Iva21:              totales.Iva21,
+        NoGravado:          totales.NoGravado,
         Total:              totales.Total,
       })
       .select("Id_Factura")

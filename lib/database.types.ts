@@ -134,6 +134,7 @@ export interface Database {
           Subtotal:            number;
           Iva10_5:             number;
           Iva21:               number;
+          NoGravado:           number;
           Total:               number;
           Observaciones:       string | null;
           CreatedAt:           string;
@@ -151,6 +152,7 @@ export interface Database {
           Subtotal?:           number;
           Iva10_5?:            number;
           Iva21?:              number;
+          NoGravado?:          number;
           Total?:              number;
           Observaciones?:      string | null;
         };
@@ -165,6 +167,7 @@ export interface Database {
           Subtotal?:           number;
           Iva10_5?:            number;
           Iva21?:              number;
+          NoGravado?:          number;
           Total?:              number;
           Observaciones?:      string | null;
         };

@@ -6,9 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import {
-  calcItemGastoSubtotal, calcItemHaciendaSubtotal,
-  calcTotalesGasto, calcTotalesHacienda,
-  type FacturaHeaderData, type ItemGastoForm, type ItemHaciendaForm,
+  calcItemGastoSubtotal, calcItemHaciendaSubtotal, calcTotalesCompra, calcTotalesHacienda,
+  type FacturaHeaderData, type ItemCompraForm, type ItemHaciendaForm,
 } from "@/components/facturas/types";
 import type { CategoriaGastoOption, EntidadOption } from "@/components/facturas/compra/NuevaCompraContainer";
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
@@ -27,7 +26,7 @@ export default function EditarFacturaContainer() {
 
   const [tipoOperacion, setTipoOperacion] = useState<number | null>(null);
   const [initialHeader, setInitialHeader] = useState<FacturaHeaderData | null>(null);
-  const [initialItemsGasto, setInitialItemsGasto] = useState<ItemGastoForm[] | null>(null);
+  const [initialItemsCompra, setInitialItemsCompra] = useState<ItemCompraForm[] | null>(null);
   const [initialItemsHacienda, setInitialItemsHacienda] = useState<ItemHaciendaForm[] | null>(null);
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categoriasGasto, setCategoriasGasto] = useState<CategoriaGastoOption[]>([]);
@@ -55,7 +54,7 @@ export default function EditarFacturaContainer() {
 
     const f = facturaData as {
       Id_TipoOperacion: number; Id_TipoComprobante: number | null; PuntoVenta: string | null; Numero: string | null;
-      Fecha: string; Id_EntidadLegal: number; Id_CondicionPago: number; FechaVencimiento: string | null;
+      Fecha: string; Id_EntidadLegal: number; Id_CondicionPago: number; FechaVencimiento: string | null; NoGravado: number;
     };
 
     setTipoOperacion(f.Id_TipoOperacion);
@@ -67,6 +66,7 @@ export default function EditarFacturaContainer() {
       Id_EntidadLegal: String(f.Id_EntidadLegal),
       Id_CondicionPago: String(f.Id_CondicionPago),
       FechaVencimiento: f.FechaVencimiento ?? "",
+      NoGravado: f.NoGravado ? String(f.NoGravado) : "",
     });
 
     setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
@@ -74,17 +74,36 @@ export default function EditarFacturaContainer() {
     setCategoriasHacienda((catsHacienda ?? []).map((c: { Id_CategoriaHacienda: number; Nombre: string; TasaIva: number }) => ({ id: c.Id_CategoriaHacienda, Nombre: c.Nombre, TasaIva: c.TasaIva })));
 
     if (f.Id_TipoOperacion === TIPO_OPERACION.COMPRA) {
-      const { data: items } = await supabase.from("ItemGasto").select("*").eq("Id_Factura", facId).order("CreatedAt");
-      setInitialItemsGasto((items ?? []).map((item: {
+      const [{ data: itemsGasto }, { data: itemsHacienda }] = await Promise.all([
+        supabase.from("ItemGasto").select("*").eq("Id_Factura", facId).order("CreatedAt"),
+        supabase.from("ItemHacienda").select("*").eq("Id_Factura", facId).order("CreatedAt"),
+      ]);
+      const gasto: ItemCompraForm[] = (itemsGasto ?? []).map((item: {
         Id_CategoriaGasto: number | null; Descripcion: string; Cantidad: number; PrecioUnitario: number; TasaIva: number;
       }) => ({
         _key: newKey(),
+        _tipo: "gasto",
         Descripcion: item.Descripcion,
         Id_CategoriaGasto: item.Id_CategoriaGasto ? String(item.Id_CategoriaGasto) : "",
         Cantidad: String(item.Cantidad),
         PrecioUnitario: String(item.PrecioUnitario),
         TasaIva: String(item.TasaIva),
-      })));
+      }));
+      const hacienda: ItemCompraForm[] = (itemsHacienda ?? []).map((item: {
+        Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
+      }) => ({
+        _key: newKey(),
+        _tipo: "hacienda",
+        Id_Campo: String(item.Id_Campo),
+        Id_CategoriaHacienda: String(item.Id_CategoriaHacienda),
+        Cabezas: String(item.Cabezas),
+        Modalidad: item.KgPromedio !== null ? "1" as const : "2" as const,
+        KgPromedio: item.KgPromedio ? String(item.KgPromedio) : "",
+        PrecioPorKg: item.PrecioPorKg ? String(item.PrecioPorKg) : "",
+        PrecioPorCabeza: item.PrecioPorCabeza ? String(item.PrecioPorCabeza) : "",
+        TasaIva: String(item.TasaIva),
+      }));
+      setInitialItemsCompra([...gasto, ...hacienda]);
     } else {
       const { data: items } = await supabase.from("ItemHacienda").select("*").eq("Id_Factura", facId).order("CreatedAt");
       setInitialItemsHacienda((items ?? []).map((item: {
@@ -107,9 +126,9 @@ export default function EditarFacturaContainer() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleUpdateCompra = async (header: FacturaHeaderData, items: ItemGastoForm[]) => {
+  const handleUpdateCompra = async (header: FacturaHeaderData, items: ItemCompraForm[]) => {
     const facId = parseInt(id);
-    const totales = calcTotalesGasto(items);
+    const totales = calcTotalesCompra(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { error: updateError } = await supabase.from("Factura").update({
@@ -123,26 +142,50 @@ export default function EditarFacturaContainer() {
       Subtotal:           totales.Subtotal,
       Iva10_5:            totales.Iva10_5,
       Iva21:              totales.Iva21,
+      NoGravado:          totales.NoGravado,
       Total:              totales.Total,
     }).eq("Id_Factura", facId);
 
     if (updateError) throw new Error(updateError.message);
 
-    const { error: deleteError } = await supabase.from("ItemGasto").delete().eq("Id_Factura", facId);
-    if (deleteError) throw new Error(deleteError.message);
+    const [{ error: deleteGastoError }, { error: deleteHaciendaError }] = await Promise.all([
+      supabase.from("ItemGasto").delete().eq("Id_Factura", facId),
+      supabase.from("ItemHacienda").delete().eq("Id_Factura", facId),
+    ]);
+    if (deleteGastoError) throw new Error(deleteGastoError.message);
+    if (deleteHaciendaError) throw new Error(deleteHaciendaError.message);
 
-    const { error: insertError } = await supabase.from("ItemGasto").insert(
-      items.map((item) => ({
-        Id_Factura:        facId,
-        Descripcion:       item.Descripcion,
-        Id_CategoriaGasto: item.Id_CategoriaGasto ? parseInt(item.Id_CategoriaGasto) : null,
-        Cantidad:          parseFloat(item.Cantidad),
-        PrecioUnitario:    parseFloat(item.PrecioUnitario),
-        TasaIva:           parseFloat(item.TasaIva),
-        Subtotal:          calcItemGastoSubtotal(item),
-      }))
-    );
-    if (insertError) throw new Error(insertError.message);
+    const itemsGasto = items.filter((i) => i._tipo === "gasto");
+    const itemsHacienda = items.filter((i) => i._tipo === "hacienda");
+
+    const gastoPayload = itemsGasto.map((item) => ({
+      Id_Factura:        facId,
+      Descripcion:       item.Descripcion,
+      Id_CategoriaGasto: item.Id_CategoriaGasto ? parseInt(item.Id_CategoriaGasto) : null,
+      Cantidad:          parseFloat(item.Cantidad),
+      PrecioUnitario:    parseFloat(item.PrecioUnitario),
+      TasaIva:           parseFloat(item.TasaIva),
+      Subtotal:          calcItemGastoSubtotal(item),
+    }));
+
+    const haciendaPayload = itemsHacienda.map((item) => ({
+      Id_Factura:           facId,
+      Id_Campo:             parseInt(item.Id_Campo),
+      Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
+      Cabezas:              parseInt(item.Cabezas),
+      KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
+      PrecioPorKg:          item.Modalidad === "1" ? parseFloat(item.PrecioPorKg) : null,
+      PrecioPorCabeza:      item.Modalidad === "2" ? parseFloat(item.PrecioPorCabeza) : null,
+      TasaIva:              parseFloat(item.TasaIva),
+      Subtotal:             calcItemHaciendaSubtotal(item),
+    }));
+
+    const [{ error: insertGastoError }, { error: insertHaciendaError }] = await Promise.all([
+      gastoPayload.length > 0 ? supabase.from("ItemGasto").insert(gastoPayload) : Promise.resolve({ error: null }),
+      haciendaPayload.length > 0 ? supabase.from("ItemHacienda").insert(haciendaPayload) : Promise.resolve({ error: null }),
+    ]);
+    if (insertGastoError) throw new Error(insertGastoError.message);
+    if (insertHaciendaError) throw new Error(insertHaciendaError.message);
 
     toast.success("Factura de compra actualizada.");
     router.push("/facturas?tab=compras");
@@ -150,7 +193,7 @@ export default function EditarFacturaContainer() {
 
   const handleUpdateVenta = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
     const facId = parseInt(id);
-    const totales = calcTotalesHacienda(items);
+    const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { error: updateError } = await supabase.from("Factura").update({
@@ -164,6 +207,7 @@ export default function EditarFacturaContainer() {
       Subtotal:           totales.Subtotal,
       Iva10_5:            totales.Iva10_5,
       Iva21:              totales.Iva21,
+      NoGravado:          totales.NoGravado,
       Total:              totales.Total,
     }).eq("Id_Factura", facId);
 
@@ -212,9 +256,12 @@ export default function EditarFacturaContainer() {
       <NuevaCompraView
         entidades={entidades}
         categorias={categoriasGasto}
+        categoriasHacienda={categoriasHacienda}
+        campos={campos}
+        campoActivoId={campoActivo?.Id_Campo ?? null}
         loadingData={false}
         initialHeader={initialHeader!}
-        initialItems={initialItemsGasto!}
+        initialItems={initialItemsCompra!}
         title="Editar Factura de Compra"
         cancelPath="/facturas?tab=compras"
         onSave={handleUpdateCompra}
