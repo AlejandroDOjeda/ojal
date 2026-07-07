@@ -47,7 +47,10 @@ export default function EntidadesLegalesContainer() {
       Email:          f.Email || null,
       Telefono:       f.Telefono || null,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.code === "23505") throw new Error("Ya existe una entidad con este CUIT/CUIL.");
+      throw new Error(error.message);
+    }
     await fetchEntidades();
   };
 
@@ -60,7 +63,10 @@ export default function EntidadesLegalesContainer() {
       Email:          f.Email || null,
       Telefono:       f.Telefono || null,
     }).eq("Id_EntidadLegal", id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.code === "23505") throw new Error("Ya existe una entidad con este CUIT/CUIL.");
+      throw new Error(error.message);
+    }
     await fetchEntidades();
   };
 

@@ -52,6 +52,8 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
     if (!form.RazonSocial.trim())      e.RazonSocial   = "Obligatorio";
     if (!form.CuitCuil.trim())         e.CuitCuil      = "Obligatorio";
     else if (!validarCuit(form.CuitCuil)) e.CuitCuil   = "CUIT/CUIL inválido";
+    else if (entidades.some((en) => en.CuitCuil === form.CuitCuil && en.Id_EntidadLegal !== editing?.Id_EntidadLegal))
+      e.CuitCuil = "Ya existe una entidad con este CUIT/CUIL";
     if (!form.Id_TipoPersona)          e.Id_TipoPersona  = "Obligatorio";
     if (!form.Id_CondicionIva)         e.Id_CondicionIva = "Obligatorio";
     if (form.Email && !validarEmail(form.Email))       e.Email    = "Email inválido";
