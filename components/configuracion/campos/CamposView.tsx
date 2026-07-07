@@ -143,7 +143,6 @@ export default function CamposView({ campos, loading, error, onCreate, onUpdate,
   return (
     <PageShell
       title="Campos"
-      description="Gestioná los establecimientos ganaderos de tu cuenta"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}
     >
       {error && (

@@ -33,12 +33,7 @@ export default function StockActualView({ filas, loading, error, sinDatos }: Pro
   return (
     <main className="p-8 max-w-2xl">
       <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Rodeo</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Stock actual de hacienda por categoría.
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground">Rodeo</h1>
         <div className="flex items-center gap-2">
           <Link
             href="/rodeo/carga-inicial"

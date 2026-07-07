@@ -9,6 +9,7 @@ import {
   calcItemGastoSubtotal, calcItemHaciendaSubtotal, calcTotalesCompra, calcTotalesHacienda,
   type FacturaHeaderData, type ItemCompraForm, type ItemHaciendaForm,
 } from "@/components/facturas/types";
+import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_COMPRA, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
 import type { CategoriaGastoOption, EntidadOption } from "@/components/facturas/compra/NuevaCompraContainer";
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
 import NuevaCompraView from "@/components/facturas/compra/NuevaCompraView";
@@ -128,6 +129,15 @@ export default function EditarFacturaContainer() {
 
   const handleUpdateCompra = async (header: FacturaHeaderData, items: ItemCompraForm[]) => {
     const facId = parseInt(id);
+    const duplicada = await existeFacturaDuplicada({
+      idTipoOperacion:   TIPO_OPERACION.COMPRA,
+      idEntidadLegal:    parseInt(header.Id_EntidadLegal),
+      puntoVenta:        header.PuntoVenta,
+      numero:            header.Numero,
+      excluirIdFactura:  facId,
+    });
+    if (duplicada) throw new Error(MENSAJE_DUPLICADA_COMPRA);
+
     const totales = calcTotalesCompra(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
@@ -146,7 +156,7 @@ export default function EditarFacturaContainer() {
       Total:              totales.Total,
     }).eq("Id_Factura", facId);
 
-    if (updateError) throw new Error(updateError.message);
+    if (updateError) throw new Error(esErrorDeFacturaDuplicada(updateError) ? MENSAJE_DUPLICADA_COMPRA : updateError.message);
 
     const [{ error: deleteGastoError }, { error: deleteHaciendaError }] = await Promise.all([
       supabase.from("ItemGasto").delete().eq("Id_Factura", facId),
@@ -193,6 +203,15 @@ export default function EditarFacturaContainer() {
 
   const handleUpdateVenta = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
     const facId = parseInt(id);
+    const duplicada = await existeFacturaDuplicada({
+      idTipoOperacion:   TIPO_OPERACION.VENTA,
+      idEntidadLegal:    parseInt(header.Id_EntidadLegal),
+      puntoVenta:        header.PuntoVenta,
+      numero:            header.Numero,
+      excluirIdFactura:  facId,
+    });
+    if (duplicada) throw new Error(MENSAJE_DUPLICADA_VENTA);
+
     const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
@@ -211,7 +230,7 @@ export default function EditarFacturaContainer() {
       Total:              totales.Total,
     }).eq("Id_Factura", facId);
 
-    if (updateError) throw new Error(updateError.message);
+    if (updateError) throw new Error(esErrorDeFacturaDuplicada(updateError) ? MENSAJE_DUPLICADA_VENTA : updateError.message);
 
     const { error: deleteError } = await supabase.from("ItemHacienda").delete().eq("Id_Factura", facId);
     if (deleteError) throw new Error(deleteError.message);

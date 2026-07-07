@@ -43,7 +43,7 @@ export default function ProfileView({ userEmail, form, setForm, loading, saving,
   if (loading) return <PageShell title="Mi perfil" className="max-w-2xl"><p className="text-muted-foreground">Cargando perfil...</p></PageShell>;
 
   return (
-    <PageShell title="Mi perfil" description="Información personal y fiscal de tu cuenta" className="max-w-2xl">
+    <PageShell title="Mi perfil" className="max-w-2xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         <SectionCard title="Acceso" description="Datos de tu cuenta en el sistema">
           <FormField label="Email"><Input value={userEmail ?? ""} disabled className="opacity-60" /></FormField>

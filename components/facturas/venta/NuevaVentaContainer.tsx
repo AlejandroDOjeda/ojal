@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
+import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
 import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaVentaView from "./NuevaVentaView";
 
@@ -32,6 +33,14 @@ export default function NuevaVentaContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
+    const duplicada = await existeFacturaDuplicada({
+      idTipoOperacion: TIPO_OPERACION.VENTA,
+      idEntidadLegal:  parseInt(header.Id_EntidadLegal),
+      puntoVenta:      header.PuntoVenta,
+      numero:          header.Numero,
+    });
+    if (duplicada) throw new Error(MENSAJE_DUPLICADA_VENTA);
+
     const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
@@ -55,7 +64,7 @@ export default function NuevaVentaContainer() {
       .select("Id_Factura")
       .single();
 
-    if (facturaError) throw new Error(facturaError.message);
+    if (facturaError) throw new Error(esErrorDeFacturaDuplicada(facturaError) ? MENSAJE_DUPLICADA_VENTA : facturaError.message);
 
     const itemsPayload = items.map((item) => ({
       Id_Factura:           facturaData.Id_Factura,

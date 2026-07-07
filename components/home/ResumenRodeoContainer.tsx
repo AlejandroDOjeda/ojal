@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ResumenRodeoCard from "./ResumenRodeoCard";
 
-export type CategoriaStock = { nombre: string; cabezas: number };
+export type CategoriaStock = { id: number; nombre: string; cabezas: number };
 
 export type ResumenRodeo = {
   total: number;
@@ -20,19 +20,26 @@ export default function ResumenRodeoContainer() {
     const fetch = async () => {
       const { data, error } = await supabase
         .from("Rodeo")
-        .select("Cabezas, CategoriaHacienda(Nombre)");
+        .select("Id_CategoriaHacienda, Cabezas, CategoriaHacienda(Nombre)");
 
       if (error) {
         setError(error.message);
       } else {
-        const categorias: CategoriaStock[] = (data ?? [])
-          .map((r: any) => ({
+        // Puede haber múltiples filas por categoría (una por campo) —
+        // las agrupamos sumando cabezas por Id_CategoriaHacienda.
+        const acumulado = new Map<number, CategoriaStock>();
+        for (const r of (data ?? []) as any[]) {
+          const id = r.Id_CategoriaHacienda as number;
+          const prev = acumulado.get(id);
+          acumulado.set(id, {
+            id,
             nombre: r.CategoriaHacienda?.Nombre ?? "",
-            cabezas: r.Cabezas ?? 0,
-          }))
-          .sort((a: CategoriaStock, b: CategoriaStock) =>
-            a.nombre.localeCompare(b.nombre, "es")
-          );
+            cabezas: (prev?.cabezas ?? 0) + (r.Cabezas ?? 0),
+          });
+        }
+        const categorias = Array.from(acumulado.values()).sort((a, b) =>
+          a.nombre.localeCompare(b.nombre, "es")
+        );
 
         setResumen({
           total: categorias.reduce((s, c) => s + c.cabezas, 0),

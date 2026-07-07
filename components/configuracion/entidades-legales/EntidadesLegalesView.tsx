@@ -52,6 +52,8 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
     if (!form.RazonSocial.trim())      e.RazonSocial   = "Obligatorio";
     if (!form.CuitCuil.trim())         e.CuitCuil      = "Obligatorio";
     else if (!validarCuit(form.CuitCuil)) e.CuitCuil   = "CUIT/CUIL inválido";
+    else if (entidades.some((en) => en.CuitCuil === form.CuitCuil && en.Id_EntidadLegal !== editing?.Id_EntidadLegal))
+      e.CuitCuil = "Ya existe una entidad con este CUIT/CUIL";
     if (!form.Id_TipoPersona)          e.Id_TipoPersona  = "Obligatorio";
     if (!form.Id_CondicionIva)         e.Id_CondicionIva = "Obligatorio";
     if (form.Email && !validarEmail(form.Email))       e.Email    = "Email inválido";
@@ -107,7 +109,7 @@ export default function EntidadesLegalesView({ entidades, loading, error, onCrea
   ], [deleteConfirmId, deleting]);
 
   return (
-    <PageShell title="Entidades Legales" description="Administrá las entidades legales del sistema"
+    <PageShell title="Entidades Legales"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
       {entidades.length === 0 && !loading ? (

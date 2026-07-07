@@ -374,7 +374,7 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
           )}
         </SectionCard>
 
-        <FacturaTotales totales={totales} />
+        <FacturaTotales totales={totales} noGravado={header.NoGravado} onNoGravadoChange={(v) => setHeaderField("NoGravado", v)} />
 
         {error && <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
 
