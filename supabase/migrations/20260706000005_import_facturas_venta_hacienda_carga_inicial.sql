@@ -6,14 +6,17 @@ begin;
 
 update "Rodeo"
 set "Cabezas" = 193
-where "Id_Campo" = (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1)
+where "Id_Campo" = (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1)
   and "Id_CategoriaHacienda" = (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero');
 
 update "Rodeo"
 set "Cabezas" = 40
-where "Id_Campo" = (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1)
+where "Id_Campo" = (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1)
   and "Id_CategoriaHacienda" = (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternera');
 
+commit;
+
+begin;
 -- Facturas de venta + items de hacienda (una CTE por factura) -- 3 facturas
 with fac as (
   insert into "Factura" ("Id_TipoOperacion", "Id_TipoComprobante", "PuntoVenta", "Numero", "Fecha", "Id_EntidadLegal", "Id_CondicionPago", "Subtotal", "Iva10_5", "Iva21", "NoGravado", "Total")
@@ -23,7 +26,7 @@ with fac as (
   returning "Id_Factura"
 )
 insert into "ItemHacienda" ("Id_Factura", "Id_Campo", "Id_CategoriaHacienda", "Cabezas", "KgPromedio", "PrecioPorKg", "PrecioPorCabeza", "TasaIva", "Subtotal")
-select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero'), 33, null, null, 744996.70, 10.5, 24584891.00 from fac;
+select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero'), 33, null, null, 744996.70, 10.5, 24584891.00 from fac;
 
 with fac as (
   insert into "Factura" ("Id_TipoOperacion", "Id_TipoComprobante", "PuntoVenta", "Numero", "Fecha", "Id_EntidadLegal", "Id_CondicionPago", "Subtotal", "Iva10_5", "Iva21", "NoGravado", "Total")
@@ -32,10 +35,10 @@ with fac as (
           1, 161051400.00, 16910397.00, 0.00, 0, 177961797.00)
   returning "Id_Factura"
 )
-insert into "ItemHacienda" ("Id_Factura", "Id_Campo", "Id_CategoriaHacienda", "Cabezas", "KgPromedio", "PrecioPorKg", "PrecioPorCabeza", "TasaIva", "Subtotal")
-select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternera'), 10, null, null, 1310000.00, 10.5, 13100000.00 from fac
+insert into "ItemHacienda" ("Id_Factura", "Id_Campo", "Id_CategoriaHacienda", "Cabezas", "PrecioPorCabeza", "TasaIva", "Subtotal")
+select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternera'), 10, 1310000.00, 10.5, 13100000.00 from fac
 union all
-select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero'), 110, null, null, 1345012.73, 10.5, 147951400.00 from fac;
+select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero'), 110, 1345012.73, 10.5, 147951400.00 from fac;
 
 with fac as (
   insert into "Factura" ("Id_TipoOperacion", "Id_TipoComprobante", "PuntoVenta", "Numero", "Fecha", "Id_EntidadLegal", "Id_CondicionPago", "Subtotal", "Iva10_5", "Iva21", "NoGravado", "Total")
@@ -44,9 +47,9 @@ with fac as (
           1, 41537499.50, 4361437.45, 0.00, 0, 45898936.95)
   returning "Id_Factura"
 )
-insert into "ItemHacienda" ("Id_Factura", "Id_Campo", "Id_CategoriaHacienda", "Cabezas", "KgPromedio", "PrecioPorKg", "PrecioPorCabeza", "TasaIva", "Subtotal")
-select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero'), 50, null, null, 519218.74, 10.5, 25960937.00 from fac
+insert into "ItemHacienda" ("Id_Factura", "Id_Campo", "Id_CategoriaHacienda", "Cabezas", "PrecioPorCabeza", "TasaIva", "Subtotal")
+select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternero'), 50, 519218.74, 10.5, 25960937.00 from fac
 union all
-select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'Campo Principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternera'), 30, null, null, 519218.75, 10.5, 15576562.50 from fac;
+select "Id_Factura", (select "Id_Campo" from "Campo" where "Nombre" = 'campo principal' limit 1), (select "Id_CategoriaHacienda" from "CategoriaHacienda" where "Nombre" = 'Ternera'), 30, 519218.75, 10.5, 15576562.50 from fac;
 
 commit;
