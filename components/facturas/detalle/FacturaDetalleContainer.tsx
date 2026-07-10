@@ -20,6 +20,7 @@ export type FacturaDetalle = {
   Subtotal:            number;
   Iva10_5:             number;
   Iva21:               number;
+  NoGravado:           number;
   Total:               number;
   Observaciones:       string | null;
 };
@@ -36,6 +37,7 @@ export type ItemGastoDetalle = {
 
 export type ItemHaciendaDetalle = {
   Id_ItemHacienda:   number;
+  Campo:             { Nombre: string } | null;
   CategoriaHacienda: { Nombre: string } | null;
   Cabezas:           number;
   KgPromedio:        number | null;
@@ -68,17 +70,17 @@ export default function FacturaDetalleContainer() {
       const factura = data as unknown as FacturaDetalle;
       setFactura(factura);
 
-      if (factura.Id_TipoOperacion === 1) { // Compra
-        const { data: items } = await supabase
-          .from("ItemGasto")
-          .select("*, CategoriaGasto(Nombre)")
-          .eq("Id_Factura", parseInt(id))
-          .order("CreatedAt");
-        setItemsGasto((items ?? []) as unknown as ItemGastoDetalle[]);
+      if (factura.Id_TipoOperacion === 1) { // Compra: puede tener gastos genéricos y/o compras de hacienda
+        const [{ data: itemsGasto }, { data: itemsHacienda }] = await Promise.all([
+          supabase.from("ItemGasto").select("*, CategoriaGasto(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
+          supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Campo(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
+        ]);
+        setItemsGasto((itemsGasto ?? []) as unknown as ItemGastoDetalle[]);
+        setItemsHacienda((itemsHacienda ?? []) as unknown as ItemHaciendaDetalle[]);
       } else { // Venta
         const { data: items } = await supabase
           .from("ItemHacienda")
-          .select("*, CategoriaHacienda(Nombre)")
+          .select("*, CategoriaHacienda(Nombre), Campo(Nombre)")
           .eq("Id_Factura", parseInt(id))
           .order("CreatedAt");
         setItemsHacienda((items ?? []) as unknown as ItemHaciendaDetalle[]);

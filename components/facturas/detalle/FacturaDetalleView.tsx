@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { parseISO } from "date-fns";
 import { ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,11 +10,14 @@ import { formatARS } from "@/components/facturas/types";
 import { TIPO_COMPROBANTE_ITEMS, CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
 import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle } from "./FacturaDetalleContainer";
 
-const formatFecha = (d: string) => new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+// parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
+// interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
+// mostrar el día anterior.
+const formatFecha = (d: string) => parseISO(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
   const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
   if (!punto && !numero) return label || "—";
-  return `${label} ${punto ?? "0000"}-${numero ?? "00000000"}`;
+  return `${label} ${punto ?? "00000"}-${numero ?? "00000000"}`;
 };
 
 const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -31,13 +35,15 @@ type Props = {
   notFound: boolean;
 };
 
-const backLink = (
-  <Link href="/facturas">
+const backLinkFor = (tab: "compras" | "ventas") => (
+  <Link href={`/facturas?tab=${tab}`}>
     <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
   </Link>
 );
 
 export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, loading, notFound }: Props) {
+  const backLink = backLinkFor(factura?.Id_TipoOperacion === 1 ? "compras" : "ventas");
+
   if (loading) return <PageShell title="Detalle de Factura" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   if (notFound || !factura) {
@@ -57,7 +63,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
   const condIvaLabel = factura.EntidadLegal ? (CONDICION_IVA_ITEMS[String(factura.EntidadLegal.Id_CondicionIva)] ?? "—") : "—";
 
   return (
-    <PageShell title={titulo} description={isCompra ? "Factura de Compra" : "Factura de Venta"} back={backLink} className="max-w-4xl">
+    <PageShell title={titulo} back={backLink} className="max-w-4xl">
       <div className="space-y-6">
         <SectionCard title="Datos del comprobante">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -77,7 +83,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
           ) : <p className="text-sm text-muted-foreground">Sin información de entidad.</p>}
         </SectionCard>
 
-        {isCompra ? (
+        {isCompra && itemsGasto.length > 0 && (
           <SectionCard title="Ítems">
             <Table>
               <TableHeader>
@@ -104,11 +110,14 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
               </TableBody>
             </Table>
           </SectionCard>
-        ) : (
+        )}
+
+        {(!isCompra || itemsHacienda.length > 0) && (
           <SectionCard title="Hacienda">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-muted-foreground w-32">Campo</TableHead>
                   <TableHead className="text-muted-foreground w-36">Categoría</TableHead>
                   <TableHead className="text-muted-foreground text-right w-20">Cabezas</TableHead>
                   <TableHead className="text-muted-foreground text-right w-24">Kg prom.</TableHead>
@@ -121,6 +130,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
               <TableBody>
                 {itemsHacienda.map((item) => (
                   <TableRow key={item.Id_ItemHacienda}>
+                    <TableCell className="text-muted-foreground">{item.Campo?.Nombre ?? "—"}</TableCell>
                     <TableCell>{item.CategoriaHacienda?.Nombre ?? "—"}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{item.Cabezas}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{item.KgPromedio ?? "—"}</TableCell>
@@ -140,6 +150,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (sin IVA)</span><span className="font-medium">{formatARS(factura.Subtotal)}</span></div>
             {factura.Iva10_5 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 10.5%</span><span className="font-medium">{formatARS(factura.Iva10_5)}</span></div>}
             {factura.Iva21 > 0 && <div className="flex justify-between"><span className="text-muted-foreground">IVA 21%</span><span className="font-medium">{formatARS(factura.Iva21)}</span></div>}
+            {factura.NoGravado > 0 && <div className="flex justify-between"><span className="text-muted-foreground">No Gravado</span><span className="font-medium">{formatARS(factura.NoGravado)}</span></div>}
             <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold text-base">Total</span><span className="font-bold text-base">{formatARS(factura.Total)}</span></div>
           </div>
         </SectionCard>

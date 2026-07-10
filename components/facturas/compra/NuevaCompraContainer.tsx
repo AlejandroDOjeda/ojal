@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
-import { calcItemGastoSubtotal, calcTotalesGasto, type FacturaHeaderData, type ItemGastoForm } from "@/components/facturas/types";
+import { calcItemGastoSubtotal, calcItemHaciendaSubtotal, calcTotalesCompra, type FacturaHeaderData, type ItemCompraForm } from "@/components/facturas/types";
+import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_COMPRA } from "@/components/facturas/duplicado";
+import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
+import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaCompraView from "./NuevaCompraView";
 
 export type CategoriaGastoOption = { id: number; Nombre: string; TasaIvaHabitual: number };
@@ -13,24 +16,36 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaCompraContainer() {
   const router = useRouter();
+  const { campoActivo, campos } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaGastoOption[]>([]);
+  const [categoriasHacienda, setCategoriasHacienda] = useState<CategoriaHaciendaOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const [{ data: ents }, { data: cats }] = await Promise.all([
+    const [{ data: ents }, { data: cats }, { data: catsHacienda }] = await Promise.all([
       supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial, CuitCuil").order("RazonSocial"),
       supabase.from("CategoriaGasto").select("Id_CategoriaGasto, Nombre, TasaIvaHabitual").eq("Activa", true).order("Nombre"),
+      supabase.from("CategoriaHacienda").select("Id_CategoriaHacienda, Nombre, TasaIva").eq("Activa", true).order("Nombre"),
     ]);
     setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
     setCategorias((cats ?? []).map((c: { Id_CategoriaGasto: number; Nombre: string; TasaIvaHabitual: number }) => ({ id: c.Id_CategoriaGasto, Nombre: c.Nombre, TasaIvaHabitual: c.TasaIvaHabitual })));
+    setCategoriasHacienda((catsHacienda ?? []).map((c: { Id_CategoriaHacienda: number; Nombre: string; TasaIva: number }) => ({ id: c.Id_CategoriaHacienda, Nombre: c.Nombre, TasaIva: c.TasaIva })));
     setLoadingData(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleSave = async (header: FacturaHeaderData, items: ItemGastoForm[]) => {
-    const totales = calcTotalesGasto(items);
+  const handleSave = async (header: FacturaHeaderData, items: ItemCompraForm[]) => {
+    const duplicada = await existeFacturaDuplicada({
+      idTipoOperacion: TIPO_OPERACION.COMPRA,
+      idEntidadLegal:  parseInt(header.Id_EntidadLegal),
+      puntoVenta:      header.PuntoVenta,
+      numero:          header.Numero,
+    });
+    if (duplicada) throw new Error(MENSAJE_DUPLICADA_COMPRA);
+
+    const totales = calcTotalesCompra(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { data: facturaData, error: facturaError } = await supabase
@@ -38,8 +53,8 @@ export default function NuevaCompraContainer() {
       .insert({
         Id_TipoOperacion:   TIPO_OPERACION.COMPRA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
-        PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
-        Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+        PuntoVenta:         header.PuntoVenta || null,
+        Numero:             header.Numero || null,
         Fecha:              header.Fecha,
         Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
         Id_CondicionPago:   parseInt(header.Id_CondicionPago),
@@ -47,14 +62,18 @@ export default function NuevaCompraContainer() {
         Subtotal:           totales.Subtotal,
         Iva10_5:            totales.Iva10_5,
         Iva21:              totales.Iva21,
+        NoGravado:          totales.NoGravado,
         Total:              totales.Total,
       })
       .select("Id_Factura")
       .single();
 
-    if (facturaError) throw new Error(facturaError.message);
+    if (facturaError) throw new Error(esErrorDeFacturaDuplicada(facturaError) ? MENSAJE_DUPLICADA_COMPRA : facturaError.message);
 
-    const itemsPayload = items.map((item) => ({
+    const itemsGasto = items.filter((i) => i._tipo === "gasto");
+    const itemsHacienda = items.filter((i) => i._tipo === "hacienda");
+
+    const gastoPayload = itemsGasto.map((item) => ({
       Id_Factura:         facturaData.Id_Factura,
       Descripcion:        item.Descripcion,
       Id_CategoriaGasto:  item.Id_CategoriaGasto ? parseInt(item.Id_CategoriaGasto) : null,
@@ -64,7 +83,23 @@ export default function NuevaCompraContainer() {
       Subtotal:           calcItemGastoSubtotal(item),
     }));
 
-    const { error: itemsError } = await supabase.from("ItemGasto").insert(itemsPayload);
+    const haciendaPayload = itemsHacienda.map((item) => ({
+      Id_Factura:           facturaData.Id_Factura,
+      Id_Campo:             parseInt(item.Id_Campo),
+      Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
+      Cabezas:              parseInt(item.Cabezas),
+      KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
+      PrecioPorKg:          item.Modalidad === "1" ? parseFloat(item.PrecioPorKg) : null,
+      PrecioPorCabeza:      item.Modalidad === "2" ? parseFloat(item.PrecioPorCabeza) : null,
+      TasaIva:              parseFloat(item.TasaIva),
+      Subtotal:             calcItemHaciendaSubtotal(item),
+    }));
+
+    const [{ error: gastoError }, { error: haciendaError }] = await Promise.all([
+      gastoPayload.length > 0 ? supabase.from("ItemGasto").insert(gastoPayload) : Promise.resolve({ error: null }),
+      haciendaPayload.length > 0 ? supabase.from("ItemHacienda").insert(haciendaPayload) : Promise.resolve({ error: null }),
+    ]);
+    const itemsError = gastoError ?? haciendaError;
     if (itemsError) {
       await supabase.from("Factura").delete().eq("Id_Factura", facturaData.Id_Factura);
       throw new Error(itemsError.message);
@@ -73,5 +108,15 @@ export default function NuevaCompraContainer() {
     router.push("/facturas?tab=compras");
   };
 
-  return <NuevaCompraView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
+  return (
+    <NuevaCompraView
+      entidades={entidades}
+      categorias={categorias}
+      categoriasHacienda={categoriasHacienda}
+      campos={campos}
+      campoActivoId={campoActivo?.Id_Campo ?? null}
+      loadingData={loadingData}
+      onSave={handleSave}
+    />
+  );
 }

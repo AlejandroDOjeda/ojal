@@ -3,12 +3,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampoContext } from "@/contexts/CampoContext";
 import NuevoMovimientoView, { type MovimientoFormData } from "./NuevoMovimientoView";
 
 export type CategoriaOption = { Id_CategoriaHacienda: number; Nombre: string };
 
 export default function NuevoMovimientoContainer() {
   const router = useRouter();
+  const { campoActivo } = useCampoContext();
   const [categorias, setCategorias] = useState<CategoriaOption[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,10 +34,13 @@ export default function NuevoMovimientoContainer() {
   }, [fetchCategorias]);
 
   const handleGuardar = async (form: MovimientoFormData) => {
-    // 1. Obtener stock actual de la categoría
+    if (!campoActivo) throw new Error("Seleccioná un campo antes de registrar un movimiento.");
+
+    // 1. Obtener stock actual de la categoría en este campo
     const { data: rodeoRow, error: rodeoError } = await supabase
       .from("Rodeo")
       .select("Id_Rodeo, Cabezas")
+      .eq("Id_Campo", campoActivo.Id_Campo)
       .eq("Id_CategoriaHacienda", form.idCategoriaHacienda)
       .single();
 
@@ -59,6 +64,7 @@ export default function NuevoMovimientoContainer() {
 
     // 3. Registrar movimiento
     const { error: movError } = await supabase.from("MovimientoRodeo").insert({
+      Id_Campo: campoActivo.Id_Campo,
       TipoMovimiento: form.tipoMovimiento,
       Id_CategoriaHacienda: form.idCategoriaHacienda,
       Cabezas: form.cabezas,
@@ -81,6 +87,7 @@ export default function NuevoMovimientoContainer() {
     <NuevoMovimientoView
       categorias={categorias}
       loading={loading}
+      sinCampo={!campoActivo}
       onGuardar={handleGuardar}
     />
   );

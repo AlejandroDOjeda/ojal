@@ -10,6 +10,34 @@ export interface Database {
       TipoOperacion:  { Row: { Id_TipoOperacion: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
       TipoComprobante:{ Row: { Id_TipoComprobante: number;Nombre: string }; Insert: never; Update: never; Relationships: [] };
       CondicionPago:  { Row: { Id_CondicionPago: number;  Nombre: string }; Insert: never; Update: never; Relationships: [] };
+      // ── Campo (establecimientos por usuario) ────────────────────────────
+      Campo: {
+        Row: {
+          Id_Campo:    number;
+          Id_Profile:  string;
+          Nombre:      string;
+          Renspa:      string | null;
+          Ubicacion:   string | null;
+          Superficie:  number | null;
+          CreatedAt:   string;
+          UpdatedAt:   string;
+        };
+        Insert: {
+          Id_Profile:   string;
+          Nombre:       string;
+          Renspa?:      string | null;
+          Ubicacion?:   string | null;
+          Superficie?:  number | null;
+        };
+        Update: {
+          Nombre?:      string;
+          Renspa?:      string | null;
+          Ubicacion?:   string | null;
+          Superficie?:  number | null;
+        };
+        Relationships: [{ foreignKeyName: "Campo_Id_Profile_fkey"; columns: ["Id_Profile"]; referencedRelation: "Profile"; referencedColumns: ["Id_Profile"] }];
+      };
+
       // ── Profile (aislado por usuario, Id_Profile = UUID de auth) ─────────
       Profile: {
         Row: {
@@ -106,6 +134,7 @@ export interface Database {
           Subtotal:            number;
           Iva10_5:             number;
           Iva21:               number;
+          NoGravado:           number;
           Total:               number;
           Observaciones:       string | null;
           CreatedAt:           string;
@@ -120,10 +149,10 @@ export interface Database {
           Id_EntidadLegal:     number;
           Id_CondicionPago?:   number;
           FechaVencimiento?:   string | null;
-
           Subtotal?:           number;
           Iva10_5?:            number;
           Iva21?:              number;
+          NoGravado?:          number;
           Total?:              number;
           Observaciones?:      string | null;
         };
@@ -135,10 +164,10 @@ export interface Database {
           Id_EntidadLegal?:    number;
           Id_CondicionPago?:   number;
           FechaVencimiento?:   string | null;
-
           Subtotal?:           number;
           Iva10_5?:            number;
           Iva21?:              number;
+          NoGravado?:          number;
           Total?:              number;
           Observaciones?:      string | null;
         };
@@ -146,8 +175,8 @@ export interface Database {
       };
 
       ItemHacienda: {
-        Row: { Id_ItemHacienda: number; Id_Factura: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number; Subtotal: number; CreatedAt: string };
-        Insert: { Id_Factura: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal: number };
+        Row: { Id_ItemHacienda: number; Id_Factura: number; Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number; Subtotal: number; CreatedAt: string };
+        Insert: { Id_Factura: number; Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal: number };
         Update: { Cabezas?: number; KgPromedio?: number | null; PrecioPorKg?: number | null; PrecioPorCabeza?: number | null; TasaIva?: number; Subtotal?: number };
         Relationships: [];
       };
@@ -160,17 +189,21 @@ export interface Database {
       };
 
       Rodeo: {
-        Row: { Id_Rodeo: number; Id_CategoriaHacienda: number; Cabezas: number; CreatedAt: string; UpdatedAt: string };
-        Insert: { Id_CategoriaHacienda: number; Cabezas?: number };
+        Row: { Id_Rodeo: number; Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; CreatedAt: string; UpdatedAt: string };
+        Insert: { Id_Campo: number; Id_CategoriaHacienda: number; Cabezas?: number };
         Update: { Cabezas?: number };
-        Relationships: [{ foreignKeyName: "Rodeo_Id_CategoriaHacienda_fkey"; columns: ["Id_CategoriaHacienda"]; referencedRelation: "CategoriaHacienda"; referencedColumns: ["Id_CategoriaHacienda"] }];
+        Relationships: [
+          { foreignKeyName: "Rodeo_Id_Campo_fkey"; columns: ["Id_Campo"]; referencedRelation: "Campo"; referencedColumns: ["Id_Campo"] },
+          { foreignKeyName: "Rodeo_Id_CategoriaHacienda_fkey"; columns: ["Id_CategoriaHacienda"]; referencedRelation: "CategoriaHacienda"; referencedColumns: ["Id_CategoriaHacienda"] }
+        ];
       };
 
       MovimientoRodeo: {
-        Row: { Id_MovimientoRodeo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura: number | null; Observaciones: string | null; CreatedAt: string };
-        Insert: { TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura?: number | null; Observaciones?: string | null };
+        Row: { Id_MovimientoRodeo: number; Id_Campo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura: number | null; Observaciones: string | null; CreatedAt: string };
+        Insert: { Id_Campo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura?: number | null; Observaciones?: string | null };
         Update: { TipoMovimiento?: string; Id_CategoriaHacienda?: number; Cabezas?: number; Fecha?: string; Id_Factura?: number | null; Observaciones?: string | null };
         Relationships: [
+          { foreignKeyName: "MovimientoRodeo_Id_Campo_fkey"; columns: ["Id_Campo"]; referencedRelation: "Campo"; referencedColumns: ["Id_Campo"] },
           { foreignKeyName: "MovimientoRodeo_Id_CategoriaHacienda_fkey"; columns: ["Id_CategoriaHacienda"]; referencedRelation: "CategoriaHacienda"; referencedColumns: ["Id_CategoriaHacienda"] },
           { foreignKeyName: "MovimientoRodeo_Id_Factura_fkey"; columns: ["Id_Factura"]; referencedRelation: "Factura"; referencedColumns: ["Id_Factura"] }
         ];

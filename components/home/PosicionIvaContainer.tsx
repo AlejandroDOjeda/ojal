@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampoContext } from "@/contexts/CampoContext";
 import PosicionIvaCard from "./PosicionIvaCard";
 
 export type PosicionIva = {
@@ -25,6 +26,7 @@ function nombreMes() {
 }
 
 export default function PosicionIvaContainer() {
+  const { campoActivo } = useCampoContext();
   const [posicion, setPosicion] = useState<PosicionIva | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,26 +35,38 @@ export default function PosicionIvaContainer() {
     const fetch = async () => {
       const { inicio, fin } = rangoMesActual();
 
-      const { data, error } = await supabase
+      // Compras: no están ligadas a un campo. Ventas: sí, pero a nivel de
+      // ítem (ItemHacienda), no de Factura.
+      const comprasQuery = supabase
         .from("Factura")
-        .select("Id_TipoOperacion, Iva10_5, Iva21")
+        .select("Iva10_5, Iva21")
+        .eq("Id_TipoOperacion", 1)
         .gte("Fecha", inicio)
         .lte("Fecha", fin);
 
-      if (error) {
-        setError(error.message);
+      let ventasQuery = supabase
+        .from("Factura")
+        .select("Iva10_5, Iva21, ItemHacienda!inner(Id_Campo)")
+        .eq("Id_TipoOperacion", 2)
+        .gte("Fecha", inicio)
+        .lte("Fecha", fin);
+
+      if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+
+      const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
+        await Promise.all([comprasQuery, ventasQuery]);
+
+      if (comprasError || ventasError) {
+        setError((comprasError ?? ventasError)!.message);
       } else {
-        const filas = data ?? [];
+        const sumIva = (filas: { Iva10_5: number; Iva21: number }[]) =>
+          filas.reduce((s, f) => s + (f.Iva10_5 ?? 0) + (f.Iva21 ?? 0), 0);
 
         // Compras: el negocio paga IVA → crédito fiscal
-        const creditoFiscal = filas
-          .filter((f: any) => f.Id_TipoOperacion === 1)
-          .reduce((s: number, f: any) => s + (f.Iva10_5 ?? 0) + (f.Iva21 ?? 0), 0);
+        const creditoFiscal = sumIva((compras ?? []) as { Iva10_5: number; Iva21: number }[]);
 
         // Ventas: el negocio cobra IVA → débito fiscal
-        const debitoFiscal = filas
-          .filter((f: any) => f.Id_TipoOperacion === 2)
-          .reduce((s: number, f: any) => s + (f.Iva10_5 ?? 0) + (f.Iva21 ?? 0), 0);
+        const debitoFiscal = sumIva((ventas ?? []) as { Iva10_5: number; Iva21: number }[]);
 
         setPosicion({
           creditoFiscal,
@@ -66,7 +80,7 @@ export default function PosicionIvaContainer() {
     };
 
     fetch();
-  }, []);
+  }, [campoActivo]);
 
   return <PosicionIvaCard posicion={posicion} loading={loading} error={error} />;
 }

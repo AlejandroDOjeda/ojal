@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, HelpCircle, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const configItems = [
+  { href: "/configuracion/campos", label: "Campos", icon: MapPin },
   { href: "/configuracion/entidades-legales", label: "Entidades Legales", icon: Building2 },
   { href: "/configuracion/categoria-hacienda", label: "Categorías Hacienda", icon: Beef },
   { href: "/configuracion/categoria-gasto", label: "Categorías Gasto", icon: ShoppingBag },

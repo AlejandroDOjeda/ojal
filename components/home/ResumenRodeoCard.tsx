@@ -68,7 +68,7 @@ export default function ResumenRodeoCard({ resumen, loading, error }: Props) {
       {!loading && !sinDatos && (
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {conStock.map((c) => (
-            <div key={c.nombre} className="flex items-baseline gap-1.5">
+            <div key={c.id} className="flex items-baseline gap-1.5">
               <span className="text-sm font-semibold text-foreground tabular-nums">
                 {c.cabezas}
               </span>

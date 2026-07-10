@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,7 +15,14 @@ import { ArrowUp, ArrowDown, ArrowUpDown, Search, FileText } from "lucide-react"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData, TValue> {
+    align?: "left" | "right";
+  }
+}
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -36,6 +43,8 @@ export function DataTable<T>({
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [colWidths, setColWidths] = useState<number[]>([]);
 
   const table = useReactTable({
     data,
@@ -52,6 +61,63 @@ export function DataTable<T>({
 
   const totalFiltered = table.getFilteredRowModel().rows.length;
   const pageCount = table.getPageCount();
+  const hasFooter = columns.some((c) => c.footer);
+  const rows = table.getRowModel().rows;
+
+  const renderHeader = () => (
+    <TableHeader>
+      {table.getHeaderGroups().map((hg) => (
+        <TableRow key={hg.id} className="hover:bg-transparent bg-muted/50">
+          {hg.headers.map((header) => {
+            const canSort = header.column.getCanSort();
+            const sorted = header.column.getIsSorted();
+            const alignRight = header.column.columnDef.meta?.align === "right";
+            return (
+              <TableHead
+                key={header.id}
+                className={alignRight ? "text-right" : undefined}
+                style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+              >
+                {header.isPlaceholder ? null : canSort ? (
+                  <button
+                    className={cn(
+                      "inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors",
+                      alignRight ? "-mr-0.5" : "-ml-0.5"
+                    )}
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {sorted === "asc"  ? <ArrowUp size={13} /> :
+                     sorted === "desc" ? <ArrowDown size={13} /> :
+                     <ArrowUpDown size={13} className="opacity-40" />}
+                  </button>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </span>
+                )}
+              </TableHead>
+            );
+          })}
+        </TableRow>
+      ))}
+    </TableHeader>
+  );
+
+  // El footer de totales vive en una tabla separada (para poder anclarla al
+  // fondo de la grilla en vez de que quede pegada a la última fila cargada).
+  // Estas medidas mantienen sus columnas alineadas con las del header/body.
+  useLayoutEffect(() => {
+    if (!hasFooter) return;
+    const ths = bodyRef.current?.querySelectorAll("thead th");
+    if (!ths || ths.length === 0) return;
+    const cells = Array.from(ths) as HTMLElement[];
+    const measure = () => setColWidths(cells.map((c) => c.getBoundingClientRect().width));
+    measure();
+    const ro = new ResizeObserver(measure);
+    cells.forEach((c) => ro.observe(c));
+    return () => ro.disconnect();
+  }, [hasFooter]);
 
   // ── Loading ───────────────────────────────────────────────────
   if (loading) {
@@ -63,7 +129,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3 min-h-0">
+    <div className="flex flex-1 flex-col gap-3 min-h-0 min-w-0">
       {/* Buscador */}
       <div className="relative max-w-xs">
         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -76,64 +142,63 @@ export function DataTable<T>({
       </div>
 
       {/* Tabla */}
-      <div className="min-h-0 flex-1 rounded-lg border border-border bg-card overflow-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="hover:bg-transparent bg-muted/50">
-                {hg.headers.map((header) => {
-                  const canSort = header.column.getCanSort();
-                  const sorted = header.column.getIsSorted();
-                  return (
-                    <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}>
-                      {header.isPlaceholder ? null : canSort ? (
-                        <button
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors -ml-0.5"
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {sorted === "asc"  ? <ArrowUp size={13} /> :
-                           sorted === "desc" ? <ArrowDown size={13} /> :
-                           <ArrowUpDown size={13} className="opacity-40" />}
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                        </span>
-                      )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="py-16 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <FileText size={36} className="opacity-30" />
-                    <p className="text-sm">
-                      {globalFilter
-                        ? `Sin resultados para "${globalFilter}"`
-                        : "No hay datos."}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <div className="min-h-0 flex-1 flex flex-col rounded-lg border border-border bg-card overflow-hidden">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-auto">
+          {rows.length === 0 ? (
+            <div className="flex h-full flex-col">
+              <Table>{renderHeader()}</Table>
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
+                <FileText size={36} className="opacity-30" />
+                <p className="text-sm">
+                  {globalFilter
+                    ? `Sin resultados para "${globalFilter}"`
+                    : "No hay datos."}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Table>
+              {renderHeader()}
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        {hasFooter && (
+          <div className="shrink-0 overflow-x-auto">
+            <Table>
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={i} style={{ width: w }} />
+                ))}
+              </colgroup>
+              <TableFooter>
+                {table.getFooterGroups().map((fg) => (
+                  <TableRow key={fg.id} className="hover:bg-transparent">
+                    {fg.headers.map((header) => (
+                      <TableCell
+                        key={header.id}
+                        className={header.column.columnDef.meta?.align === "right" ? "text-right" : undefined}
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableFooter>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Pie: selector de página + total + paginación */}

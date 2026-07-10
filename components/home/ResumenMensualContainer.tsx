@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampoContext } from "@/contexts/CampoContext";
 import ResumenMensualCards from "./ResumenMensualCards";
 
 export type ResumenMensual = {
@@ -24,6 +25,7 @@ function nombreMes() {
 }
 
 export default function ResumenMensualContainer() {
+  const { campoActivo } = useCampoContext();
   const [resumen, setResumen] = useState<ResumenMensual | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,22 +34,33 @@ export default function ResumenMensualContainer() {
     const fetch = async () => {
       const { inicio, fin } = rangoMesActual();
 
-      const { data, error } = await supabase
+      // Compras: no están ligadas a un campo. Ventas: sí, pero a nivel de
+      // ítem (ItemHacienda), no de Factura.
+      const comprasQuery = supabase
         .from("Factura")
-        .select("Id_TipoOperacion, Total")
+        .select("Total")
+        .eq("Id_TipoOperacion", 1)
         .gte("Fecha", inicio)
         .lte("Fecha", fin);
 
-      if (error) {
-        setError(error.message);
+      let ventasQuery = supabase
+        .from("Factura")
+        .select("Total, ItemHacienda!inner(Id_Campo)")
+        .eq("Id_TipoOperacion", 2)
+        .gte("Fecha", inicio)
+        .lte("Fecha", fin);
+
+      if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+
+      const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
+        await Promise.all([comprasQuery, ventasQuery]);
+
+      if (comprasError || ventasError) {
+        setError((comprasError ?? ventasError)!.message);
       } else {
-        const filas = data ?? [];
-        const totalCompras = filas
-          .filter((f: any) => f.Id_TipoOperacion === 1)
-          .reduce((sum: number, f: any) => sum + (f.Total ?? 0), 0);
-        const totalVentas = filas
-          .filter((f: any) => f.Id_TipoOperacion === 2)
-          .reduce((sum: number, f: any) => sum + (f.Total ?? 0), 0);
+        const sumTotal = (filas: { Total: number }[]) => filas.reduce((sum, f) => sum + (f.Total ?? 0), 0);
+        const totalCompras = sumTotal((compras ?? []) as { Total: number }[]);
+        const totalVentas = sumTotal((ventas ?? []) as { Total: number }[]);
 
         setResumen({ totalCompras, totalVentas, mes: nombreMes() });
       }
@@ -56,7 +69,7 @@ export default function ResumenMensualContainer() {
     };
 
     fetch();
-  }, []);
+  }, [campoActivo]);
 
   return <ResumenMensualCards resumen={resumen} loading={loading} error={error} />;
 }
