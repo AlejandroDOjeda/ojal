@@ -29,7 +29,7 @@ jobs:
         run: |
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_DEV }} \
                         --password ${{ secrets.SUPABASE_DB_PASSWORD_DEV }}
-          supabase db push
+          supabase db push --include-all
 
       # En main → aplica migraciones al proyecto PROD
       - name: Migrar base de datos PROD

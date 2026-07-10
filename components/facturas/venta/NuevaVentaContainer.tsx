@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
+import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
+import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaVentaView from "./NuevaVentaView";
 
 export type CategoriaHaciendaOption = { id: number; Nombre: string; TasaIva: number };
@@ -13,6 +15,7 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaVentaContainer() {
   const router = useRouter();
+  const { campoActivo, campos } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -30,7 +33,15 @@ export default function NuevaVentaContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
-    const totales = calcTotalesHacienda(items);
+    const duplicada = await existeFacturaDuplicada({
+      idTipoOperacion: TIPO_OPERACION.VENTA,
+      idEntidadLegal:  parseInt(header.Id_EntidadLegal),
+      puntoVenta:      header.PuntoVenta,
+      numero:          header.Numero,
+    });
+    if (duplicada) throw new Error(MENSAJE_DUPLICADA_VENTA);
+
+    const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
     const esCuentaCorriente = header.Id_CondicionPago === "2";
 
     const { data: facturaData, error: facturaError } = await supabase
@@ -38,8 +49,8 @@ export default function NuevaVentaContainer() {
       .insert({
         Id_TipoOperacion:   TIPO_OPERACION.VENTA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
-        PuntoVenta:         header.PuntoVenta ? header.PuntoVenta.padStart(4, "0") : null,
-        Numero:             header.Numero ? header.Numero.padStart(8, "0") : null,
+        PuntoVenta:         header.PuntoVenta || null,
+        Numero:             header.Numero || null,
         Fecha:              header.Fecha,
         Id_EntidadLegal:    parseInt(header.Id_EntidadLegal),
         Id_CondicionPago:   parseInt(header.Id_CondicionPago),
@@ -47,15 +58,17 @@ export default function NuevaVentaContainer() {
         Subtotal:           totales.Subtotal,
         Iva10_5:            totales.Iva10_5,
         Iva21:              totales.Iva21,
+        NoGravado:          totales.NoGravado,
         Total:              totales.Total,
       })
       .select("Id_Factura")
       .single();
 
-    if (facturaError) throw new Error(facturaError.message);
+    if (facturaError) throw new Error(esErrorDeFacturaDuplicada(facturaError) ? MENSAJE_DUPLICADA_VENTA : facturaError.message);
 
     const itemsPayload = items.map((item) => ({
       Id_Factura:           facturaData.Id_Factura,
+      Id_Campo:             parseInt(item.Id_Campo),
       Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
       Cabezas:              parseInt(item.Cabezas),
       KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -74,5 +87,14 @@ export default function NuevaVentaContainer() {
     router.push("/facturas?tab=ventas");
   };
 
-  return <NuevaVentaView entidades={entidades} categorias={categorias} loadingData={loadingData} onSave={handleSave} />;
+  return (
+    <NuevaVentaView
+      entidades={entidades}
+      categorias={categorias}
+      campos={campos}
+      campoActivoId={campoActivo?.Id_Campo ?? null}
+      loadingData={loadingData}
+      onSave={handleSave}
+    />
+  );
 }

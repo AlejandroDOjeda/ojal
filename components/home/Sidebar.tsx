@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, HelpCircle, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const configItems = [
+  { href: "/configuracion/campos", label: "Campos", icon: MapPin },
   { href: "/configuracion/entidades-legales", label: "Entidades Legales", icon: Building2 },
   { href: "/configuracion/categoria-hacienda", label: "Categorías Hacienda", icon: Beef },
   { href: "/configuracion/categoria-gasto", label: "Categorías Gasto", icon: ShoppingBag },
@@ -69,6 +70,13 @@ export default function AppSidebar() {
                 <SidebarMenuButton tooltip="Facturas" isActive={pathname.startsWith("/facturas")} render={<Link href="/facturas" />}>
                   <ReceiptText />
                   <span>Facturas</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Rodeo" isActive={pathname.startsWith("/rodeo")} render={<Link href="/rodeo" />}>
+                  <Package />
+                  <span>Rodeo</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 

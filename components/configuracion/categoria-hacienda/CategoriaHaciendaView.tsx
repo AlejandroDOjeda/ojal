@@ -87,7 +87,7 @@ export default function CategoriaHaciendaView({ categorias, loading, error, onCr
   ], [deleteConfirmId, deleting]);
 
   return (
-    <PageShell title="Categorías de Hacienda" description="Categorías de ganado vacuno utilizadas en las facturas"
+    <PageShell title="Categorías de Hacienda"
       action={<Button size="icon" onClick={openCreate}><Plus /></Button>}>
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
       <DataTable data={categorias} columns={columns} loading={loading} />

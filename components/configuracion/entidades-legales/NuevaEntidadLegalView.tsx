@@ -51,9 +51,6 @@ export default function NuevaEntidadLegalView({ onSubmit }: Props) {
           Volver al listado
         </Link>
         <h1 className="text-2xl font-bold text-foreground">Nueva Entidad Legal</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Completá los datos de la entidad legal
-        </p>
       </div>
 
       {/* Formulario */}

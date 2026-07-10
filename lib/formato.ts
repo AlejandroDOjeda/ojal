@@ -19,3 +19,23 @@ export function formatCuit(raw: string): string {
 export function cuitToDigits(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, 11);
 }
+
+/**
+ * Aplica la máscara del RENSPA argentino: XX.XXX.X.XXXXX/XX
+ * 13 dígitos en total. Se usa en el `value` del input.
+ */
+export function formatRenspa(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 13);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 6) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 11) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 6)}.${d.slice(6, 11)}/${d.slice(11)}`;
+}
+
+/**
+ * Extrae solo los dígitos del RENSPA para guardar en DB.
+ */
+export function renspaToDigits(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 13);
+}
