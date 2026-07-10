@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
 import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaVentaView from "./NuevaVentaView";
 
@@ -15,6 +16,7 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaVentaContainer() {
   const router = useRouter();
+  const { userId } = useAuthContext();
   const { campoActivo, campos } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
@@ -33,6 +35,7 @@ export default function NuevaVentaContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
+    if (!userId) throw new Error("Sin sesión activa.");
     const duplicada = await existeFacturaDuplicada({
       idTipoOperacion: TIPO_OPERACION.VENTA,
       idEntidadLegal:  parseInt(header.Id_EntidadLegal),
@@ -47,6 +50,7 @@ export default function NuevaVentaContainer() {
     const { data: facturaData, error: facturaError } = await supabase
       .from("Factura")
       .insert({
+        Id_Profile:         userId,
         Id_TipoOperacion:   TIPO_OPERACION.VENTA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
         PuntoVenta:         header.PuntoVenta || null,

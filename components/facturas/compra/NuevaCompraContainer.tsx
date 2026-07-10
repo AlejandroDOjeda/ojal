@@ -8,6 +8,7 @@ import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemGastoSubtotal, calcItemHaciendaSubtotal, calcTotalesCompra, type FacturaHeaderData, type ItemCompraForm } from "@/components/facturas/types";
 import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_COMPRA } from "@/components/facturas/duplicado";
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaCompraView from "./NuevaCompraView";
 
@@ -16,6 +17,7 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 
 export default function NuevaCompraContainer() {
   const router = useRouter();
+  const { userId } = useAuthContext();
   const { campoActivo, campos } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaGastoOption[]>([]);
@@ -37,6 +39,7 @@ export default function NuevaCompraContainer() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (header: FacturaHeaderData, items: ItemCompraForm[]) => {
+    if (!userId) throw new Error("Sin sesión activa.");
     const duplicada = await existeFacturaDuplicada({
       idTipoOperacion: TIPO_OPERACION.COMPRA,
       idEntidadLegal:  parseInt(header.Id_EntidadLegal),
@@ -51,6 +54,7 @@ export default function NuevaCompraContainer() {
     const { data: facturaData, error: facturaError } = await supabase
       .from("Factura")
       .insert({
+        Id_Profile:         userId,
         Id_TipoOperacion:   TIPO_OPERACION.COMPRA,
         Id_TipoComprobante: header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null,
         PuntoVenta:         header.PuntoVenta || null,

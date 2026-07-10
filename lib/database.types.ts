@@ -123,6 +123,7 @@ export interface Database {
       Factura: {
         Row: {
           Id_Factura:          number;
+          Id_Profile:          string;
           Id_TipoOperacion:    number;
           Id_TipoComprobante:  number | null;
           PuntoVenta:          string | null;
@@ -141,6 +142,7 @@ export interface Database {
           UpdatedAt:           string;
         };
         Insert: {
+          Id_Profile:          string;
           Id_TipoOperacion:    number;
           Id_TipoComprobante?: number | null;
           PuntoVenta?:         string | null;
@@ -171,7 +173,7 @@ export interface Database {
           Total?:              number;
           Observaciones?:      string | null;
         };
-        Relationships: [];
+        Relationships: [{ foreignKeyName: "Factura_Id_Profile_fkey"; columns: ["Id_Profile"]; referencedRelation: "Profile"; referencedColumns: ["Id_Profile"] }];
       };
 
       ItemHacienda: {
