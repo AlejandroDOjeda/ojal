@@ -20,10 +20,12 @@ const EMPTY_PROFILE: RegisterProfileData = {
 type AuthHandlers = {
   onSignInWithEmail: (email: string, password: string) => Promise<void>;
   onSignUpWithEmail: (email: string, password: string, profileData?: RegisterProfileData) => Promise<void>;
+  onResetPasswordForEmail: (email: string) => Promise<void>;
 };
 
-export default function useLoginForm({ onSignInWithEmail, onSignUpWithEmail }: AuthHandlers) {
+export default function useLoginForm({ onSignInWithEmail, onSignUpWithEmail, onResetPasswordForEmail }: AuthHandlers) {
   const [isRegister, setIsRegister] = React.useState(false);
+  const [isForgotPassword, setIsForgotPassword] = React.useState(false);
   const [email, setEmailState] = React.useState("");
   const [password, setPasswordState] = React.useState("");
   const [profileData, setProfileData] = React.useState<RegisterProfileData>(EMPTY_PROFILE);
@@ -51,35 +53,23 @@ export default function useLoginForm({ onSignInWithEmail, onSignUpWithEmail }: A
     if (field === "cuitCuil") setCuitCuilError(null);
   };
 
+  const validateEmail = (): boolean => {
+    if (!email.trim()) { setEmailError("El email es obligatorio"); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setEmailError("Ingresá un email válido"); return false; }
+    setEmailError(null);
+    return true;
+  };
+
   const validate = (): boolean => {
-    let valid = true;
-    if (!email.trim()) {
-      setEmailError("El email es obligatorio");
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setEmailError("Ingresá un email válido");
-      valid = false;
-    } else {
-      setEmailError(null);
-    }
-    if (!password) {
-      setPasswordError("La contraseña es obligatoria");
-      valid = false;
-    } else {
-      setPasswordError(null);
-    }
+    let valid = validateEmail();
+    if (!password) { setPasswordError("La contraseña es obligatoria"); valid = false; }
+    else setPasswordError(null);
     if (profileData.telefono && profileData.telefono.length < 7) {
-      setTelefonoError("El teléfono debe tener al menos 7 dígitos");
-      valid = false;
-    } else {
-      setTelefonoError(null);
-    }
+      setTelefonoError("El teléfono debe tener al menos 7 dígitos"); valid = false;
+    } else setTelefonoError(null);
     if (profileData.cuitCuil && profileData.cuitCuil.length !== 11) {
-      setCuitCuilError("El CUIT/CUIL debe tener 11 dígitos");
-      valid = false;
-    } else {
-      setCuitCuilError(null);
-    }
+      setCuitCuilError("El CUIT/CUIL debe tener 11 dígitos"); valid = false;
+    } else setCuitCuilError(null);
     return valid;
   };
 
@@ -96,6 +86,21 @@ export default function useLoginForm({ onSignInWithEmail, onSignUpWithEmail }: A
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    if (isForgotPassword) {
+      if (!validateEmail()) return;
+      setLoading(true);
+      try {
+        await onResetPasswordForEmail(email);
+        setSuccessMessage("Te enviamos un email con el link para recuperar tu contraseña. Revisá tu bandeja de entrada.");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Ha ocurrido un error";
+        setErrorMessage(translateError(msg));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     if (isRegister && !validate()) return;
 
@@ -138,9 +143,7 @@ export default function useLoginForm({ onSignInWithEmail, onSignUpWithEmail }: A
     }
   };
 
-  const toggleRegister = () => {
-    setIsRegister((s) => !s);
-    setProfileData(EMPTY_PROFILE);
+  const clearState = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
     setEmailError(null);
@@ -149,11 +152,25 @@ export default function useLoginForm({ onSignInWithEmail, onSignUpWithEmail }: A
     setCuitCuilError(null);
   };
 
+  const toggleRegister = () => {
+    setIsRegister((s) => !s);
+    setIsForgotPassword(false);
+    setProfileData(EMPTY_PROFILE);
+    clearState();
+  };
+
+  const toggleForgotPassword = () => {
+    setIsForgotPassword((s) => !s);
+    setIsRegister(false);
+    clearState();
+  };
+
   return {
     email, setEmail,
     password, setPassword,
     profileData, setProfileField,
     isRegister, setIsRegister, toggleRegister,
+    isForgotPassword, toggleForgotPassword,
     loading, errorMessage, successMessage,
     emailError, passwordError, telefonoError, cuitCuilError,
     cooldownSeconds,

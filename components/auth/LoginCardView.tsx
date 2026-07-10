@@ -17,6 +17,7 @@ type ViewProps = {
   email: string;
   password: string;
   isRegister: boolean;
+  isForgotPassword: boolean;
   profileData: RegisterProfileData;
   setProfileField: (field: keyof RegisterProfileData, value: string) => void;
   loading: boolean;
@@ -30,19 +31,27 @@ type ViewProps = {
   setEmail: (v: string) => void;
   setPassword: (v: string) => void;
   toggleRegister: () => void;
+  toggleForgotPassword: () => void;
   submit: (e: React.FormEvent) => Promise<void>;
   onSignOut: () => Promise<void>;
 };
 
 export default function LoginCardView({
-  userEmail, email, password, isRegister, profileData, setProfileField,
+  userEmail, email, password, isRegister, isForgotPassword, profileData, setProfileField,
   loading, errorMessage, successMessage, emailError, passwordError, telefonoError, cuitCuilError,
-  cooldownSeconds, setEmail, setPassword, toggleRegister, submit, onSignOut,
+  cooldownSeconds, setEmail, setPassword, toggleRegister, toggleForgotPassword, submit, onSignOut,
 }: ViewProps) {
+
+  const title = isForgotPassword ? "Recuperar contraseña" : isRegister ? "Crear cuenta" : "Iniciar sesión";
+
   return (
     <div className={`w-full bg-card rounded-lg shadow p-8 ${isRegister ? "max-w-lg" : "max-w-md"}`}>
-      <h1 className="text-2xl font-bold mb-2 text-center">{isRegister ? "Crear cuenta" : "Iniciar sesión"}</h1>
-      <p className="text-sm text-muted-foreground mb-6 text-center">Usa tu email y contraseña</p>
+      <h1 className="text-2xl font-bold mb-2 text-center">{title}</h1>
+      <p className="text-sm text-muted-foreground mb-6 text-center">
+        {isForgotPassword
+          ? "Ingresá tu email y te enviaremos un link para restablecer tu contraseña"
+          : "Usa tu email y contraseña"}
+      </p>
 
       {userEmail ? (
         <div className="space-y-4 text-center">
@@ -61,101 +70,134 @@ export default function LoginCardView({
             </div>
           )}
 
-          <div className="space-y-1">
-            <FormField label="Email" required error={emailError ?? undefined}>
-              <Input
-                type="email"
-                placeholder="usuario@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </FormField>
-            {isRegister && (
-              <p className="text-xs text-muted-foreground">
-                Usá un correo válido al que tengas acceso, se enviará un link de verificación.
-              </p>
-            )}
-          </div>
-
-          <FormField label="Contraseña" required error={passwordError ?? undefined}>
-            <Input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </FormField>
-
-          {isRegister && (
-            <div className="flex flex-col gap-4 pt-1">
-              <p className="text-xs font-medium text-muted-foreground -mb-1">Datos del perfil (opcionales)</p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Nombre">
-                  <Input placeholder="Nombre" value={profileData.nombre} onChange={(e) => setProfileField("nombre", e.target.value)} />
-                </FormField>
-                <FormField label="Apellido">
-                  <Input placeholder="Apellido" value={profileData.apellido} onChange={(e) => setProfileField("apellido", e.target.value)} />
-                </FormField>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Teléfono" error={telefonoError ?? undefined}>
-                  <Input
-                    type="tel"
-                    placeholder="Ej: 3491123456"
-                    value={profileData.telefono}
-                    onChange={(e) => setProfileField("telefono", e.target.value.replace(/\D/g, ""))}
-                    maxLength={15}
-                  />
-                </FormField>
-                <FormField label="CUIT / CUIL" error={cuitCuilError ?? undefined}>
-                  <Input
-                    placeholder="20-12345678-9"
-                    value={formatCuit(profileData.cuitCuil)}
-                    onChange={(e) => setProfileField("cuitCuil", e.target.value.replace(/\D/g, "").slice(0, 11))}
-                    maxLength={13}
-                  />
-                </FormField>
-              </div>
-
-              <FormField label="Razón Social">
-                <Input placeholder="Razón Social" value={profileData.razonSocial} onChange={(e) => setProfileField("razonSocial", e.target.value)} />
+          {/* ── Recuperar contraseña ─────────────────────────── */}
+          {isForgotPassword && (
+            <>
+              <FormField label="Email" required error={emailError ?? undefined}>
+                <Input
+                  type="email"
+                  placeholder="usuario@ejemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </FormField>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Tipo de persona">
-                  <SelectBox
-                    options={TIPO_PERSONA_OPTIONS}
-                    value={profileData.idTipoPersona}
-                    onValueChange={(v) => setProfileField("idTipoPersona", v)}
-                    placeholder="— Seleccioná —"
-                  />
-                </FormField>
-                <FormField label="Condición IVA">
-                  <SelectBox
-                    options={CONDICION_IVA_OPTIONS}
-                    value={profileData.idCondicionIva}
-                    onValueChange={(v) => setProfileField("idCondicionIva", v)}
-                    placeholder="— Seleccioná —"
-                  />
-                </FormField>
-              </div>
-            </div>
+              {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+
+              <Button type="submit" disabled={loading || cooldownSeconds > 0}>
+                {loading ? "Enviando..." : "Enviar link de recuperación"}
+              </Button>
+
+              <Button type="button" variant="link" size="xs" onClick={toggleForgotPassword} className="text-muted-foreground underline p-0 h-auto text-xs">
+                ← Volver al inicio de sesión
+              </Button>
+            </>
           )}
 
-          <Button type="submit" variant="outline" disabled={loading || cooldownSeconds > 0}>
-            {loading ? "Procesando..." : isRegister ? "Crear cuenta" : "Iniciar sesión"}
-          </Button>
+          {/* ── Login / Registro ─────────────────────────────── */}
+          {!isForgotPassword && (
+            <>
+              <div className="space-y-1">
+                <FormField label="Email" required error={emailError ?? undefined}>
+                  <Input
+                    type="email"
+                    placeholder="usuario@ejemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </FormField>
+                {isRegister && (
+                  <p className="text-xs text-muted-foreground">
+                    Usá un correo válido al que tengas acceso, se enviará un link de verificación.
+                  </p>
+                )}
+              </div>
 
-          {cooldownSeconds > 0 && <p className="text-sm text-destructive">Intenta de nuevo en {cooldownSeconds}s</p>}
-          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+              <FormField label="Contraseña" required error={passwordError ?? undefined}>
+                <Input
+                  type="password"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </FormField>
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <Button type="button" variant="link" size="xs" onClick={toggleRegister} className="text-muted-foreground underline p-0 h-auto">
-              {isRegister ? "¿Ya tenés cuenta? Iniciar sesión" : "¿No tenés cuenta? Registrate"}
-            </Button>
-          </div>
+              {!isRegister && (
+                <Button type="button" variant="link" size="xs" onClick={toggleForgotPassword} className="text-muted-foreground underline p-0 h-auto text-xs -mt-2 text-left w-fit">
+                  ¿Olvidaste tu contraseña?
+                </Button>
+              )}
+
+              {isRegister && (
+                <div className="flex flex-col gap-4 pt-1">
+                  <p className="text-xs font-medium text-muted-foreground -mb-1">Datos del perfil (opcionales)</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Nombre">
+                      <Input placeholder="Nombre" value={profileData.nombre} onChange={(e) => setProfileField("nombre", e.target.value)} />
+                    </FormField>
+                    <FormField label="Apellido">
+                      <Input placeholder="Apellido" value={profileData.apellido} onChange={(e) => setProfileField("apellido", e.target.value)} />
+                    </FormField>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Teléfono" error={telefonoError ?? undefined}>
+                      <Input
+                        type="tel"
+                        placeholder="Ej: 3491123456"
+                        value={profileData.telefono}
+                        onChange={(e) => setProfileField("telefono", e.target.value.replace(/\D/g, ""))}
+                        maxLength={15}
+                      />
+                    </FormField>
+                    <FormField label="CUIT / CUIL" error={cuitCuilError ?? undefined}>
+                      <Input
+                        placeholder="20-12345678-9"
+                        value={formatCuit(profileData.cuitCuil)}
+                        onChange={(e) => setProfileField("cuitCuil", e.target.value.replace(/\D/g, "").slice(0, 11))}
+                        maxLength={13}
+                      />
+                    </FormField>
+                  </div>
+
+                  <FormField label="Razón Social">
+                    <Input placeholder="Razón Social" value={profileData.razonSocial} onChange={(e) => setProfileField("razonSocial", e.target.value)} />
+                  </FormField>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Tipo de persona">
+                      <SelectBox
+                        options={TIPO_PERSONA_OPTIONS}
+                        value={profileData.idTipoPersona}
+                        onValueChange={(v) => setProfileField("idTipoPersona", v)}
+                        placeholder="— Seleccioná —"
+                      />
+                    </FormField>
+                    <FormField label="Condición IVA">
+                      <SelectBox
+                        options={CONDICION_IVA_OPTIONS}
+                        value={profileData.idCondicionIva}
+                        onValueChange={(v) => setProfileField("idCondicionIva", v)}
+                        placeholder="— Seleccioná —"
+                      />
+                    </FormField>
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" variant="outline" disabled={loading || cooldownSeconds > 0}>
+                {loading ? "Procesando..." : isRegister ? "Crear cuenta" : "Iniciar sesión"}
+              </Button>
+
+              {cooldownSeconds > 0 && <p className="text-sm text-destructive">Intenta de nuevo en {cooldownSeconds}s</p>}
+              {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+
+              <Button type="button" variant="link" size="xs" onClick={toggleRegister} className="text-muted-foreground underline p-0 h-auto text-xs">
+                {isRegister ? "¿Ya tenés cuenta? Iniciar sesión" : "¿No tenés cuenta? Registrate"}
+              </Button>
+            </>
+          )}
         </form>
       )}
     </div>
