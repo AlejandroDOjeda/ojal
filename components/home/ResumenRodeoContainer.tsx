@@ -27,9 +27,14 @@ export default function ResumenRodeoContainer() {
       } else {
         // Puede haber múltiples filas por categoría (una por campo) —
         // las agrupamos sumando cabezas por Id_CategoriaHacienda.
+        type Fila = {
+          Id_CategoriaHacienda: number;
+          Cabezas: number | null;
+          CategoriaHacienda: { Nombre: string } | null;
+        };
         const acumulado = new Map<number, CategoriaStock>();
-        for (const r of (data ?? []) as any[]) {
-          const id = r.Id_CategoriaHacienda as number;
+        for (const r of (data ?? []) as Fila[]) {
+          const id = r.Id_CategoriaHacienda;
           const prev = acumulado.get(id);
           acumulado.set(id, {
             id,

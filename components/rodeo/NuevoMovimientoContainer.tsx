@@ -21,7 +21,7 @@ export default function NuevoMovimientoContainer() {
       .eq("Activa", true)
       .order("Nombre");
     setCategorias(
-      (data ?? []).map((r: any) => ({
+      (data ?? []).map((r: CategoriaOption) => ({
         Id_CategoriaHacienda: r.Id_CategoriaHacienda,
         Nombre: r.Nombre,
       }))
