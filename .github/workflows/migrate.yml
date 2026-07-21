@@ -31,10 +31,6 @@ jobs:
                         --password ${{ secrets.SUPABASE_DB_PASSWORD_DEV }}
           supabase db push --include-all
 
-      # En main → aplica migraciones al proyecto PROD
-      # TEMPORAL: --include-all para destrabar 20260623000008, que quedó
-      # fuera de orden porque se borró su registro en schema_migrations.
-      # Revertir a "supabase db push" (sin flag) apenas corra una vez OK.
       - name: Migrar base de datos PROD
         if: github.ref == 'refs/heads/main'
         env:
@@ -42,4 +38,4 @@ jobs:
         run: |
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }} \
                         --password ${{ secrets.SUPABASE_DB_PASSWORD_PROD }}
-          supabase db push --include-all
+          supabase db push 

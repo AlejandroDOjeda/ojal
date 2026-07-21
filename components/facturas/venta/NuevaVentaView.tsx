@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -50,10 +50,10 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
   const [itemErrors, setItemErrors] = useState<Record<string, ItemHaciendaErrors>>({});
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const isDirty = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
 
-  useLeaveConfirmation(isDirty.current);
-  const markDirty = () => { isDirty.current = true; };
+  useLeaveConfirmation(isDirty);
+  const markDirty = () => setIsDirty(true);
 
   const setHeaderField = <K extends keyof FacturaHeaderData>(field: K, value: FacturaHeaderData[K]) => {
     markDirty(); setHeader((h) => ({ ...h, [field]: value }));
@@ -132,7 +132,7 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
   };
 
-  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=ventas"); };
+  const handleCancel = () => { if (isDirty) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=ventas"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const camposOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
