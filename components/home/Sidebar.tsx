@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Settings, HelpCircle, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin,
+  Home, Settings, Building2, Beef,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin, Percent,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const configItems = [
+  { href: "/rodeo", label: "Rodeo", icon: Package, prefix: true },
   { href: "/configuracion/campos", label: "Campos", icon: MapPin },
   { href: "/configuracion/entidades-legales", label: "Entidades Legales", icon: Building2 },
   { href: "/configuracion/categoria-hacienda", label: "Categorías Hacienda", icon: Beef },
@@ -34,9 +35,12 @@ const configItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const [configOpen, setConfigOpen] = useState(pathname.startsWith("/configuracion"));
+  const inConfigGroup = pathname.startsWith("/configuracion") || pathname.startsWith("/rodeo");
+  const [configOpen, setConfigOpen] = useState(inConfigGroup);
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const isItemActive = (item: (typeof configItems)[number]) =>
+    item.prefix ? pathname.startsWith(item.href) : pathname === item.href;
 
   return (
     <Sidebar collapsible="icon">
@@ -74,9 +78,9 @@ export default function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Rodeo" isActive={pathname.startsWith("/rodeo")} render={<Link href="/rodeo" />}>
-                  <Package />
-                  <span>Rodeo</span>
+                <SidebarMenuButton tooltip="IVA" isActive={pathname.startsWith("/iva")} render={<Link href="/iva" />}>
+                  <Percent />
+                  <span>IVA</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -90,7 +94,7 @@ export default function AppSidebar() {
                     onClick={() => setConfigOpen((o) => !o)}
                     className={cn(
                       "flex h-8 w-full items-center gap-2 rounded-md p-2 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      (pathname.startsWith("/configuracion") || configOpen) &&
+                      (inConfigGroup || configOpen) &&
                         "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     )}
                   >
@@ -104,7 +108,7 @@ export default function AppSidebar() {
                   /* Modo expandido: botón normal */
                   <SidebarMenuButton
                     tooltip="Configuración"
-                    isActive={pathname.startsWith("/configuracion")}
+                    isActive={inConfigGroup}
                     onClick={() => setConfigOpen((o) => !o)}
                   >
                     <Settings />
@@ -121,7 +125,7 @@ export default function AppSidebar() {
                     {configItems.map((item) => (
                       <SidebarMenuSubItem key={item.href}>
                         <SidebarMenuSubButton
-                          isActive={pathname === item.href}
+                          isActive={isItemActive(item)}
                           render={<Link href={item.href} />}
                         >
                           <item.icon />
@@ -140,7 +144,7 @@ export default function AppSidebar() {
                         key={item.href}
                         size="sm"
                         tooltip={item.label}
-                        isActive={pathname === item.href}
+                        isActive={isItemActive(item)}
                         render={<Link href={item.href} />}
                       >
                         <item.icon />
@@ -148,15 +152,6 @@ export default function AppSidebar() {
                     ))}
                   </div>
                 )}
-              </SidebarMenuItem>
-
-              <SidebarSeparator />
-
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Ayuda" isActive={pathname === "/help"} render={<Link href="/help" />}>
-                  <HelpCircle />
-                  <span>Ayuda</span>
-                </SidebarMenuButton>
               </SidebarMenuItem>
 
             </SidebarMenu>
