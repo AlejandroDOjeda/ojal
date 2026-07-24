@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin, Percent,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin, Percent, ChartBar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -81,6 +81,13 @@ export default function AppSidebar() {
                 <SidebarMenuButton tooltip="IVA" isActive={pathname.startsWith("/iva")} render={<Link href="/iva" />}>
                   <Percent />
                   <span>IVA</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Resultado" isActive={pathname.startsWith("/resultado")} render={<Link href="/resultado" />}>
+                  <ChartBar />
+                  <span>Resultado</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
