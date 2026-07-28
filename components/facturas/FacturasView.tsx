@@ -4,12 +4,17 @@ import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import { parseISO } from "date-fns";
-import { Pencil, Plus, Search, ShoppingCart, Trash2, TrendingUp } from "lucide-react";
+import { Download, Pencil, Plus, Search, ShoppingCart, Trash2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageShell, DataTable, DatePicker, FormField } from "@/components/app";
 import { TIPO_COMPROBANTE_ITEMS } from "@/lib/opciones";
+import { downloadXlsx } from "@/lib/excel";
+import { downloadPdf } from "@/lib/pdf";
 import type { FacturaResumen } from "./FacturasContainer";
 
 const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
@@ -168,6 +173,46 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     },
   ], [deleteConfirmId, deleting]);
 
+  const filasTab = tab === "compras" ? compras : ventas;
+  const entidadLabel = tab === "compras" ? "Proveedor" : "Cliente";
+
+  const buildExportData = () => {
+    const headers = ["Fecha", "Comprobante", entidadLabel, "Neto", "IVA", "Bruto"];
+    const rows = filasTab.map((f) => [
+      formatFecha(f.Fecha),
+      formatNumero(f.Id_TipoComprobante, f.PuntoVenta, f.Numero),
+      f.EntidadLegal?.RazonSocial ?? "",
+      f.Subtotal,
+      f.Iva10_5 + f.Iva21,
+      f.Total,
+    ]);
+    return { headers, rows };
+  };
+
+  const handleExportExcel = () => {
+    const { headers, rows } = buildExportData();
+    downloadXlsx(`facturas-${tab}_${fechaDesde}_${fechaHasta}.xlsx`, headers, rows);
+  };
+
+  const handleExportPdf = () => {
+    const { headers, rows } = buildExportData();
+    const totalNeto = filasTab.reduce((s, f) => s + f.Subtotal, 0);
+    const totalIva = filasTab.reduce((s, f) => s + f.Iva10_5 + f.Iva21, 0);
+    const totalBruto = filasTab.reduce((s, f) => s + f.Total, 0);
+    downloadPdf({
+      filename: `facturas-${tab}_${fechaDesde}_${fechaHasta}.pdf`,
+      title: tab === "compras" ? "Facturas de Compra" : "Facturas de Venta",
+      subtitle: `Período: ${formatFecha(fechaDesde)} — ${formatFecha(fechaHasta)}`,
+      metrics: [
+        { label: "Neto", value: formatMonto(totalNeto) },
+        { label: "IVA", value: formatMonto(totalIva) },
+        { label: "Bruto", value: formatMonto(totalBruto) },
+      ],
+      headers,
+      rows,
+    });
+  };
+
   return (
     <PageShell title="Facturas">
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
@@ -194,10 +239,25 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
             {ventas.length > 0 && <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{ventas.length}</span>}
           </button>
         </div>
-        <Button size="icon" className="mb-1"
-          onClick={() => router.push(tab === "compras" ? "/facturas/nueva-compra" : "/facturas/nueva-venta")}>
-          <Plus size={15} />
-        </Button>
+        <div className="flex items-center gap-2 mb-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={buttonVariants({ variant: "outline" })}
+              disabled={loading || filasTab.length === 0}
+            >
+              <Download size={15} />
+              Exportar
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>Excel (.xlsx)</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPdf}>PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="icon"
+            onClick={() => router.push(tab === "compras" ? "/facturas/nueva-compra" : "/facturas/nueva-venta")}>
+            <Plus size={15} />
+          </Button>
+        </div>
       </div>
 
       {tab === "compras" ? (
