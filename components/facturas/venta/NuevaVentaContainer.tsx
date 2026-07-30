@@ -37,10 +37,11 @@ export default function NuevaVentaContainer() {
   const handleSave = async (header: FacturaHeaderData, items: ItemHaciendaForm[]) => {
     if (!userId) throw new Error("Sin sesión activa.");
     const duplicada = await existeFacturaDuplicada({
-      idTipoOperacion: TIPO_OPERACION.VENTA,
-      idEntidadLegal:  parseInt(header.Id_EntidadLegal),
-      puntoVenta:      header.PuntoVenta,
-      numero:          header.Numero,
+      idTipoOperacion:   TIPO_OPERACION.VENTA,
+      idTipoComprobante: parseInt(header.Id_TipoComprobante),
+      idEntidadLegal:    parseInt(header.Id_EntidadLegal),
+      puntoVenta:        header.PuntoVenta,
+      numero:            header.Numero,
     });
     if (duplicada) throw new Error(MENSAJE_DUPLICADA_VENTA);
 
@@ -64,6 +65,7 @@ export default function NuevaVentaContainer() {
         Iva21:              totales.Iva21,
         NoGravado:          totales.NoGravado,
         Total:              totales.Total,
+        Id_FacturaAsociada: header.Id_FacturaAsociada ? parseInt(header.Id_FacturaAsociada) : null,
       })
       .select("Id_Factura")
       .single();
@@ -87,7 +89,7 @@ export default function NuevaVentaContainer() {
       await supabase.from("Factura").delete().eq("Id_Factura", facturaData.Id_Factura);
       throw new Error(itemsError.message);
     }
-    toast.success("Factura de venta guardada.");
+    toast.success("Comprobante de venta guardado.");
     router.push("/facturas?tab=ventas");
   };
 

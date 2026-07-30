@@ -56,6 +56,7 @@ export default function EditarFacturaContainer() {
     const f = facturaData as {
       Id_TipoOperacion: number; Id_TipoComprobante: number | null; PuntoVenta: string | null; Numero: string | null;
       Fecha: string; Id_EntidadLegal: number; Id_CondicionPago: number; FechaVencimiento: string | null; NoGravado: number;
+      Id_FacturaAsociada: number | null;
     };
 
     setTipoOperacion(f.Id_TipoOperacion);
@@ -68,6 +69,7 @@ export default function EditarFacturaContainer() {
       Id_CondicionPago: String(f.Id_CondicionPago),
       FechaVencimiento: f.FechaVencimiento ?? "",
       NoGravado: f.NoGravado ? String(f.NoGravado) : "",
+      Id_FacturaAsociada: f.Id_FacturaAsociada ? String(f.Id_FacturaAsociada) : "",
     });
 
     setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
@@ -131,6 +133,7 @@ export default function EditarFacturaContainer() {
     const facId = parseInt(id);
     const duplicada = await existeFacturaDuplicada({
       idTipoOperacion:   TIPO_OPERACION.COMPRA,
+      idTipoComprobante: parseInt(header.Id_TipoComprobante),
       idEntidadLegal:    parseInt(header.Id_EntidadLegal),
       puntoVenta:        header.PuntoVenta,
       numero:            header.Numero,
@@ -154,6 +157,7 @@ export default function EditarFacturaContainer() {
       Iva21:              totales.Iva21,
       NoGravado:          totales.NoGravado,
       Total:              totales.Total,
+      Id_FacturaAsociada: header.Id_FacturaAsociada ? parseInt(header.Id_FacturaAsociada) : null,
     }).eq("Id_Factura", facId);
 
     if (updateError) throw new Error(esErrorDeFacturaDuplicada(updateError) ? MENSAJE_DUPLICADA_COMPRA : updateError.message);
@@ -197,7 +201,7 @@ export default function EditarFacturaContainer() {
     if (insertGastoError) throw new Error(insertGastoError.message);
     if (insertHaciendaError) throw new Error(insertHaciendaError.message);
 
-    toast.success("Factura de compra actualizada.");
+    toast.success("Comprobante de compra actualizado.");
     router.push("/facturas?tab=compras");
   };
 
@@ -205,6 +209,7 @@ export default function EditarFacturaContainer() {
     const facId = parseInt(id);
     const duplicada = await existeFacturaDuplicada({
       idTipoOperacion:   TIPO_OPERACION.VENTA,
+      idTipoComprobante: parseInt(header.Id_TipoComprobante),
       idEntidadLegal:    parseInt(header.Id_EntidadLegal),
       puntoVenta:        header.PuntoVenta,
       numero:            header.Numero,
@@ -228,6 +233,7 @@ export default function EditarFacturaContainer() {
       Iva21:              totales.Iva21,
       NoGravado:          totales.NoGravado,
       Total:              totales.Total,
+      Id_FacturaAsociada: header.Id_FacturaAsociada ? parseInt(header.Id_FacturaAsociada) : null,
     }).eq("Id_Factura", facId);
 
     if (updateError) throw new Error(esErrorDeFacturaDuplicada(updateError) ? MENSAJE_DUPLICADA_VENTA : updateError.message);
@@ -250,13 +256,13 @@ export default function EditarFacturaContainer() {
     );
     if (insertError) throw new Error(insertError.message);
 
-    toast.success("Factura de venta actualizada.");
+    toast.success("Comprobante de venta actualizado.");
     router.push("/facturas?tab=ventas");
   };
 
   if (loading) {
     return (
-      <PageShell title="Editar Factura" className="max-w-none">
+      <PageShell title="Editar Comprobante" className="max-w-none">
         <p className="text-muted-foreground">Cargando...</p>
       </PageShell>
     );
@@ -264,8 +270,8 @@ export default function EditarFacturaContainer() {
 
   if (notFound) {
     return (
-      <PageShell title="Editar Factura" className="max-w-none">
-        <p className="text-muted-foreground">Factura no encontrada.</p>
+      <PageShell title="Editar Comprobante" className="max-w-none">
+        <p className="text-muted-foreground">Comprobante no encontrado.</p>
       </PageShell>
     );
   }
@@ -281,8 +287,9 @@ export default function EditarFacturaContainer() {
         loadingData={false}
         initialHeader={initialHeader!}
         initialItems={initialItemsCompra!}
-        title="Editar Factura de Compra"
+        title="Editar Comprobante de Compra"
         cancelPath="/facturas?tab=compras"
+        facturaId={parseInt(id)}
         onSave={handleUpdateCompra}
       />
     );
@@ -297,8 +304,9 @@ export default function EditarFacturaContainer() {
       loadingData={false}
       initialHeader={initialHeader!}
       initialItems={initialItemsHacienda!}
-      title="Editar Factura de Venta"
+      title="Editar Comprobante de Venta"
       cancelPath="/facturas?tab=ventas"
+      facturaId={parseInt(id)}
       onSave={handleUpdateVenta}
     />
   );

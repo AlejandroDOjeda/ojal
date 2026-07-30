@@ -13,7 +13,7 @@ import { PageShell, SectionCard, SelectBox } from "@/components/app";
 import { FacturaHeaderForm, type FacturaHeaderErrors } from "@/components/facturas/FacturaHeaderForm";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
-import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS } from "@/lib/opciones";
+import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS, TIPO_OPERACION, esNotaCreditoDebito } from "@/lib/opciones";
 import {
   EMPTY_HEADER, EMPTY_ITEM_HACIENDA, calcItemHaciendaSubtotal, calcTotalesHacienda, formatARS,
   type FacturaHeaderData, type ItemHaciendaForm,
@@ -32,6 +32,7 @@ type Props = {
   initialItems?: ItemHaciendaForm[];
   title?: string;
   cancelPath?: string;
+  facturaId?: number;
   onSave: (header: FacturaHeaderData, items: ItemHaciendaForm[]) => Promise<void>;
 };
 
@@ -40,7 +41,7 @@ const newKey = () => String(++keyCounter);
 
 type ItemHaciendaErrors = Partial<Record<"Id_Campo" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 
-export default function NuevaVentaView({ entidades, categorias, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, onSave }: Props) {
+export default function NuevaVentaView({ entidades, categorias, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
   const nuevoItem = () => ({ _key: newKey(), ...EMPTY_ITEM_HACIENDA, Id_Campo: campoActivoId ? String(campoActivoId) : "" });
@@ -103,6 +104,9 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
+    if (esNotaCreditoDebito(header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null) && !header.Id_FacturaAsociada) {
+      hErrors.Id_FacturaAsociada = "Obligatorio";
+    }
     if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
     const newItemErrors: Record<string, ItemHaciendaErrors> = {};
     for (const item of items) {
@@ -139,16 +143,20 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
   const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
-      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
+      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Comprobantes</Button>
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nuevo Comprobante de Venta"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nueva Factura de Venta"} back={backLink} className="max-w-none">
+    <PageShell title={title ?? "Nuevo Comprobante de Venta"} back={backLink} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Cliente" onChange={setHeaderField} />
+        <FacturaHeaderForm
+          data={header} errors={headerErrors} entidades={entidades} entidadLabel="Cliente"
+          idTipoOperacion={TIPO_OPERACION.VENTA} facturaIdActual={facturaId}
+          onChange={setHeaderField}
+        />
 
         <SectionCard title="Hacienda">
           <div className="flex justify-end mb-3">

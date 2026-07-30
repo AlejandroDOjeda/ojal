@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { TIPO_OPERACION } from "@/lib/opciones";
+import { TIPO_OPERACION, signoComprobante } from "@/lib/opciones";
 import { toDateStr, hoyStr } from "@/lib/fecha";
 import { useCampoContext } from "@/contexts/CampoContext";
 import ResultadoReporteView from "./ResultadoReporteView";
@@ -24,11 +24,12 @@ function primerDiaDelMes() {
   return toDateStr(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 }
 
-type VentaRow = { Subtotal: number };
+type VentaRow = { Subtotal: number; Id_TipoComprobante: number | null };
 type ItemGastoRow = {
   Subtotal: number;
   Id_CategoriaGasto: number | null;
   CategoriaGasto: { Nombre: string } | null;
+  Factura: { Id_TipoComprobante: number | null } | null;
 };
 
 export default function ResultadoReporteContainer() {
@@ -49,7 +50,7 @@ export default function ResultadoReporteContainer() {
     // nivel de ítem, no de factura).
     let ventasQuery = supabase
       .from("Factura")
-      .select("Subtotal, ItemHacienda!inner(Id_Campo)")
+      .select("Subtotal, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta);
@@ -61,7 +62,7 @@ export default function ResultadoReporteContainer() {
     // stock, no un gasto del período.
     const gastosQuery = supabase
       .from("ItemGasto")
-      .select("Subtotal, Id_CategoriaGasto, CategoriaGasto(Nombre), Factura!inner(Fecha, Id_TipoOperacion)")
+      .select("Subtotal, Id_CategoriaGasto, CategoriaGasto(Nombre), Factura!inner(Fecha, Id_TipoOperacion, Id_TipoComprobante)")
       .eq("Factura.Id_TipoOperacion", TIPO_OPERACION.COMPRA)
       .gte("Factura.Fecha", fechaDesde)
       .lte("Factura.Fecha", fechaHasta);
@@ -72,17 +73,21 @@ export default function ResultadoReporteContainer() {
     if (ventasError || gastosError) {
       setError((ventasError ?? gastosError)!.message);
     } else {
-      const totalIngresos = ((ventas ?? []) as VentaRow[]).reduce((s, f) => s + (f.Subtotal ?? 0), 0);
+      // Una Nota de Crédito resta del período (ingreso o gasto según
+      // corresponda), una Nota de Débito suma — igual que una Factura común.
+      const totalIngresos = ((ventas ?? []) as VentaRow[])
+        .reduce((s, f) => s + (f.Subtotal ?? 0) * signoComprobante(f.Id_TipoComprobante), 0);
       setIngresos(totalIngresos);
 
       const acumulado = new Map<string, GastoCategoria>();
       for (const item of (itemsGasto ?? []) as ItemGastoRow[]) {
         const key = item.Id_CategoriaGasto === null ? "sin-categoria" : String(item.Id_CategoriaGasto);
         const prev = acumulado.get(key);
+        const signo = signoComprobante(item.Factura?.Id_TipoComprobante ?? null);
         acumulado.set(key, {
           Id_CategoriaGasto: item.Id_CategoriaGasto,
           nombre: item.CategoriaGasto?.Nombre ?? "Sin categoría",
-          monto: (prev?.monto ?? 0) + (item.Subtotal ?? 0),
+          monto: (prev?.monto ?? 0) + (item.Subtotal ?? 0) * signo,
         });
       }
       setGastos(Array.from(acumulado.values()).sort((a, b) => b.monto - a.monto));

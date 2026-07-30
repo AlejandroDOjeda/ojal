@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { TIPO_OPERACION } from "@/lib/opciones";
+import { TIPO_OPERACION, signoComprobante } from "@/lib/opciones";
 import { toDateStr, hoyStr } from "@/lib/fecha";
 import { useCampoContext } from "@/contexts/CampoContext";
 import PosicionIvaReporteView from "./PosicionIvaReporteView";
@@ -19,6 +19,7 @@ export type FacturaIva = {
   Iva21: number;
   Total: number;
   EntidadLegal: { RazonSocial: string } | null;
+  FacturaAsociada: { Id_TipoComprobante: number | null } | null;
 };
 
 export type ResumenIva = {
@@ -32,7 +33,9 @@ function primerDiaDelMes() {
   return toDateStr(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 }
 
-const FACTURA_SELECT = "Id_Factura, Fecha, Id_TipoComprobante, PuntoVenta, Numero, Subtotal, Iva10_5, Iva21, Total, EntidadLegal(RazonSocial)";
+// FacturaAsociada: solo se completa para Notas de Crédito/Débito — se usa
+// para inferir la letra (A/B/C) que la nota hereda de la factura corregida.
+const FACTURA_SELECT = "Id_Factura, Fecha, Id_TipoComprobante, PuntoVenta, Numero, Subtotal, Iva10_5, Iva21, Total, EntidadLegal(RazonSocial), FacturaAsociada:Id_FacturaAsociada(Id_TipoComprobante)";
 
 type FacturaRow = Omit<FacturaIva, "tipo">;
 
@@ -82,7 +85,10 @@ export default function PosicionIvaReporteContainer() {
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 
-  const sumIva = (filas: FacturaIva[]) => filas.reduce((s, f) => s + (f.Iva10_5 ?? 0) + (f.Iva21 ?? 0), 0);
+  // Una Nota de Crédito resta del crédito/débito fiscal del período, una
+  // Nota de Débito suma — igual que una Factura común.
+  const sumIva = (filas: FacturaIva[]) =>
+    filas.reduce((s, f) => s + signoComprobante(f.Id_TipoComprobante) * ((f.Iva10_5 ?? 0) + (f.Iva21 ?? 0)), 0);
   const creditoFiscal = sumIva(facturas.filter((f) => f.tipo === "compra"));
   const debitoFiscal = sumIva(facturas.filter((f) => f.tipo === "venta"));
   const resumen: ResumenIva = { creditoFiscal, debitoFiscal, saldoTecnico: creditoFiscal - debitoFiscal };

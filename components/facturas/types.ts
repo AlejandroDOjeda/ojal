@@ -14,6 +14,7 @@ export type FacturaHeaderData = {
   Id_CondicionPago: string;   // "1"=Contado, "2"=Cuenta corriente
   FechaVencimiento: string;
   NoGravado: string;          // monto no gravado (percepciones, etc.) — "" = sin monto
+  Id_FacturaAsociada: string; // factura que corrige — solo aplica a Nota de Crédito/Débito
 };
 
 export type ItemGastoForm = {
@@ -55,6 +56,7 @@ export const EMPTY_HEADER: FacturaHeaderData = {
   Id_CondicionPago: "1", // Contado por defecto
   FechaVencimiento: "",
   NoGravado: "",
+  Id_FacturaAsociada: "",
 };
 
 export const EMPTY_ITEM_GASTO: Omit<ItemGastoForm, "_key"> = {

@@ -19,6 +19,7 @@ export type FacturaResumen = {
   Iva21:               number;
   Total:               number;
   EntidadLegal:        { RazonSocial: string } | null;
+  FacturaAsociada:     { Id_TipoComprobante: number | null } | null;
 };
 
 function primerDiaDelMes() {
@@ -26,7 +27,9 @@ function primerDiaDelMes() {
   return toDateStr(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 }
 
-const FACTURA_SELECT = "Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Subtotal, Iva10_5, Iva21, Total, EntidadLegal(RazonSocial)";
+// FacturaAsociada: solo se completa para Notas de Crédito/Débito — se usa
+// para inferir la letra (A/B/C) que la nota hereda de la factura corregida.
+const FACTURA_SELECT = "Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Subtotal, Iva10_5, Iva21, Total, EntidadLegal(RazonSocial), FacturaAsociada:Id_FacturaAsociada(Id_TipoComprobante)";
 
 export default function FacturasContainer() {
   const { campoActivo } = useCampoContext();

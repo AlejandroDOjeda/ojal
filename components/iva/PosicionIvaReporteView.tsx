@@ -9,7 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PageShell, SectionCard, DataTable, DatePicker, FormField } from "@/components/app";
-import { TIPO_COMPROBANTE_ITEMS } from "@/lib/opciones";
+import { signoComprobante, labelComprobante } from "@/lib/opciones";
 import { formatARS } from "@/components/facturas/types";
 import { downloadXlsx } from "@/lib/excel";
 import { downloadPdf } from "@/lib/pdf";
@@ -20,14 +20,14 @@ import type { FacturaIva, ResumenIva } from "./PosicionIvaReporteContainer";
 // mostrar el día anterior.
 const formatFecha = (fecha: string) => parseISO(fecha).toLocaleDateString("es-AR");
 
-const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
-  const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
+const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null, tipoAsociada?: number | null) => {
+  const label = tipoId ? labelComprobante(tipoId, tipoAsociada) : "";
   if (!punto && !numero) return label || "—";
   return `${label} ${punto ?? "00000"}-${numero ?? "00000000"}`;
 };
 
 const sumColumn = (rows: { original: FacturaIva }[], field: "Subtotal" | "Iva10_5" | "Iva21" | "Total") =>
-  rows.reduce((s, row) => s + (row.original[field] ?? 0), 0);
+  rows.reduce((s, row) => s + signoComprobante(row.original.Id_TipoComprobante) * (row.original[field] ?? 0), 0);
 
 type Metric = { label: string; value: number; colorClass?: string };
 
@@ -96,8 +96,8 @@ export default function PosicionIvaReporteView({
     {
       id: "comprobante",
       header: "Comprobante",
-      accessorFn: (row) => `${TIPO_COMPROBANTE_ITEMS[String(row.Id_TipoComprobante)] ?? ""} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
-      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero)}</span>,
+      accessorFn: (row) => `${labelComprobante(row.Id_TipoComprobante, row.FacturaAsociada?.Id_TipoComprobante)} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero, row.original.FacturaAsociada?.Id_TipoComprobante)}</span>,
     },
     {
       id: "entidad",
@@ -109,44 +109,47 @@ export default function PosicionIvaReporteView({
       accessorKey: "Subtotal",
       header: "Neto",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="text-right block">{formatARS(row.original.Subtotal)}</span>,
+      cell: ({ row }) => <span className="text-right block">{formatARS(row.original.Subtotal * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => `Total: ${formatARS(sumColumn(table.getFilteredRowModel().rows, "Subtotal"))}`,
     },
     {
       accessorKey: "Iva10_5",
       header: "IVA 10.5%",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="text-right block">{formatARS(row.original.Iva10_5)}</span>,
+      cell: ({ row }) => <span className="text-right block">{formatARS(row.original.Iva10_5 * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => `Total: ${formatARS(sumColumn(table.getFilteredRowModel().rows, "Iva10_5"))}`,
     },
     {
       accessorKey: "Iva21",
       header: "IVA 21%",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="text-right block">{formatARS(row.original.Iva21)}</span>,
+      cell: ({ row }) => <span className="text-right block">{formatARS(row.original.Iva21 * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => `Total: ${formatARS(sumColumn(table.getFilteredRowModel().rows, "Iva21"))}`,
     },
     {
       accessorKey: "Total",
       header: "Bruto",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="font-medium text-right block">{formatARS(row.original.Total)}</span>,
+      cell: ({ row }) => <span className="font-medium text-right block">{formatARS(row.original.Total * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => <span className="font-semibold">{`Total: ${formatARS(sumColumn(table.getFilteredRowModel().rows, "Total"))}`}</span>,
     },
   ], []);
 
   const buildExportData = () => {
     const headers = ["Fecha", "Tipo", "Comprobante", "Entidad", "Neto", "IVA 10.5%", "IVA 21%", "Total"];
-    const rows = facturas.map((f) => [
-      formatFecha(f.Fecha),
-      f.tipo === "compra" ? "Compra" : "Venta",
-      formatNumero(f.Id_TipoComprobante, f.PuntoVenta, f.Numero),
-      f.EntidadLegal?.RazonSocial ?? "",
-      f.Subtotal,
-      f.Iva10_5,
-      f.Iva21,
-      f.Total,
-    ]);
+    const rows = facturas.map((f) => {
+      const signo = signoComprobante(f.Id_TipoComprobante);
+      return [
+        formatFecha(f.Fecha),
+        f.tipo === "compra" ? "Compra" : "Venta",
+        formatNumero(f.Id_TipoComprobante, f.PuntoVenta, f.Numero, f.FacturaAsociada?.Id_TipoComprobante),
+        f.EntidadLegal?.RazonSocial ?? "",
+        f.Subtotal * signo,
+        f.Iva10_5 * signo,
+        f.Iva21 * signo,
+        f.Total * signo,
+      ];
+    });
     return { headers, rows };
   };
 
