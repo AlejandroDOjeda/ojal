@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { signoComprobante } from "@/lib/opciones";
 import { toDateStr } from "@/lib/fecha";
 import { useCampoContext } from "@/contexts/CampoContext";
 import PosicionIvaCard from "./PosicionIvaCard";
@@ -40,14 +41,14 @@ export default function PosicionIvaContainer({ mes, anio }: Props) {
     // ítem (ItemHacienda), no de Factura.
     const comprasQuery = supabase
       .from("Factura")
-      .select("Iva10_5, Iva21")
+      .select("Iva10_5, Iva21, Id_TipoComprobante")
       .eq("Id_TipoOperacion", 1)
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
 
     let ventasQuery = supabase
       .from("Factura")
-      .select("Iva10_5, Iva21, ItemHacienda!inner(Id_Campo)")
+      .select("Iva10_5, Iva21, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
       .eq("Id_TipoOperacion", 2)
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
@@ -60,14 +61,17 @@ export default function PosicionIvaContainer({ mes, anio }: Props) {
     if (comprasError || ventasError) {
       setError((comprasError ?? ventasError)!.message);
     } else {
-      const sumIva = (filas: { Iva10_5: number; Iva21: number }[]) =>
-        filas.reduce((s, f) => s + (f.Iva10_5 ?? 0) + (f.Iva21 ?? 0), 0);
+      // Una Nota de Crédito resta del período, una Nota de Débito suma —
+      // igual que una Factura común.
+      type FilaIva = { Iva10_5: number; Iva21: number; Id_TipoComprobante: number | null };
+      const sumIva = (filas: FilaIva[]) =>
+        filas.reduce((s, f) => s + signoComprobante(f.Id_TipoComprobante) * ((f.Iva10_5 ?? 0) + (f.Iva21 ?? 0)), 0);
 
       // Compras: el negocio paga IVA → crédito fiscal
-      const creditoFiscal = sumIva((compras ?? []) as { Iva10_5: number; Iva21: number }[]);
+      const creditoFiscal = sumIva((compras ?? []) as FilaIva[]);
 
       // Ventas: el negocio cobra IVA → débito fiscal
-      const debitoFiscal = sumIva((ventas ?? []) as { Iva10_5: number; Iva21: number }[]);
+      const debitoFiscal = sumIva((ventas ?? []) as FilaIva[]);
 
       setPosicion({
         creditoFiscal,

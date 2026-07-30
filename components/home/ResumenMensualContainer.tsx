@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { signoComprobante } from "@/lib/opciones";
 import { toDateStr } from "@/lib/fecha";
 import { useCampoContext } from "@/contexts/CampoContext";
 import ResumenMensualCards from "./ResumenMensualCards";
@@ -39,14 +40,14 @@ export default function ResumenMensualContainer({ mes, anio }: Props) {
     // ítem (ItemHacienda), no de Factura.
     const comprasQuery = supabase
       .from("Factura")
-      .select("Total")
+      .select("Total, Id_TipoComprobante")
       .eq("Id_TipoOperacion", 1)
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
 
     let ventasQuery = supabase
       .from("Factura")
-      .select("Total, ItemHacienda!inner(Id_Campo)")
+      .select("Total, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
       .eq("Id_TipoOperacion", 2)
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
@@ -59,9 +60,13 @@ export default function ResumenMensualContainer({ mes, anio }: Props) {
     if (comprasError || ventasError) {
       setError((comprasError ?? ventasError)!.message);
     } else {
-      const sumTotal = (filas: { Total: number }[]) => filas.reduce((sum, f) => sum + (f.Total ?? 0), 0);
-      const totalCompras = sumTotal((compras ?? []) as { Total: number }[]);
-      const totalVentas = sumTotal((ventas ?? []) as { Total: number }[]);
+      // Una Nota de Crédito resta del período, una Nota de Débito suma —
+      // igual que una Factura común.
+      type FilaTotal = { Total: number; Id_TipoComprobante: number | null };
+      const sumTotal = (filas: FilaTotal[]) =>
+        filas.reduce((sum, f) => sum + signoComprobante(f.Id_TipoComprobante) * (f.Total ?? 0), 0);
+      const totalCompras = sumTotal((compras ?? []) as FilaTotal[]);
+      const totalVentas = sumTotal((ventas ?? []) as FilaTotal[]);
 
       setResumen({ totalCompras, totalVentas, mes: nombreMes(mes, anio) });
     }
