@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageShell, SectionCard, SelectBox } from "@/components/app";
 import { FacturaHeaderForm, type FacturaHeaderErrors } from "@/components/facturas/FacturaHeaderForm";
+import { OperacionBadge } from "@/components/facturas/OperacionBadge";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
 import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS, TIPO_OPERACION, esNotaCreditoDebito } from "@/lib/opciones";
@@ -50,6 +51,7 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
   const [itemErrors, setItemErrors] = useState<Record<string, ItemHaciendaErrors>>({});
+  const [facturaAsociadaFecha, setFacturaAsociadaFecha] = useState<string | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -104,8 +106,11 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
-    if (esNotaCreditoDebito(header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null) && !header.Id_FacturaAsociada) {
-      hErrors.Id_FacturaAsociada = "Obligatorio";
+    if (esNotaCreditoDebito(header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null)) {
+      if (!header.Id_FacturaAsociada) hErrors.Id_FacturaAsociada = "Obligatorio";
+      if (facturaAsociadaFecha && header.Fecha && header.Fecha < facturaAsociadaFecha) {
+        hErrors.Fecha = "No puede ser anterior a la factura asociada";
+      }
     }
     if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
     const newItemErrors: Record<string, ItemHaciendaErrors> = {};
@@ -147,15 +152,16 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nuevo Comprobante de Venta"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nuevo Comprobante de Venta"} back={backLink} action={<OperacionBadge isCompra={false} />} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nuevo Comprobante de Venta"} back={backLink} className="max-w-none">
+    <PageShell title={title ?? "Nuevo Comprobante de Venta"} back={backLink} action={<OperacionBadge isCompra={false} />} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
         <FacturaHeaderForm
           data={header} errors={headerErrors} entidades={entidades} entidadLabel="Cliente"
           idTipoOperacion={TIPO_OPERACION.VENTA} facturaIdActual={facturaId}
           onChange={setHeaderField}
+          onFacturaAsociadaFechaChange={setFacturaAsociadaFecha}
         />
 
         <SectionCard title="Hacienda">

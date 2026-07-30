@@ -11,6 +11,7 @@ type FacturaCandidata = {
   Id_TipoComprobante: number | null;
   PuntoVenta: string | null;
   Numero: string | null;
+  Fecha: string;
   Total: number;
 };
 
@@ -20,6 +21,7 @@ type Props = {
   excluirIdFactura?: number;
   value: string;
   onValueChange: (value: string) => void;
+  onFacturaChange?: (factura: { Id_Factura: number; Fecha: string } | null) => void;
   error?: boolean;
 };
 
@@ -28,7 +30,7 @@ const IDS_NOTA = [NOTA_CREDITO_ID, NOTA_DEBITO_ID];
 // Comprobantes que puede corregir una Nota de Crédito/Débito: cualquier
 // factura de la misma entidad y tipo de operación, salvo otra Nota (evita
 // que una NC/ND termine referenciando a otra NC/ND).
-export function ComboboxFacturaAsociada({ idTipoOperacion, idEntidadLegal, excluirIdFactura, value, onValueChange, error }: Props) {
+export function ComboboxFacturaAsociada({ idTipoOperacion, idEntidadLegal, excluirIdFactura, value, onValueChange, onFacturaChange, error }: Props) {
   const [facturas, setFacturas] = useState<FacturaCandidata[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +41,7 @@ export function ComboboxFacturaAsociada({ idTipoOperacion, idEntidadLegal, exclu
 
     let query = supabase
       .from("Factura")
-      .select("Id_Factura, Id_TipoComprobante, PuntoVenta, Numero, Total")
+      .select("Id_Factura, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Total")
       .eq("Id_TipoOperacion", idTipoOperacion)
       .eq("Id_EntidadLegal", parseInt(idEntidadLegal))
       .not("Id_TipoComprobante", "in", `(${IDS_NOTA.join(",")})`)
@@ -55,6 +57,15 @@ export function ComboboxFacturaAsociada({ idTipoOperacion, idEntidadLegal, exclu
 
     return () => { cancelado = true; };
   }, [idTipoOperacion, idEntidadLegal, excluirIdFactura]);
+
+  // Informa al formulario la fecha de la factura asociada elegida, para que
+  // pueda usarla como límite inferior de la fecha de emisión de la nota.
+  useEffect(() => {
+    if (!onFacturaChange) return;
+    const seleccionada = facturas.find((f) => String(f.Id_Factura) === value);
+    onFacturaChange(seleccionada ? { Id_Factura: seleccionada.Id_Factura, Fecha: seleccionada.Fecha } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, facturas]);
 
   const options = facturas.map((f) => ({
     value: f.Id_Factura,
