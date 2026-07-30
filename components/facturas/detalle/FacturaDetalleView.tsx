@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, SectionCard } from "@/components/app";
 import { formatARS } from "@/components/facturas/types";
-import { TIPO_COMPROBANTE_ITEMS, CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
-import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle } from "./FacturaDetalleContainer";
+import { OperacionBadge } from "@/components/facturas/OperacionBadge";
+import { CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS, labelComprobante, signoComprobante } from "@/lib/opciones";
+import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle, DocumentoAsociadoInfo } from "./FacturaDetalleContainer";
 
 // parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
 // interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
 // mostrar el día anterior.
 const formatFecha = (d: string) => parseISO(d).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
-  const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
+const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null, tipoAsociada?: number | null) => {
+  const label = tipoId ? labelComprobante(tipoId, tipoAsociada) : "";
   if (!punto && !numero) return label || "—";
   return `${label} ${punto ?? "00000"}-${numero ?? "00000000"}`;
 };
@@ -31,47 +32,85 @@ type Props = {
   factura: FacturaDetalle | null;
   itemsGasto: ItemGastoDetalle[];
   itemsHacienda: ItemHaciendaDetalle[];
+  documentosAsociados: DocumentoAsociadoInfo[];
   loading: boolean;
   notFound: boolean;
 };
 
 const backLinkFor = (tab: "compras" | "ventas") => (
   <Link href={`/facturas?tab=${tab}`}>
-    <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
+    <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Comprobantes</Button>
   </Link>
 );
 
-export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, loading, notFound }: Props) {
+export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, documentosAsociados, loading, notFound }: Props) {
   const backLink = backLinkFor(factura?.Id_TipoOperacion === 1 ? "compras" : "ventas");
 
-  if (loading) return <PageShell title="Detalle de Factura" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loading) return <PageShell title="Detalle de Comprobante" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   if (notFound || !factura) {
     return (
-      <PageShell title="Factura no encontrada" back={backLink} className="max-w-4xl">
+      <PageShell title="Comprobante no encontrado" back={backLink} className="max-w-4xl">
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <FileText size={48} className="text-muted-foreground/40 mb-4" />
-          <p className="text-muted-foreground">Esta factura no existe o no tenés acceso a ella.</p>
+          <p className="text-muted-foreground">Este comprobante no existe o no tenés acceso a él.</p>
         </div>
       </PageShell>
     );
   }
 
   const isCompra = factura.Id_TipoOperacion === 1;
-  const titulo = formatNumero(factura.Id_TipoComprobante, factura.PuntoVenta, factura.Numero);
+  const titulo = formatNumero(factura.Id_TipoComprobante, factura.PuntoVenta, factura.Numero, factura.FacturaAsociada?.Id_TipoComprobante);
   const condPagoLabel = CONDICION_PAGO_OPTIONS.find(o => o.value === factura.Id_CondicionPago)?.label ?? "—";
   const condIvaLabel = factura.EntidadLegal ? (CONDICION_IVA_ITEMS[String(factura.EntidadLegal.Id_CondicionIva)] ?? "—") : "—";
 
   return (
-    <PageShell title={titulo} back={backLink} className="max-w-4xl">
+    <PageShell title={titulo} back={backLink} action={<OperacionBadge isCompra={isCompra} />} className="max-w-4xl">
       <div className="space-y-6">
         <SectionCard title="Datos del comprobante">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <InfoRow label="Fecha" value={formatFecha(factura.Fecha)} />
             <InfoRow label="Condición de pago" value={condPagoLabel} />
             {factura.FechaVencimiento && <InfoRow label="Vencimiento" value={formatFecha(factura.FechaVencimiento)} />}
+            {factura.FacturaAsociada && (
+              <InfoRow
+                label="Factura asociada"
+                value={
+                  <Link href={`/facturas/${factura.FacturaAsociada.Id_Factura}`} className="text-primary hover:underline">
+                    {formatNumero(factura.FacturaAsociada.Id_TipoComprobante, factura.FacturaAsociada.PuntoVenta, factura.FacturaAsociada.Numero)}
+                  </Link>
+                }
+              />
+            )}
           </div>
         </SectionCard>
+
+        {documentosAsociados.length > 0 && (
+          <SectionCard title="Documentos asociados">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-muted-foreground">Comprobante</TableHead>
+                  <TableHead className="text-muted-foreground w-32">Fecha</TableHead>
+                  <TableHead className="text-muted-foreground text-right w-32">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documentosAsociados.map((doc) => (
+                  <TableRow key={doc.Id_Factura}>
+                    <TableCell>
+                      <Link href={`/facturas/${doc.Id_Factura}`} className="text-primary hover:underline">
+                        {formatNumero(doc.Id_TipoComprobante, doc.PuntoVenta, doc.Numero, factura.Id_TipoComprobante)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{formatFecha(doc.Fecha)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatARS(doc.Total * signoComprobante(doc.Id_TipoComprobante))}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SectionCard>
+        )}
 
         <SectionCard title={isCompra ? "Proveedor" : "Cliente"}>
           {factura.EntidadLegal ? (

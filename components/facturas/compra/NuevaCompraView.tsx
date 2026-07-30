@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PageShell, SectionCard, SelectBox, Combobox } from "@/components/app";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { FacturaHeaderForm, type FacturaHeaderErrors } from "@/components/facturas/FacturaHeaderForm";
+import { OperacionBadge } from "@/components/facturas/OperacionBadge";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
 import { cn } from "@/lib/utils";
-import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS } from "@/lib/opciones";
+import { MODALIDAD_PRECIO_OPTIONS, TASA_IVA_OPTIONS, TIPO_OPERACION, esNotaCreditoDebito } from "@/lib/opciones";
 import {
   EMPTY_HEADER, emptyItemCompraGasto, emptyItemCompraHacienda, calcItemCompraSubtotal, calcTotalesCompra, formatARS,
   type FacturaHeaderData, type ItemCompraForm, type ItemCompraGasto, type ItemCompraHacienda,
@@ -37,6 +38,7 @@ type Props = {
   initialItems?: ItemCompraForm[];
   title?: string;
   cancelPath?: string;
+  facturaId?: number;
   onSave: (header: FacturaHeaderData, items: ItemCompraForm[]) => Promise<void>;
 };
 
@@ -47,7 +49,7 @@ type ItemGastoErrors = Partial<Record<"Descripcion" | "Cantidad" | "PrecioUnitar
 type ItemHaciendaErrors = Partial<Record<"Id_Campo" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 type ItemCompraErrors = ItemGastoErrors & ItemHaciendaErrors;
 
-export default function NuevaCompraView({ entidades, categorias, categoriasHacienda, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, onSave }: Props) {
+export default function NuevaCompraView({ entidades, categorias, categoriasHacienda, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
   const [tipoCompra, setTipoCompra] = useState<TipoCompra>(() => initialItems?.[0]?._tipo ?? "gasto");
@@ -56,11 +58,12 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
   const [itemErrors, setItemErrors] = useState<Record<string, ItemCompraErrors>>({});
+  const [facturaAsociadaFecha, setFacturaAsociadaFecha] = useState<string | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const isDirty = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
 
-  useLeaveConfirmation(isDirty.current);
-  const markDirty = () => { isDirty.current = true; };
+  useLeaveConfirmation(isDirty);
+  const markDirty = () => setIsDirty(true);
 
   const setHeaderField = <K extends keyof FacturaHeaderData>(field: K, value: FacturaHeaderData[K]) => {
     markDirty(); setHeader((h) => ({ ...h, [field]: value }));
@@ -146,6 +149,12 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
+    if (esNotaCreditoDebito(header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null)) {
+      if (!header.Id_FacturaAsociada) hErrors.Id_FacturaAsociada = "Obligatorio";
+      if (facturaAsociadaFecha && header.Fecha && header.Fecha < facturaAsociadaFecha) {
+        hErrors.Fecha = "No puede ser anterior a la factura asociada";
+      }
+    }
     if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
     if (items.length === 0) { setError("Agregá al menos un ítem."); return false; }
     const newItemErrors: Record<string, ItemCompraErrors> = {};
@@ -182,7 +191,7 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error al guardar."); setSaving(false); }
   };
 
-  const handleCancel = () => { if (isDirty.current) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=compras"); };
+  const handleCancel = () => { if (isDirty) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=compras"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const categoriasHaciendaOptions = categoriasHacienda.map((c) => ({ value: c.id, label: c.Nombre }));
@@ -190,16 +199,21 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
   const totales = calcTotalesCompra(items, parseFloat(header.NoGravado) || 0);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
-      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Facturas</Button>
+      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2"><ArrowLeft size={14} />Volver a Comprobantes</Button>
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nuevo Comprobante de Compra"} back={backLink} action={<OperacionBadge isCompra={true} />} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nueva Factura de Compra"} back={backLink} className="max-w-none">
+    <PageShell title={title ?? "Nuevo Comprobante de Compra"} back={backLink} action={<OperacionBadge isCompra={true} />} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <FacturaHeaderForm data={header} errors={headerErrors} entidades={entidades} entidadLabel="Proveedor" onChange={setHeaderField} />
+        <FacturaHeaderForm
+          data={header} errors={headerErrors} entidades={entidades} entidadLabel="Proveedor"
+          idTipoOperacion={TIPO_OPERACION.COMPRA} facturaIdActual={facturaId}
+          onChange={setHeaderField}
+          onFacturaAsociadaFechaChange={setFacturaAsociadaFecha}
+        />
 
         <SectionCard title="Ítems">
           <div className="flex items-center justify-between mb-3">

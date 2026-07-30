@@ -34,15 +34,20 @@ export default function StockActualContainer() {
     } else {
       // En modo "Todos" pueden llegar múltiples filas por categoría (una por campo).
       // Las agrupamos sumando cabezas por categoría.
+      type Fila = {
+        Id_CategoriaHacienda: number;
+        Cabezas: number;
+        CategoriaHacienda: { Nombre: string } | null;
+      };
       const acumulado = new Map<number, StockFila>();
-      for (const row of (data ?? []) as any[]) {
-        const id = row.Id_CategoriaHacienda as number;
+      for (const row of (data ?? []) as Fila[]) {
+        const id = row.Id_CategoriaHacienda;
         const nombre = row.CategoriaHacienda?.Nombre ?? "";
         const prev = acumulado.get(id);
         acumulado.set(id, {
           Id_CategoriaHacienda: id,
           Nombre: nombre,
-          Cabezas: (prev?.Cabezas ?? 0) + (row.Cabezas as number),
+          Cabezas: (prev?.Cabezas ?? 0) + row.Cabezas,
         });
       }
       const mapped = Array.from(acumulado.values()).sort((a, b) =>

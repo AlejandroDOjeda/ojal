@@ -108,7 +108,11 @@ export function DataTable<T>({
   // fondo de la grilla en vez de que quede pegada a la última fila cargada).
   // Estas medidas mantienen sus columnas alineadas con las del header/body.
   useLayoutEffect(() => {
-    if (!hasFooter) return;
+    // Mientras loading=true se renderiza el estado "Cargando..." (sin tabla),
+    // así que bodyRef todavía no apunta a nada. hasFooter no cambia de valor
+    // entre ese render y el primero con datos reales, así que sin `loading`
+    // en las deps este efecto nunca vuelve a correr y el footer queda sin medir.
+    if (!hasFooter || loading) return;
     const ths = bodyRef.current?.querySelectorAll("thead th");
     if (!ths || ths.length === 0) return;
     const cells = Array.from(ths) as HTMLElement[];
@@ -117,7 +121,7 @@ export function DataTable<T>({
     const ro = new ResizeObserver(measure);
     cells.forEach((c) => ro.observe(c));
     return () => ro.disconnect();
-  }, [hasFooter]);
+  }, [hasFooter, loading]);
 
   // ── Loading ───────────────────────────────────────────────────
   if (loading) {

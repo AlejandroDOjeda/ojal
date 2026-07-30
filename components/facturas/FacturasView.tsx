@@ -4,16 +4,21 @@ import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import { parseISO } from "date-fns";
-import { Pencil, Plus, Search, ShoppingCart, Trash2, TrendingUp } from "lucide-react";
+import { Download, Pencil, Plus, Search, ShoppingCart, Trash2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageShell, DataTable, DatePicker, FormField } from "@/components/app";
-import { TIPO_COMPROBANTE_ITEMS } from "@/lib/opciones";
+import { signoComprobante, labelComprobante } from "@/lib/opciones";
+import { downloadXlsx } from "@/lib/excel";
+import { downloadPdf } from "@/lib/pdf";
 import type { FacturaResumen } from "./FacturasContainer";
 
-const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null) => {
-  const label = tipoId ? (TIPO_COMPROBANTE_ITEMS[String(tipoId)] ?? "") : "";
+const formatNumero = (tipoId: number | null, punto: string | null, numero: string | null, tipoAsociada?: number | null) => {
+  const label = tipoId ? labelComprobante(tipoId, tipoAsociada) : "";
   if (!punto && !numero) return label || "—";
   return `${label} ${punto ?? "00000"}-${numero ?? "00000000"}`;
 };
@@ -26,10 +31,14 @@ const formatFecha = (fecha: string) => parseISO(fecha).toLocaleDateString("es-AR
 const formatMonto = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n);
 
+// Una Nota de Crédito resta del período, una Nota de Débito suma — igual
+// que una Factura común. Se aplica el signo tanto en cada celda como en las
+// sumatorias, para que el pie de la tabla y los exports queden netos.
 const sumColumn = (rows: { original: FacturaResumen }[], field: "Subtotal" | "Iva" | "Total") =>
   rows.reduce((s, row) => {
-    if (field === "Iva") return s + row.original.Iva10_5 + row.original.Iva21;
-    return s + row.original[field];
+    const signo = signoComprobante(row.original.Id_TipoComprobante);
+    if (field === "Iva") return s + signo * (row.original.Iva10_5 + row.original.Iva21);
+    return s + signo * row.original[field];
   }, 0);
 
 type Tab = "compras" | "ventas";
@@ -57,7 +66,7 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     try {
       await onDelete(id);
       setDeleteConfirmId(null);
-      toast.success("Factura eliminada.");
+      toast.success("Comprobante eliminado.");
     } catch {
       toast.error("No se pudo eliminar la factura.");
     } finally {
@@ -98,22 +107,22 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
       accessorKey: "Subtotal",
       header: "Neto",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="text-right block">{formatMonto(row.original.Subtotal)}</span>,
+      cell: ({ row }) => <span className="text-right block">{formatMonto(row.original.Subtotal * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => `Total: ${formatMonto(sumColumn(table.getFilteredRowModel().rows, "Subtotal"))}`,
     },
     {
       id: "iva",
       header: "IVA",
       meta: { align: "right" },
-      accessorFn: (row) => row.Iva10_5 + row.Iva21,
-      cell: ({ row }) => <span className="text-right block">{formatMonto(row.original.Iva10_5 + row.original.Iva21)}</span>,
+      accessorFn: (row) => (row.Iva10_5 + row.Iva21) * signoComprobante(row.Id_TipoComprobante),
+      cell: ({ row }) => <span className="text-right block">{formatMonto((row.original.Iva10_5 + row.original.Iva21) * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => `Total: ${formatMonto(sumColumn(table.getFilteredRowModel().rows, "Iva"))}`,
     },
     {
       accessorKey: "Total",
       header: "Bruto",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total)}</span>,
+      cell: ({ row }) => <span className="font-medium text-right block">{formatMonto(row.original.Total * signoComprobante(row.original.Id_TipoComprobante))}</span>,
       footer: ({ table }) => <span className="font-semibold">{`Total: ${formatMonto(sumColumn(table.getFilteredRowModel().rows, "Total"))}`}</span>,
     },
   ];
@@ -127,8 +136,8 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     {
       id: "comprobante",
       header: "Comprobante",
-      accessorFn: (row) => `${TIPO_COMPROBANTE_ITEMS[String(row.Id_TipoComprobante)] ?? ""} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
-      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero)}</span>,
+      accessorFn: (row) => `${labelComprobante(row.Id_TipoComprobante, row.FacturaAsociada?.Id_TipoComprobante)} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero, row.original.FacturaAsociada?.Id_TipoComprobante)}</span>,
     },
     {
       id: "entidad",
@@ -152,8 +161,8 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     {
       id: "comprobante",
       header: "Comprobante",
-      accessorFn: (row) => `${TIPO_COMPROBANTE_ITEMS[String(row.Id_TipoComprobante)] ?? ""} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
-      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero)}</span>,
+      accessorFn: (row) => `${labelComprobante(row.Id_TipoComprobante, row.FacturaAsociada?.Id_TipoComprobante)} ${row.PuntoVenta ?? ""}-${row.Numero ?? ""}`,
+      cell: ({ row }) => <span className="text-muted-foreground">{formatNumero(row.original.Id_TipoComprobante, row.original.PuntoVenta, row.original.Numero, row.original.FacturaAsociada?.Id_TipoComprobante)}</span>,
     },
     {
       id: "entidad",
@@ -168,8 +177,51 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
     },
   ], [deleteConfirmId, deleting]);
 
+  const filasTab = tab === "compras" ? compras : ventas;
+  const entidadLabel = tab === "compras" ? "Proveedor" : "Cliente";
+
+  const buildExportData = () => {
+    const headers = ["Fecha", "Comprobante", entidadLabel, "Neto", "IVA", "Bruto"];
+    const rows = filasTab.map((f) => {
+      const signo = signoComprobante(f.Id_TipoComprobante);
+      return [
+        formatFecha(f.Fecha),
+        formatNumero(f.Id_TipoComprobante, f.PuntoVenta, f.Numero, f.FacturaAsociada?.Id_TipoComprobante),
+        f.EntidadLegal?.RazonSocial ?? "",
+        f.Subtotal * signo,
+        (f.Iva10_5 + f.Iva21) * signo,
+        f.Total * signo,
+      ];
+    });
+    return { headers, rows };
+  };
+
+  const handleExportExcel = () => {
+    const { headers, rows } = buildExportData();
+    downloadXlsx(`facturas-${tab}_${fechaDesde}_${fechaHasta}.xlsx`, headers, rows);
+  };
+
+  const handleExportPdf = () => {
+    const { headers, rows } = buildExportData();
+    const totalNeto = filasTab.reduce((s, f) => s + f.Subtotal * signoComprobante(f.Id_TipoComprobante), 0);
+    const totalIva = filasTab.reduce((s, f) => s + (f.Iva10_5 + f.Iva21) * signoComprobante(f.Id_TipoComprobante), 0);
+    const totalBruto = filasTab.reduce((s, f) => s + f.Total * signoComprobante(f.Id_TipoComprobante), 0);
+    downloadPdf({
+      filename: `facturas-${tab}_${fechaDesde}_${fechaHasta}.pdf`,
+      title: tab === "compras" ? "Comprobantes de Compra" : "Comprobantes de Venta",
+      subtitle: `Período: ${formatFecha(fechaDesde)} — ${formatFecha(fechaHasta)}`,
+      metrics: [
+        { label: "Neto", value: formatMonto(totalNeto) },
+        { label: "IVA", value: formatMonto(totalIva) },
+        { label: "Bruto", value: formatMonto(totalBruto) },
+      ],
+      headers,
+      rows,
+    });
+  };
+
   return (
-    <PageShell title="Facturas">
+    <PageShell title="Comprobantes">
       {error && <div className="mb-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">{error}</div>}
 
       <div className="flex items-end gap-3 mb-4">
@@ -194,10 +246,25 @@ export default function FacturasView({ compras, ventas, loading, error, fechaDes
             {ventas.length > 0 && <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{ventas.length}</span>}
           </button>
         </div>
-        <Button size="icon" className="mb-1"
-          onClick={() => router.push(tab === "compras" ? "/facturas/nueva-compra" : "/facturas/nueva-venta")}>
-          <Plus size={15} />
-        </Button>
+        <div className="flex items-center gap-2 mb-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={buttonVariants({ variant: "outline" })}
+              disabled={loading || filasTab.length === 0}
+            >
+              <Download size={15} />
+              Exportar
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>Excel (.xlsx)</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPdf}>PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="icon"
+            onClick={() => router.push(tab === "compras" ? "/facturas/nueva-compra" : "/facturas/nueva-venta")}>
+            <Plus size={15} />
+          </Button>
+        </div>
       </div>
 
       {tab === "compras" ? (

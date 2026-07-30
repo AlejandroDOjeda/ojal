@@ -41,10 +41,11 @@ export default function NuevaCompraContainer() {
   const handleSave = async (header: FacturaHeaderData, items: ItemCompraForm[]) => {
     if (!userId) throw new Error("Sin sesión activa.");
     const duplicada = await existeFacturaDuplicada({
-      idTipoOperacion: TIPO_OPERACION.COMPRA,
-      idEntidadLegal:  parseInt(header.Id_EntidadLegal),
-      puntoVenta:      header.PuntoVenta,
-      numero:          header.Numero,
+      idTipoOperacion:   TIPO_OPERACION.COMPRA,
+      idTipoComprobante: parseInt(header.Id_TipoComprobante),
+      idEntidadLegal:    parseInt(header.Id_EntidadLegal),
+      puntoVenta:        header.PuntoVenta,
+      numero:            header.Numero,
     });
     if (duplicada) throw new Error(MENSAJE_DUPLICADA_COMPRA);
 
@@ -68,6 +69,7 @@ export default function NuevaCompraContainer() {
         Iva21:              totales.Iva21,
         NoGravado:          totales.NoGravado,
         Total:              totales.Total,
+        Id_FacturaAsociada: header.Id_FacturaAsociada ? parseInt(header.Id_FacturaAsociada) : null,
       })
       .select("Id_Factura")
       .single();
@@ -108,7 +110,7 @@ export default function NuevaCompraContainer() {
       await supabase.from("Factura").delete().eq("Id_Factura", facturaData.Id_Factura);
       throw new Error(itemsError.message);
     }
-    toast.success("Factura de compra guardada.");
+    toast.success("Comprobante de compra guardado.");
     router.push("/facturas?tab=compras");
   };
 

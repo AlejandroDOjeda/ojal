@@ -33,8 +33,14 @@ export default function CargaInicialContainer() {
     if (error) {
       setError(error.message);
     } else {
-      const mapped: RodeoFila[] = (data ?? [])
-        .map((row: any) => ({
+      type Fila = {
+        Id_Rodeo: number;
+        Id_CategoriaHacienda: number;
+        Cabezas: number;
+        CategoriaHacienda: { Nombre: string } | null;
+      };
+      const mapped: RodeoFila[] = ((data ?? []) as Fila[])
+        .map((row) => ({
           Id_Rodeo: row.Id_Rodeo,
           Id_CategoriaHacienda: row.Id_CategoriaHacienda,
           Cabezas: row.Cabezas,
