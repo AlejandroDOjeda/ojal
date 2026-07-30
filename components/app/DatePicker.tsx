@@ -15,6 +15,7 @@ type Props = {
   className?: string;
   disabled?: boolean;
   error?: boolean;
+  minDate?: string;        // YYYY-MM-DD — deshabilita fechas anteriores en el calendario
 };
 
 export function DatePicker({
@@ -24,6 +25,7 @@ export function DatePicker({
   className,
   disabled,
   error,
+  minDate,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -60,6 +62,7 @@ export function DatePicker({
               setOpen(false);
             }
           }}
+          disabled={minDate ? { before: parseISO(minDate) } : undefined}
           locale={es}
           captionLayout="dropdown"
           defaultMonth={date}

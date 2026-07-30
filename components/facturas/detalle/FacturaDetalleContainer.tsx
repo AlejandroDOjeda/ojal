@@ -9,6 +9,8 @@ export type EntidadInfo = { RazonSocial: string; CuitCuil: string; Id_CondicionI
 
 export type FacturaAsociadaInfo = { Id_Factura: number; Id_TipoComprobante: number | null; PuntoVenta: string | null; Numero: string | null };
 
+export type DocumentoAsociadoInfo = { Id_Factura: number; Id_TipoComprobante: number | null; PuntoVenta: string | null; Numero: string | null; Fecha: string; Total: number };
+
 export type FacturaDetalle = {
   Id_Factura:          number;
   Id_TipoOperacion:    number;
@@ -56,6 +58,7 @@ export default function FacturaDetalleContainer() {
   const [factura, setFactura] = useState<FacturaDetalle | null>(null);
   const [itemsGasto, setItemsGasto] = useState<ItemGastoDetalle[]>([]);
   const [itemsHacienda, setItemsHacienda] = useState<ItemHaciendaDetalle[]>([]);
+  const [documentosAsociados, setDocumentosAsociados] = useState<DocumentoAsociadoInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -74,25 +77,45 @@ export default function FacturaDetalleContainer() {
       const factura = data as unknown as FacturaDetalle;
       setFactura(factura);
 
+      // Documentos que corrigen esta factura (Notas de Crédito/Débito con
+      // Id_FacturaAsociada = esta factura). Se busca siempre: aplica a
+      // cualquier comprobante, no solo a facturas propiamente dichas.
+      const documentosPromise = supabase
+        .from("Factura")
+        .select("Id_Factura, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Total")
+        .eq("Id_FacturaAsociada", parseInt(id))
+        .order("Fecha", { ascending: false });
+
       if (factura.Id_TipoOperacion === 1) { // Compra: puede tener gastos genéricos y/o compras de hacienda
-        const [{ data: itemsGasto }, { data: itemsHacienda }] = await Promise.all([
+        const [{ data: itemsGasto }, { data: itemsHacienda }, { data: documentos }] = await Promise.all([
           supabase.from("ItemGasto").select("*, CategoriaGasto(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
           supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Campo(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
+          documentosPromise,
         ]);
         setItemsGasto((itemsGasto ?? []) as unknown as ItemGastoDetalle[]);
         setItemsHacienda((itemsHacienda ?? []) as unknown as ItemHaciendaDetalle[]);
+        setDocumentosAsociados((documentos ?? []) as DocumentoAsociadoInfo[]);
       } else { // Venta
-        const { data: items } = await supabase
-          .from("ItemHacienda")
-          .select("*, CategoriaHacienda(Nombre), Campo(Nombre)")
-          .eq("Id_Factura", parseInt(id))
-          .order("CreatedAt");
+        const [{ data: items }, { data: documentos }] = await Promise.all([
+          supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Campo(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
+          documentosPromise,
+        ]);
         setItemsHacienda((items ?? []) as unknown as ItemHaciendaDetalle[]);
+        setDocumentosAsociados((documentos ?? []) as DocumentoAsociadoInfo[]);
       }
       setLoading(false);
     };
     fetch();
   }, [id]);
 
-  return <FacturaDetalleView factura={factura} itemsGasto={itemsGasto} itemsHacienda={itemsHacienda} loading={loading} notFound={notFound} />;
+  return (
+    <FacturaDetalleView
+      factura={factura}
+      itemsGasto={itemsGasto}
+      itemsHacienda={itemsHacienda}
+      documentosAsociados={documentosAsociados}
+      loading={loading}
+      notFound={notFound}
+    />
+  );
 }

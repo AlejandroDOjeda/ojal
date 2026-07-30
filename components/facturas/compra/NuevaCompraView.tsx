@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PageShell, SectionCard, SelectBox, Combobox } from "@/components/app";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { FacturaHeaderForm, type FacturaHeaderErrors } from "@/components/facturas/FacturaHeaderForm";
+import { OperacionBadge } from "@/components/facturas/OperacionBadge";
 import { FacturaTotales } from "@/components/facturas/FacturaTotales";
 import { useLeaveConfirmation } from "@/hooks/useLeaveConfirmation";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
   const [error, setError] = useState<string | null>(null);
   const [headerErrors, setHeaderErrors] = useState<FacturaHeaderErrors>({});
   const [itemErrors, setItemErrors] = useState<Record<string, ItemCompraErrors>>({});
+  const [facturaAsociadaFecha, setFacturaAsociadaFecha] = useState<string | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -147,8 +149,11 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     if (!header.Fecha) hErrors.Fecha = "Obligatorio";
     if (!header.Id_EntidadLegal) hErrors.Id_EntidadLegal = "Obligatorio";
     if (header.Id_CondicionPago === "2" && !header.FechaVencimiento) hErrors.FechaVencimiento = "Obligatorio";
-    if (esNotaCreditoDebito(header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null) && !header.Id_FacturaAsociada) {
-      hErrors.Id_FacturaAsociada = "Obligatorio";
+    if (esNotaCreditoDebito(header.Id_TipoComprobante ? parseInt(header.Id_TipoComprobante) : null)) {
+      if (!header.Id_FacturaAsociada) hErrors.Id_FacturaAsociada = "Obligatorio";
+      if (facturaAsociadaFecha && header.Fecha && header.Fecha < facturaAsociadaFecha) {
+        hErrors.Fecha = "No puede ser anterior a la factura asociada";
+      }
     }
     if (Object.keys(hErrors).length > 0) setHeaderErrors(hErrors);
     if (items.length === 0) { setError("Agregá al menos un ítem."); return false; }
@@ -198,15 +203,16 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     </Link>
   );
 
-  if (loadingData) return <PageShell title={title ?? "Nuevo Comprobante de Compra"} back={backLink} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
+  if (loadingData) return <PageShell title={title ?? "Nuevo Comprobante de Compra"} back={backLink} action={<OperacionBadge isCompra={true} />} className="max-w-none"><p className="text-muted-foreground">Cargando...</p></PageShell>;
 
   return (
-    <PageShell title={title ?? "Nuevo Comprobante de Compra"} back={backLink} className="max-w-none">
+    <PageShell title={title ?? "Nuevo Comprobante de Compra"} back={backLink} action={<OperacionBadge isCompra={true} />} className="max-w-none">
       <form onSubmit={handleSubmit} className="space-y-6">
         <FacturaHeaderForm
           data={header} errors={headerErrors} entidades={entidades} entidadLabel="Proveedor"
           idTipoOperacion={TIPO_OPERACION.COMPRA} facturaIdActual={facturaId}
           onChange={setHeaderField}
+          onFacturaAsociadaFechaChange={setFacturaAsociadaFecha}
         />
 
         <SectionCard title="Ítems">

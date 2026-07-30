@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { SectionCard, FormField, SelectBox, DatePicker, ComboboxEntidad } from "@/components/app";
@@ -76,12 +76,30 @@ type Props = {
   idTipoOperacion: number;
   facturaIdActual?: number;
   onChange: <K extends keyof FacturaHeaderData>(field: K, value: FacturaHeaderData[K]) => void;
+  onFacturaAsociadaFechaChange?: (fecha: string | null) => void;
 };
 
-export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, idTipoOperacion, facturaIdActual, onChange }: Props) {
+export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, idTipoOperacion, facturaIdActual, onChange, onFacturaAsociadaFechaChange }: Props) {
   const esCuentaCorriente = data.Id_CondicionPago === "2";
   const entidadSeleccionada = entidades.find((e) => String(e.id) === data.Id_EntidadLegal);
   const esNota = esNotaCreditoDebito(data.Id_TipoComprobante ? parseInt(data.Id_TipoComprobante) : null);
+  const [facturaAsociadaFecha, setFacturaAsociadaFecha] = useState<string | null>(null);
+
+  // Una Nota de Crédito/Débito no genera una obligación de pago propia: ajusta
+  // el saldo de la factura que corrige. No tiene sentido pedir condición de
+  // pago/vencimiento aparte, así que se fuerza a "Contado" al pasar a nota.
+  useEffect(() => {
+    if (esNota && data.Id_CondicionPago !== "1") {
+      onChange("Id_CondicionPago", "1");
+      onChange("FechaVencimiento", "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esNota]);
+
+  useEffect(() => {
+    onFacturaAsociadaFechaChange?.(facturaAsociadaFecha);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facturaAsociadaFecha]);
 
   // Deriva los días de vencimiento desde las fechas almacenadas, para pre-seleccionar la opción correcta al editar.
   const diasVenc = useMemo(() => {
@@ -134,7 +152,12 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
             />
           </FormField>
           <FormField label="Fecha" required error={errors.Fecha}>
-            <DatePicker value={data.Fecha} onChange={(v) => onChange("Fecha", v)} error={!!errors.Fecha} />
+            <DatePicker
+              value={data.Fecha}
+              onChange={(v) => onChange("Fecha", v)}
+              error={!!errors.Fecha}
+              minDate={esNota ? facturaAsociadaFecha ?? undefined : undefined}
+            />
           </FormField>
         </div>
 
@@ -152,13 +175,15 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
               {entidadSeleccionada ? formatCuit(entidadSeleccionada.CuitCuil) : "—"}
             </div>
           </FormField>
-          <FormField label="Condición de pago">
-            <SelectBox
-              options={CONDICION_PAGO_OPTIONS}
-              value={data.Id_CondicionPago}
-              onValueChange={(v) => onChange("Id_CondicionPago", v || "1")}
-            />
-          </FormField>
+          {!esNota && (
+            <FormField label="Condición de pago">
+              <SelectBox
+                options={CONDICION_PAGO_OPTIONS}
+                value={data.Id_CondicionPago}
+                onValueChange={(v) => onChange("Id_CondicionPago", v || "1")}
+              />
+            </FormField>
+          )}
         </div>
 
         {esNota && (
@@ -169,12 +194,13 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
               excluirIdFactura={facturaIdActual}
               value={data.Id_FacturaAsociada}
               onValueChange={(v) => onChange("Id_FacturaAsociada", v)}
+              onFacturaChange={(f) => setFacturaAsociadaFecha(f?.Fecha ?? null)}
               error={!!errors.Id_FacturaAsociada}
             />
           </FormField>
         )}
 
-        {esCuentaCorriente && (
+        {esCuentaCorriente && !esNota && (
           <FormField label="Vencimiento" required error={errors.FechaVencimiento} className="max-w-xs">
             <SelectBox
               options={DIAS_VENC_OPTIONS}

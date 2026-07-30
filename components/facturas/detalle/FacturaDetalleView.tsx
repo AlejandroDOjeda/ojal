@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, SectionCard } from "@/components/app";
 import { formatARS } from "@/components/facturas/types";
-import { CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS, labelComprobante } from "@/lib/opciones";
-import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle } from "./FacturaDetalleContainer";
+import { OperacionBadge } from "@/components/facturas/OperacionBadge";
+import { CONDICION_IVA_ITEMS, CONDICION_PAGO_OPTIONS, labelComprobante, signoComprobante } from "@/lib/opciones";
+import type { FacturaDetalle, ItemGastoDetalle, ItemHaciendaDetalle, DocumentoAsociadoInfo } from "./FacturaDetalleContainer";
 
 // parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
 // interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
@@ -31,6 +32,7 @@ type Props = {
   factura: FacturaDetalle | null;
   itemsGasto: ItemGastoDetalle[];
   itemsHacienda: ItemHaciendaDetalle[];
+  documentosAsociados: DocumentoAsociadoInfo[];
   loading: boolean;
   notFound: boolean;
 };
@@ -41,7 +43,7 @@ const backLinkFor = (tab: "compras" | "ventas") => (
   </Link>
 );
 
-export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, loading, notFound }: Props) {
+export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda, documentosAsociados, loading, notFound }: Props) {
   const backLink = backLinkFor(factura?.Id_TipoOperacion === 1 ? "compras" : "ventas");
 
   if (loading) return <PageShell title="Detalle de Comprobante" back={backLink} className="max-w-4xl"><p className="text-muted-foreground">Cargando...</p></PageShell>;
@@ -63,7 +65,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
   const condIvaLabel = factura.EntidadLegal ? (CONDICION_IVA_ITEMS[String(factura.EntidadLegal.Id_CondicionIva)] ?? "—") : "—";
 
   return (
-    <PageShell title={titulo} back={backLink} className="max-w-4xl">
+    <PageShell title={titulo} back={backLink} action={<OperacionBadge isCompra={isCompra} />} className="max-w-4xl">
       <div className="space-y-6">
         <SectionCard title="Datos del comprobante">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -82,6 +84,33 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
             )}
           </div>
         </SectionCard>
+
+        {documentosAsociados.length > 0 && (
+          <SectionCard title="Documentos asociados">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-muted-foreground">Comprobante</TableHead>
+                  <TableHead className="text-muted-foreground w-32">Fecha</TableHead>
+                  <TableHead className="text-muted-foreground text-right w-32">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documentosAsociados.map((doc) => (
+                  <TableRow key={doc.Id_Factura}>
+                    <TableCell>
+                      <Link href={`/facturas/${doc.Id_Factura}`} className="text-primary hover:underline">
+                        {formatNumero(doc.Id_TipoComprobante, doc.PuntoVenta, doc.Numero, factura.Id_TipoComprobante)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{formatFecha(doc.Fecha)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatARS(doc.Total * signoComprobante(doc.Id_TipoComprobante))}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SectionCard>
+        )}
 
         <SectionCard title={isCompra ? "Proveedor" : "Cliente"}>
           {factura.EntidadLegal ? (
