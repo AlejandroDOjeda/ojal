@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { parseISO } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
-import { TIPO_OPERACION } from "@/lib/opciones";
+import { TIPO_OPERACION, signoComprobante } from "@/lib/opciones";
 import { toDateStr } from "@/lib/fecha";
 import { useCampoContext } from "@/contexts/CampoContext";
 import ResultadoAnualChart from "./ResultadoAnualChart";
@@ -17,8 +17,8 @@ export type MesResultado = {
 
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-type VentaRow = { Subtotal: number; Fecha: string };
-type ItemGastoRow = { Subtotal: number; Factura: { Fecha: string } };
+type VentaRow = { Subtotal: number; Fecha: string; Id_TipoComprobante: number | null };
+type ItemGastoRow = { Subtotal: number; Factura: { Fecha: string; Id_TipoComprobante: number | null } };
 
 type Props = { anio: number; mesHasta: number };
 
@@ -37,7 +37,7 @@ export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
 
     let ventasQuery = supabase
       .from("Factura")
-      .select("Subtotal, Fecha, ItemHacienda!inner(Id_Campo)")
+      .select("Subtotal, Fecha, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", desde)
       .lte("Fecha", hasta);
@@ -45,7 +45,7 @@ export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
 
     const gastosQuery = supabase
       .from("ItemGasto")
-      .select("Subtotal, Factura!inner(Fecha, Id_TipoOperacion)")
+      .select("Subtotal, Factura!inner(Fecha, Id_TipoOperacion, Id_TipoComprobante)")
       .eq("Factura.Id_TipoOperacion", TIPO_OPERACION.COMPRA)
       .gte("Factura.Fecha", desde)
       .lte("Factura.Fecha", hasta);
@@ -56,13 +56,15 @@ export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
     if (ventasError || gastosError) {
       setError((ventasError ?? gastosError)!.message);
     } else {
+      // Una Nota de Crédito resta del mes que corrige, una Nota de Débito
+      // suma — igual que una Factura común.
       const ingresosPorMes = new Array(mesHasta + 1).fill(0);
       for (const f of (ventas ?? []) as VentaRow[]) {
-        ingresosPorMes[parseISO(f.Fecha).getMonth()] += f.Subtotal ?? 0;
+        ingresosPorMes[parseISO(f.Fecha).getMonth()] += signoComprobante(f.Id_TipoComprobante) * (f.Subtotal ?? 0);
       }
       const gastosPorMes = new Array(mesHasta + 1).fill(0);
       for (const g of (itemsGasto ?? []) as ItemGastoRow[]) {
-        gastosPorMes[parseISO(g.Factura.Fecha).getMonth()] += g.Subtotal ?? 0;
+        gastosPorMes[parseISO(g.Factura.Fecha).getMonth()] += signoComprobante(g.Factura.Id_TipoComprobante) * (g.Subtotal ?? 0);
       }
 
       setMeses(
