@@ -137,6 +137,7 @@ export interface Database {
           Iva21:               number;
           NoGravado:           number;
           Total:               number;
+          Id_FacturaAsociada:  number | null;
           Observaciones:       string | null;
           CreatedAt:           string;
           UpdatedAt:           string;
@@ -156,6 +157,7 @@ export interface Database {
           Iva21?:              number;
           NoGravado?:          number;
           Total?:              number;
+          Id_FacturaAsociada?: number | null;
           Observaciones?:      string | null;
         };
         Update: {
@@ -171,9 +173,13 @@ export interface Database {
           Iva21?:              number;
           NoGravado?:          number;
           Total?:              number;
+          Id_FacturaAsociada?: number | null;
           Observaciones?:      string | null;
         };
-        Relationships: [{ foreignKeyName: "Factura_Id_Profile_fkey"; columns: ["Id_Profile"]; referencedRelation: "Profile"; referencedColumns: ["Id_Profile"] }];
+        Relationships: [
+          { foreignKeyName: "Factura_Id_Profile_fkey"; columns: ["Id_Profile"]; referencedRelation: "Profile"; referencedColumns: ["Id_Profile"] },
+          { foreignKeyName: "Factura_Id_FacturaAsociada_fkey"; columns: ["Id_FacturaAsociada"]; referencedRelation: "Factura"; referencedColumns: ["Id_Factura"] }
+        ];
       };
 
       ItemHacienda: {

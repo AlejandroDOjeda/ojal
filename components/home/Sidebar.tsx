@@ -71,9 +71,9 @@ export default function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Facturas" isActive={pathname.startsWith("/facturas")} render={<Link href="/facturas" />}>
+                <SidebarMenuButton tooltip="Comprobantes" isActive={pathname.startsWith("/facturas")} render={<Link href="/facturas" />}>
                   <ReceiptText />
-                  <span>Facturas</span>
+                  <span>Comprobantes</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 

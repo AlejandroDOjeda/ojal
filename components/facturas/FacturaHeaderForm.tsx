@@ -5,9 +5,10 @@ import { parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { SectionCard, FormField, SelectBox, DatePicker, ComboboxEntidad } from "@/components/app";
 import type { EntidadOption } from "@/components/app";
-import { TIPO_COMPROBANTE_OPTIONS, CONDICION_PAGO_OPTIONS } from "@/lib/opciones";
+import { TIPO_COMPROBANTE_OPTIONS, CONDICION_PAGO_OPTIONS, esNotaCreditoDebito } from "@/lib/opciones";
 import { formatCuit } from "@/lib/formato";
 import { toDateStr } from "@/lib/fecha";
+import { ComboboxFacturaAsociada } from "./ComboboxFacturaAsociada";
 import type { FacturaHeaderData } from "./types";
 
 export type FacturaHeaderErrors = Partial<Record<keyof FacturaHeaderData, string>>;
@@ -72,12 +73,15 @@ type Props = {
   errors?: FacturaHeaderErrors;
   entidades: EntidadOption[];
   entidadLabel: string;
+  idTipoOperacion: number;
+  facturaIdActual?: number;
   onChange: <K extends keyof FacturaHeaderData>(field: K, value: FacturaHeaderData[K]) => void;
 };
 
-export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, onChange }: Props) {
+export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, idTipoOperacion, facturaIdActual, onChange }: Props) {
   const esCuentaCorriente = data.Id_CondicionPago === "2";
   const entidadSeleccionada = entidades.find((e) => String(e.id) === data.Id_EntidadLegal);
+  const esNota = esNotaCreditoDebito(data.Id_TipoComprobante ? parseInt(data.Id_TipoComprobante) : null);
 
   // Deriva los días de vencimiento desde las fechas almacenadas, para pre-seleccionar la opción correcta al editar.
   const diasVenc = useMemo(() => {
@@ -156,6 +160,19 @@ export function FacturaHeaderForm({ data, errors = {}, entidades, entidadLabel, 
             />
           </FormField>
         </div>
+
+        {esNota && (
+          <FormField label="Factura asociada" required error={errors.Id_FacturaAsociada} className="max-w-md">
+            <ComboboxFacturaAsociada
+              idTipoOperacion={idTipoOperacion}
+              idEntidadLegal={data.Id_EntidadLegal}
+              excluirIdFactura={facturaIdActual}
+              value={data.Id_FacturaAsociada}
+              onValueChange={(v) => onChange("Id_FacturaAsociada", v)}
+              error={!!errors.Id_FacturaAsociada}
+            />
+          </FormField>
+        )}
 
         {esCuentaCorriente && (
           <FormField label="Vencimiento" required error={errors.FechaVencimiento} className="max-w-xs">

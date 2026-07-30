@@ -7,6 +7,8 @@ import FacturaDetalleView from "./FacturaDetalleView";
 
 export type EntidadInfo = { RazonSocial: string; CuitCuil: string; Id_CondicionIva: number };
 
+export type FacturaAsociadaInfo = { Id_Factura: number; Id_TipoComprobante: number | null; PuntoVenta: string | null; Numero: string | null };
+
 export type FacturaDetalle = {
   Id_Factura:          number;
   Id_TipoOperacion:    number;
@@ -22,6 +24,8 @@ export type FacturaDetalle = {
   Iva21:               number;
   NoGravado:           number;
   Total:               number;
+  Id_FacturaAsociada:  number | null;
+  FacturaAsociada:     FacturaAsociadaInfo | null;
   Observaciones:       string | null;
 };
 
@@ -61,7 +65,7 @@ export default function FacturaDetalleContainer() {
       setLoading(true);
       const { data, error } = await supabase
         .from("Factura")
-        .select("*, EntidadLegal(RazonSocial, CuitCuil, Id_CondicionIva)")
+        .select("*, EntidadLegal(RazonSocial, CuitCuil, Id_CondicionIva), FacturaAsociada:Id_FacturaAsociada(Id_Factura, Id_TipoComprobante, PuntoVenta, Numero)")
         .eq("Id_Factura", parseInt(id))
         .single();
 
