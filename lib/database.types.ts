@@ -207,9 +207,9 @@ export interface Database {
       };
 
       MovimientoRodeo: {
-        Row: { Id_MovimientoRodeo: number; Id_Campo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura: number | null; Observaciones: string | null; CreatedAt: string };
-        Insert: { Id_Campo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura?: number | null; Observaciones?: string | null };
-        Update: { TipoMovimiento?: string; Id_CategoriaHacienda?: number; Cabezas?: number; Fecha?: string; Id_Factura?: number | null; Observaciones?: string | null };
+        Row: { Id_MovimientoRodeo: number; Id_Campo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura: number | null; Observaciones: string | null; Sentido: string | null; CreatedAt: string };
+        Insert: { Id_Campo: number; TipoMovimiento: string; Id_CategoriaHacienda: number; Cabezas: number; Fecha: string; Id_Factura?: number | null; Observaciones?: string | null; Sentido?: string | null };
+        Update: { TipoMovimiento?: string; Id_CategoriaHacienda?: number; Cabezas?: number; Fecha?: string; Id_Factura?: number | null; Observaciones?: string | null; Sentido?: string | null };
         Relationships: [
           { foreignKeyName: "MovimientoRodeo_Id_Campo_fkey"; columns: ["Id_Campo"]; referencedRelation: "Campo"; referencedColumns: ["Id_Campo"] },
           { foreignKeyName: "MovimientoRodeo_Id_CategoriaHacienda_fkey"; columns: ["Id_CategoriaHacienda"]; referencedRelation: "CategoriaHacienda"; referencedColumns: ["Id_CategoriaHacienda"] },

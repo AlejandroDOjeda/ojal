@@ -70,6 +70,7 @@ export default function NuevoMovimientoContainer() {
       Cabezas: form.cabezas,
       Fecha: form.fecha,
       Observaciones: form.observaciones || null,
+      Sentido: form.tipoMovimiento === "ajuste_manual" ? form.sentidoAjuste : null,
     });
     if (movError) throw new Error(movError.message);
 
