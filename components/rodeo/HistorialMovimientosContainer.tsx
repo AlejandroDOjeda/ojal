@@ -28,15 +28,15 @@ function primerDiaDelMes() {
 }
 
 // MovimientoRodeo tiene dos FK a Lote (Id_Lote y Id_LoteVinculado, esta
-// última solo para traslados) — hay que desambiguar el embed indicando la
-// columna, igual que ya se hace con FacturaAsociada:Id_FacturaAsociada en
-// FacturasContainer. El filtro por campo se hace vía Id_Lote IN (...) en vez
-// de un embedded filter, porque combinar el hint de columna (Id_Lote) con
-// el hint !inner no está probado en este codebase — se resuelven los lotes
-// del campo activo aparte (ya se hace para el filtro de la UI) y se filtra
-// por esa lista.
+// última solo para traslados) — hay que desambiguar el embed. El hint por
+// nombre de columna (Lote!Id_Lote) no lo reconoce PostgREST en runtime
+// (aunque el tipado de supabase-js lo acepta), así que se usa el nombre de
+// la constraint FK, que es la forma canónica y sin ambigüedad posible. El
+// filtro por campo se hace vía Id_Lote IN (...) en vez de un embedded
+// filter — se resuelven los lotes del campo activo aparte (ya se hace para
+// el filtro de la UI) y se filtra por esa lista.
 const MOVIMIENTO_SELECT =
-  "Id_MovimientoRodeo, TipoMovimiento, Cabezas, Fecha, Id_Factura, Observaciones, Sentido, Id_Lote, CategoriaHacienda(Nombre), Lote!Id_Lote(Nombre, Campo(Nombre)), LoteVinculado:Lote!Id_LoteVinculado(Nombre)";
+  "Id_MovimientoRodeo, TipoMovimiento, Cabezas, Fecha, Id_Factura, Observaciones, Sentido, Id_Lote, CategoriaHacienda(Nombre), Lote!MovimientoRodeo_Id_Lote_fkey(Nombre, Campo(Nombre)), LoteVinculado:Lote!MovimientoRodeo_Id_LoteVinculado_fkey(Nombre)";
 
 export default function HistorialMovimientosContainer() {
   const { campoActivo } = useCampoContext();
