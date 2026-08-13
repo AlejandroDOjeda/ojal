@@ -129,12 +129,8 @@ export type ItemCompraForm = ItemCompraGasto | ItemCompraHacienda;
 export const emptyItemCompraGasto = (key: string): ItemCompraGasto =>
   ({ _key: key, _tipo: "gasto", ...EMPTY_ITEM_GASTO });
 
-// defaultLoteId: solo se autocompleta cuando hay un único lote candidato sin
-// ambigüedad (ej. el campo activo tiene un solo lote) — a diferencia de
-// Campo, un Campo puede tener varios Lotes, así que no hay un default obvio
-// en general.
-export const emptyItemCompraHacienda = (key: string, defaultLoteId: number | null): ItemCompraHacienda =>
-  ({ _key: key, _tipo: "hacienda", ...EMPTY_ITEM_HACIENDA, Id_Lote: defaultLoteId ? String(defaultLoteId) : "" });
+export const emptyItemCompraHacienda = (key: string): ItemCompraHacienda =>
+  ({ _key: key, _tipo: "hacienda", ...EMPTY_ITEM_HACIENDA });
 
 export function calcItemCompraSubtotal(item: ItemCompraForm): number {
   return item._tipo === "gasto" ? calcItemGastoSubtotal(item) : calcItemHaciendaSubtotal(item);

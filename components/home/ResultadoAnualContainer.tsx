@@ -5,7 +5,6 @@ import { parseISO } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION, signoComprobante } from "@/lib/opciones";
 import { toDateStr } from "@/lib/fecha";
-import { useCampoContext } from "@/contexts/CampoContext";
 import ResultadoAnualChart from "./ResultadoAnualChart";
 
 export type MesResultado = {
@@ -23,7 +22,6 @@ type ItemGastoRow = { Subtotal: number; Factura: { Fecha: string; Id_TipoComprob
 type Props = { anio: number; mesHasta: number };
 
 export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
-  const { campoActivo } = useCampoContext();
   const [meses, setMeses] = useState<MesResultado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,13 +33,12 @@ export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
     const desde = toDateStr(new Date(anio, 0, 1));
     const hasta = toDateStr(new Date(anio, mesHasta + 1, 0));
 
-    let ventasQuery = supabase
+    const ventasQuery = supabase
       .from("Factura")
-      .select("Subtotal, Fecha, Id_TipoComprobante, ItemHacienda!inner(Lote!inner(Id_Campo))")
+      .select("Subtotal, Fecha, Id_TipoComprobante")
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", desde)
       .lte("Fecha", hasta);
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const gastosQuery = supabase
       .from("ItemGasto")
@@ -78,7 +75,7 @@ export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
     }
 
     setLoading(false);
-  }, [campoActivo, anio, mesHasta]);
+  }, [anio, mesHasta]);
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 

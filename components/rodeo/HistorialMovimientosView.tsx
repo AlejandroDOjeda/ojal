@@ -9,14 +9,12 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTable, DatePicker, FormField, SelectBox } from "@/components/app";
+import { DataTable, DatePicker, FormField } from "@/components/app";
 import { signoMovimientoRodeo, TIPO_MOVIMIENTO_LABELS } from "@/lib/opciones";
 import { downloadXlsx } from "@/lib/excel";
 import { downloadPdf } from "@/lib/pdf";
 import { MovimientoBadge } from "./MovimientoBadge";
-import type { MovimientoFila, LoteOption } from "./HistorialMovimientosContainer";
-
-const TODOS_LOS_LOTES = "todos";
+import type { MovimientoFila } from "./HistorialMovimientosContainer";
 
 // parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
 // interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
@@ -43,109 +41,95 @@ const detalleTraslado = (fila: MovimientoFila): string | null => {
 
 type Props = {
   movimientos: MovimientoFila[];
-  lotes: LoteOption[];
-  loteFiltro: number | null;
-  onLoteFiltroChange: (loteId: number | null) => void;
   loading: boolean;
   error: string | null;
   fechaDesde: string;
   fechaHasta: string;
   onFechaDesdeChange: (value: string) => void;
   onFechaHastaChange: (value: string) => void;
-  mostrarCampo: boolean;
 };
 
 export default function HistorialMovimientosView({
-  movimientos, lotes, loteFiltro, onLoteFiltroChange, loading, error, fechaDesde, fechaHasta,
-  onFechaDesdeChange, onFechaHastaChange, mostrarCampo,
+  movimientos, loading, error, fechaDesde, fechaHasta,
+  onFechaDesdeChange, onFechaHastaChange,
 }: Props) {
-  const columns = useMemo<ColumnDef<MovimientoFila, unknown>[]>(() => {
-    const cols: ColumnDef<MovimientoFila, unknown>[] = [
-      {
-        accessorKey: "Fecha",
-        header: "Fecha",
-        cell: ({ row }) => <span className="text-muted-foreground">{formatFecha(row.original.Fecha)}</span>,
+  const columns = useMemo<ColumnDef<MovimientoFila, unknown>[]>(() => [
+    {
+      accessorKey: "Fecha",
+      header: "Fecha",
+      cell: ({ row }) => <span className="text-muted-foreground">{formatFecha(row.original.Fecha)}</span>,
+    },
+    {
+      id: "tipo",
+      header: "Tipo",
+      accessorFn: (row) => row.TipoMovimiento,
+      cell: ({ row }) => <MovimientoBadge tipo={row.original.TipoMovimiento} />,
+    },
+    {
+      id: "categoria",
+      header: "Categoría",
+      accessorFn: (row) => row.CategoriaHacienda?.Nombre ?? "",
+      cell: ({ row }) => <span className="font-medium">{row.original.CategoriaHacienda?.Nombre ?? "—"}</span>,
+    },
+    {
+      id: "lote",
+      header: "Lote",
+      accessorFn: (row) => row.Lote?.Nombre ?? "",
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Nombre ?? "—"}</span>,
+    },
+    {
+      id: "campo",
+      header: "Campo",
+      accessorFn: (row) => row.Lote?.Campo?.Nombre ?? "",
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Campo?.Nombre ?? "—"}</span>,
+    },
+    {
+      id: "cabezas",
+      header: "Cabezas",
+      meta: { align: "right" },
+      accessorFn: (row) => signoMovimientoRodeo(row.TipoMovimiento, row.Sentido) * row.Cabezas,
+      cell: ({ row }) => (
+        <span className={`text-right block font-semibold tabular-nums ${colorCabezas(row.original)}`}>
+          {formatCabezas(row.original)}
+        </span>
+      ),
+      footer: ({ table }) => {
+        const neto = table.getFilteredRowModel().rows.reduce(
+          (s, row) => s + signoMovimientoRodeo(row.original.TipoMovimiento, row.original.Sentido) * row.original.Cabezas,
+          0
+        );
+        const color = neto > 0 ? "text-green-600 dark:text-green-400" : neto < 0 ? "text-destructive" : "text-foreground";
+        return <span className={`font-semibold ${color}`}>{`Neto: ${neto > 0 ? "+" : ""}${neto}`}</span>;
       },
-      {
-        id: "tipo",
-        header: "Tipo",
-        accessorFn: (row) => row.TipoMovimiento,
-        cell: ({ row }) => <MovimientoBadge tipo={row.original.TipoMovimiento} />,
-      },
-      {
-        id: "categoria",
-        header: "Categoría",
-        accessorFn: (row) => row.CategoriaHacienda?.Nombre ?? "",
-        cell: ({ row }) => <span className="font-medium">{row.original.CategoriaHacienda?.Nombre ?? "—"}</span>,
-      },
-      {
-        id: "lote",
-        header: "Lote",
-        accessorFn: (row) => row.Lote?.Nombre ?? "",
-        cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Nombre ?? "—"}</span>,
-      },
-    ];
-
-    if (mostrarCampo) {
-      cols.push({
-        id: "campo",
-        header: "Campo",
-        accessorFn: (row) => row.Lote?.Campo?.Nombre ?? "",
-        cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Campo?.Nombre ?? "—"}</span>,
-      });
-    }
-
-    cols.push(
-      {
-        id: "cabezas",
-        header: "Cabezas",
-        meta: { align: "right" },
-        accessorFn: (row) => signoMovimientoRodeo(row.TipoMovimiento, row.Sentido) * row.Cabezas,
-        cell: ({ row }) => (
-          <span className={`text-right block font-semibold tabular-nums ${colorCabezas(row.original)}`}>
-            {formatCabezas(row.original)}
-          </span>
-        ),
-        footer: ({ table }) => {
-          const neto = table.getFilteredRowModel().rows.reduce(
-            (s, row) => s + signoMovimientoRodeo(row.original.TipoMovimiento, row.original.Sentido) * row.original.Cabezas,
-            0
+    },
+    {
+      id: "detalle",
+      header: "",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const fila = row.original;
+        const traslado = detalleTraslado(fila);
+        if (traslado) {
+          return <span className="text-xs text-muted-foreground">{traslado}</span>;
+        }
+        if (fila.Id_Factura) {
+          return (
+            <Link
+              href={`/facturas/${fila.Id_Factura}`}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Ver comprobante
+              <ArrowUpRight size={12} />
+            </Link>
           );
-          const color = neto > 0 ? "text-green-600 dark:text-green-400" : neto < 0 ? "text-destructive" : "text-foreground";
-          return <span className={`font-semibold ${color}`}>{`Neto: ${neto > 0 ? "+" : ""}${neto}`}</span>;
-        },
+        }
+        return <span className="text-xs text-muted-foreground">{fila.Observaciones ?? "—"}</span>;
       },
-      {
-        id: "detalle",
-        header: "",
-        enableSorting: false,
-        cell: ({ row }) => {
-          const fila = row.original;
-          const traslado = detalleTraslado(fila);
-          if (traslado) {
-            return <span className="text-xs text-muted-foreground">{traslado}</span>;
-          }
-          if (fila.Id_Factura) {
-            return (
-              <Link
-                href={`/facturas/${fila.Id_Factura}`}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Ver comprobante
-                <ArrowUpRight size={12} />
-              </Link>
-            );
-          }
-          return <span className="text-xs text-muted-foreground">{fila.Observaciones ?? "—"}</span>;
-        },
-      }
-    );
-
-    return cols;
-  }, [mostrarCampo]);
+    },
+  ], []);
 
   const buildExportData = () => {
-    const headers = ["Fecha", "Tipo", "Categoría", "Lote", ...(mostrarCampo ? ["Campo"] : []), "Cabezas", "Detalle"];
+    const headers = ["Fecha", "Tipo", "Categoría", "Lote", "Campo", "Cabezas", "Detalle"];
     const rows = movimientos.map((m) => {
       const signo = signoMovimientoRodeo(m.TipoMovimiento, m.Sentido);
       const detalle = detalleTraslado(m) ?? (m.Id_Factura ? `Comprobante #${m.Id_Factura}` : (m.Observaciones ?? ""));
@@ -154,7 +138,7 @@ export default function HistorialMovimientosView({
         TIPO_MOVIMIENTO_LABELS[m.TipoMovimiento] ?? m.TipoMovimiento,
         m.CategoriaHacienda?.Nombre ?? "",
         m.Lote?.Nombre ?? "",
-        ...(mostrarCampo ? [m.Lote?.Campo?.Nombre ?? ""] : []),
+        m.Lote?.Campo?.Nombre ?? "",
         signo * m.Cabezas,
         detalle,
       ];
@@ -183,11 +167,6 @@ export default function HistorialMovimientosView({
       rows,
     });
   };
-
-  const loteOptions = [
-    { value: TODOS_LOS_LOTES, label: "Todos los lotes" },
-    ...lotes.map((l) => ({ value: String(l.Id_Lote), label: l.Nombre })),
-  ];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -221,22 +200,13 @@ export default function HistorialMovimientosView({
         <FormField label="Hasta" className="w-40">
           <DatePicker value={fechaHasta} onChange={onFechaHastaChange} />
         </FormField>
-        {lotes.length > 0 && (
-          <FormField label="Lote" className="w-44">
-            <SelectBox
-              options={loteOptions}
-              value={loteFiltro ? String(loteFiltro) : TODOS_LOS_LOTES}
-              onValueChange={(v) => onLoteFiltroChange(v === TODOS_LOS_LOTES ? null : Number(v))}
-            />
-          </FormField>
-        )}
       </div>
 
       <DataTable
         data={movimientos}
         columns={columns}
         loading={loading}
-        searchPlaceholder="Buscar por categoría, lote..."
+        searchPlaceholder="Buscar por categoría, lote, campo..."
       />
     </div>
   );

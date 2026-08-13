@@ -15,7 +15,8 @@ export type RodeoFila = {
 export type LoteOption = { Id_Lote: number; Nombre: string };
 
 export default function CargaInicialContainer() {
-  const { campoActivo } = useCampoContext();
+  const { campos } = useCampoContext();
+  const [campoId, setCampoId] = useState<number | null>(null);
   const [lotes, setLotes] = useState<LoteOption[]>([]);
   const [loteId, setLoteId] = useState<number | null>(null);
   const [filas, setFilas] = useState<RodeoFila[]>([]);
@@ -23,19 +24,19 @@ export default function CargaInicialContainer() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchLotes = useCallback(async () => {
-    if (!campoActivo) {
+    if (!campoId) {
       setLotes([]); setLoteId(null); setLoading(false);
       return;
     }
     const { data } = await supabase
       .from("Lote")
       .select("Id_Lote, Nombre")
-      .eq("Id_Campo", campoActivo.Id_Campo)
+      .eq("Id_Campo", campoId)
       .order("Nombre");
     const lista = (data ?? []) as LoteOption[];
     setLotes(lista);
     setLoteId(lista.length === 1 ? lista[0].Id_Lote : null);
-  }, [campoActivo]);
+  }, [campoId]);
 
   const fetchRodeo = useCallback(async () => {
     if (!loteId) {
@@ -95,14 +96,16 @@ export default function CargaInicialContainer() {
   return (
     <CargaInicialView
       filas={filas}
+      campos={campos}
+      campoId={campoId}
+      onCampoChange={setCampoId}
       lotes={lotes}
       loteId={loteId}
       onLoteChange={setLoteId}
       loading={loading}
       error={error}
       yaConfigurado={yaConfigurado}
-      sinCampo={!campoActivo}
-      sinLotes={!!campoActivo && lotes.length === 0}
+      sinLotes={!!campoId && lotes.length === 0}
       onGuardar={handleGuardar}
     />
   );

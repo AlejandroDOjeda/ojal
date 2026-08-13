@@ -30,7 +30,6 @@ type Props = {
   entidades: EntidadOption[];
   categorias: CategoriaHaciendaOption[];
   lotes: LoteOption[];
-  defaultLoteId: number | null;
   loadingData: boolean;
   initialHeader?: FacturaHeaderData;
   initialItems?: ItemHaciendaForm[];
@@ -45,10 +44,10 @@ const newKey = () => String(++keyCounter);
 
 type ItemHaciendaErrors = Partial<Record<"Id_Lote" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 
-export default function NuevaVentaView({ entidades, categorias, lotes, defaultLoteId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
+export default function NuevaVentaView({ entidades, categorias, lotes, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
-  const nuevoItem = () => ({ _key: newKey(), ...EMPTY_ITEM_HACIENDA, Id_Lote: defaultLoteId ? String(defaultLoteId) : "" });
+  const nuevoItem = () => ({ _key: newKey(), ...EMPTY_ITEM_HACIENDA });
   const [items, setItems] = useState<ItemHaciendaForm[]>(initialItems ?? [nuevoItem()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

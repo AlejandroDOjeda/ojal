@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION } from "@/lib/opciones";
 import { toDateStr, hoyStr } from "@/lib/fecha";
-import { useCampoContext } from "@/contexts/CampoContext";
 import FacturasView from "./FacturasView";
 
 export type FacturaResumen = {
@@ -32,7 +31,6 @@ function primerDiaDelMes() {
 const FACTURA_SELECT = "Id_Factura, Id_TipoOperacion, Id_TipoComprobante, PuntoVenta, Numero, Fecha, Subtotal, Iva10_5, Iva21, Total, EntidadLegal(RazonSocial), FacturaAsociada:Id_FacturaAsociada(Id_TipoComprobante)";
 
 export default function FacturasContainer() {
-  const { campoActivo } = useCampoContext();
   const [fechaDesde, setFechaDesde] = useState(primerDiaDelMes());
   const [fechaHasta, setFechaHasta] = useState(hoyStr());
   const [compras, setCompras] = useState<FacturaResumen[]>([]);
@@ -43,8 +41,6 @@ export default function FacturasContainer() {
   const fetchFacturas = useCallback(async () => {
     setLoading(true); setError(null);
 
-    // Las compras no están ligadas a un campo. Las ventas sí, pero a nivel de
-    // ítem (ItemHacienda), no de Factura: se filtran vía join con ese campo.
     const comprasQuery = supabase
       .from("Factura")
       .select(FACTURA_SELECT)
@@ -53,15 +49,13 @@ export default function FacturasContainer() {
       .lte("Fecha", fechaHasta)
       .order("Fecha", { ascending: false });
 
-    let ventasQuery = supabase
+    const ventasQuery = supabase
       .from("Factura")
-      .select(`${FACTURA_SELECT}, ItemHacienda!inner(Lote!inner(Id_Campo))`)
+      .select(FACTURA_SELECT)
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta)
       .order("Fecha", { ascending: false });
-
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const [{ data: comprasData, error: comprasError }, { data: ventasData, error: ventasError }] =
       await Promise.all([comprasQuery, ventasQuery]);
@@ -73,7 +67,7 @@ export default function FacturasContainer() {
       setVentas((ventasData ?? []) as FacturaResumen[]);
     }
     setLoading(false);
-  }, [campoActivo, fechaDesde, fechaHasta]);
+  }, [fechaDesde, fechaHasta]);
 
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 

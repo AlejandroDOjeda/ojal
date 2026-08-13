@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageShell, SectionCard, FormField, SelectBox } from "@/components/app";
+import type { Campo } from "@/contexts/CampoContext";
 import type { CategoriaOption, LoteOption } from "./NuevoMovimientoContainer";
 
 export type MovimientoFormData = {
@@ -36,16 +37,18 @@ const SENTIDO_OPTIONS = [
 
 type Props = {
   categorias: CategoriaOption[];
+  campos: Campo[];
+  campoId: number | null;
+  onCampoChange: (campoId: number | null) => void;
   lotes: LoteOption[];
   loading: boolean;
-  sinCampo: boolean;
   sinLotes: boolean;
   onGuardar: (form: MovimientoFormData) => Promise<void>;
 };
 
 const hoy = () => new Date().toISOString().split("T")[0];
 
-export default function NuevoMovimientoView({ categorias, lotes, loading, sinCampo, sinLotes, onGuardar }: Props) {
+export default function NuevoMovimientoView({ categorias, campos, campoId, onCampoChange, lotes, loading, sinLotes, onGuardar }: Props) {
   const [tipo, setTipo] = useState<MovimientoFormData["tipoMovimiento"] | "">("");
   const [sentido, setSentido] = useState<MovimientoFormData["sentidoAjuste"]>("incremento");
   const [idCategoria, setIdCategoria] = useState<string>("");
@@ -59,6 +62,11 @@ export default function NuevoMovimientoView({ categorias, lotes, loading, sinCam
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const esTraslado = tipo === "traslado";
+
+  // Al cambiar de campo, los lotes elegidos antes ya no son válidos.
+  useEffect(() => {
+    setIdLote(""); setIdLoteOrigen(""); setIdLoteDestino("");
+  }, [campoId]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -107,6 +115,7 @@ export default function NuevoMovimientoView({ categorias, lotes, loading, sinCam
     }
   };
 
+  const campoOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
   const categoriaOptions = categorias.map((c) => ({
     value: c.Id_CategoriaHacienda,
     label: c.Nombre,
@@ -121,153 +130,154 @@ export default function NuevoMovimientoView({ categorias, lotes, loading, sinCam
     </Link>
   );
 
-  if (sinCampo) {
-    return (
-      <PageShell title="Nuevo movimiento" back={volver}>
-        <p className="text-sm text-muted-foreground">
-          Seleccioná un campo en el selector del encabezado para registrar un movimiento.
-        </p>
-      </PageShell>
-    );
-  }
-
-  if (sinLotes) {
-    return (
-      <PageShell title="Nuevo movimiento" back={volver}>
-        <p className="text-sm text-muted-foreground">
-          Este campo todavía no tiene lotes.{" "}
-          <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
-            Creá uno
-          </Link>{" "}
-          para poder registrar movimientos.
-        </p>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell title="Nuevo movimiento" back={volver}>
-      <form onSubmit={handleSubmit} className="max-w-lg">
-        <SectionCard className="space-y-5">
-
-          {/* Tipo de movimiento */}
-          <FormField label="Tipo de movimiento" required error={errors.tipo}>
+      <div className="max-w-lg space-y-5">
+        <SectionCard>
+          <FormField label="Campo" required>
             <SelectBox
-              options={tipoOptions}
-              value={tipo || null}
-              onValueChange={(v) => { setTipo(v as MovimientoFormData["tipoMovimiento"]); setErrors((p) => ({ ...p, tipo: "" })); }}
-              placeholder={loading ? "Cargando…" : "— Seleccioná —"}
-              disabled={loading}
-              error={!!errors.tipo}
-            />
-          </FormField>
-
-          {/* Sentido del ajuste (solo para ajuste_manual) */}
-          {tipo === "ajuste_manual" && (
-            <FormField label="Sentido del ajuste" required>
-              <SelectBox
-                options={SENTIDO_OPTIONS}
-                value={sentido}
-                onValueChange={(v) => setSentido(v as MovimientoFormData["sentidoAjuste"])}
-              />
-            </FormField>
-          )}
-
-          {/* Lote (nacimiento/muerte/ajuste_manual) */}
-          {tipo && !esTraslado && (
-            <FormField label="Lote" required error={errors.lote}>
-              <SelectBox
-                options={loteOptions}
-                value={idLote || null}
-                onValueChange={(v) => { setIdLote(v); setErrors((p) => ({ ...p, lote: "" })); }}
-                placeholder="— Seleccioná —"
-                error={!!errors.lote}
-              />
-            </FormField>
-          )}
-
-          {/* Lote origen/destino (traslado) */}
-          {esTraslado && (
-            <>
-              <FormField label="Lote origen" required error={errors.loteOrigen}>
-                <SelectBox
-                  options={loteOptions}
-                  value={idLoteOrigen || null}
-                  onValueChange={(v) => { setIdLoteOrigen(v); setErrors((p) => ({ ...p, loteOrigen: "" })); }}
-                  placeholder="— Seleccioná —"
-                  error={!!errors.loteOrigen}
-                />
-              </FormField>
-              <FormField label="Lote destino" required error={errors.loteDestino}>
-                <SelectBox
-                  options={loteOptions}
-                  value={idLoteDestino || null}
-                  onValueChange={(v) => { setIdLoteDestino(v); setErrors((p) => ({ ...p, loteDestino: "" })); }}
-                  placeholder="— Seleccioná —"
-                  error={!!errors.loteDestino}
-                />
-              </FormField>
-            </>
-          )}
-
-          {/* Categoría */}
-          <FormField label="Categoría" required error={errors.categoria}>
-            <SelectBox
-              options={categoriaOptions}
-              value={idCategoria || null}
-              onValueChange={(v) => { setIdCategoria(v); setErrors((p) => ({ ...p, categoria: "" })); }}
-              placeholder={loading ? "Cargando…" : "— Seleccioná —"}
-              disabled={loading}
-              error={!!errors.categoria}
-            />
-          </FormField>
-
-          {/* Cabezas */}
-          <FormField label="Cabezas" required error={errors.cabezas}>
-            <Input
-              type="number"
-              min={1}
-              value={cabezas}
-              onChange={(e) => { setCabezas(e.target.value); setErrors((p) => ({ ...p, cabezas: "" })); }}
-              placeholder="Ej: 5"
-              className="w-36"
-            />
-          </FormField>
-
-          {/* Fecha */}
-          <FormField label="Fecha" required error={errors.fecha}>
-            <Input
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              className="w-44"
-            />
-          </FormField>
-
-          {/* Observaciones */}
-          <FormField label="Observaciones">
-            <textarea
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              rows={3}
-              placeholder="Opcional — ej: parición de vaca 14, campo norte"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              options={campoOptions}
+              value={campoId ? String(campoId) : null}
+              onValueChange={(v) => onCampoChange(Number(v))}
+              placeholder="— Seleccioná un campo —"
             />
           </FormField>
         </SectionCard>
 
-        <div className="mt-5 flex items-center gap-3">
-          <Button type="submit" disabled={guardando}>
-            {guardando ? "Guardando…" : "Registrar movimiento"}
-          </Button>
-          <Link
-            href="/rodeo"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Cancelar
-          </Link>
-        </div>
-      </form>
+        {!campoId ? (
+          <p className="text-sm text-muted-foreground">Elegí un campo para continuar.</p>
+        ) : sinLotes ? (
+          <p className="text-sm text-muted-foreground">
+            Este campo todavía no tiene lotes.{" "}
+            <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
+              Creá uno
+            </Link>{" "}
+            para poder registrar movimientos.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <SectionCard className="space-y-5">
+
+              {/* Tipo de movimiento */}
+              <FormField label="Tipo de movimiento" required error={errors.tipo}>
+                <SelectBox
+                  options={tipoOptions}
+                  value={tipo || null}
+                  onValueChange={(v) => { setTipo(v as MovimientoFormData["tipoMovimiento"]); setErrors((p) => ({ ...p, tipo: "" })); }}
+                  placeholder={loading ? "Cargando…" : "— Seleccioná —"}
+                  disabled={loading}
+                  error={!!errors.tipo}
+                />
+              </FormField>
+
+              {/* Sentido del ajuste (solo para ajuste_manual) */}
+              {tipo === "ajuste_manual" && (
+                <FormField label="Sentido del ajuste" required>
+                  <SelectBox
+                    options={SENTIDO_OPTIONS}
+                    value={sentido}
+                    onValueChange={(v) => setSentido(v as MovimientoFormData["sentidoAjuste"])}
+                  />
+                </FormField>
+              )}
+
+              {/* Lote (nacimiento/muerte/ajuste_manual) */}
+              {tipo && !esTraslado && (
+                <FormField label="Lote" required error={errors.lote}>
+                  <SelectBox
+                    options={loteOptions}
+                    value={idLote || null}
+                    onValueChange={(v) => { setIdLote(v); setErrors((p) => ({ ...p, lote: "" })); }}
+                    placeholder="— Seleccioná —"
+                    error={!!errors.lote}
+                  />
+                </FormField>
+              )}
+
+              {/* Lote origen/destino (traslado) */}
+              {esTraslado && (
+                <>
+                  <FormField label="Lote origen" required error={errors.loteOrigen}>
+                    <SelectBox
+                      options={loteOptions}
+                      value={idLoteOrigen || null}
+                      onValueChange={(v) => { setIdLoteOrigen(v); setErrors((p) => ({ ...p, loteOrigen: "" })); }}
+                      placeholder="— Seleccioná —"
+                      error={!!errors.loteOrigen}
+                    />
+                  </FormField>
+                  <FormField label="Lote destino" required error={errors.loteDestino}>
+                    <SelectBox
+                      options={loteOptions}
+                      value={idLoteDestino || null}
+                      onValueChange={(v) => { setIdLoteDestino(v); setErrors((p) => ({ ...p, loteDestino: "" })); }}
+                      placeholder="— Seleccioná —"
+                      error={!!errors.loteDestino}
+                    />
+                  </FormField>
+                </>
+              )}
+
+              {/* Categoría */}
+              <FormField label="Categoría" required error={errors.categoria}>
+                <SelectBox
+                  options={categoriaOptions}
+                  value={idCategoria || null}
+                  onValueChange={(v) => { setIdCategoria(v); setErrors((p) => ({ ...p, categoria: "" })); }}
+                  placeholder={loading ? "Cargando…" : "— Seleccioná —"}
+                  disabled={loading}
+                  error={!!errors.categoria}
+                />
+              </FormField>
+
+              {/* Cabezas */}
+              <FormField label="Cabezas" required error={errors.cabezas}>
+                <Input
+                  type="number"
+                  min={1}
+                  value={cabezas}
+                  onChange={(e) => { setCabezas(e.target.value); setErrors((p) => ({ ...p, cabezas: "" })); }}
+                  placeholder="Ej: 5"
+                  className="w-36"
+                />
+              </FormField>
+
+              {/* Fecha */}
+              <FormField label="Fecha" required error={errors.fecha}>
+                <Input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className="w-44"
+                />
+              </FormField>
+
+              {/* Observaciones */}
+              <FormField label="Observaciones">
+                <textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  rows={3}
+                  placeholder="Opcional — ej: parición de vaca 14, campo norte"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              </FormField>
+            </SectionCard>
+
+            <div className="mt-5 flex items-center gap-3">
+              <Button type="submit" disabled={guardando}>
+                {guardando ? "Guardando…" : "Registrar movimiento"}
+              </Button>
+              <Link
+                href="/rodeo"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancelar
+              </Link>
+            </div>
+          </form>
+        )}
+      </div>
     </PageShell>
   );
 }

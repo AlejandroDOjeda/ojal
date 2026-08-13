@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION, signoComprobante } from "@/lib/opciones";
 import { toDateStr, hoyStr } from "@/lib/fecha";
-import { useCampoContext } from "@/contexts/CampoContext";
 import PosicionIvaReporteView from "./PosicionIvaReporteView";
 
 export type FacturaIva = {
@@ -40,7 +39,6 @@ const FACTURA_SELECT = "Id_Factura, Fecha, Id_TipoComprobante, PuntoVenta, Numer
 type FacturaRow = Omit<FacturaIva, "tipo">;
 
 export default function PosicionIvaReporteContainer() {
-  const { campoActivo } = useCampoContext();
   const [fechaDesde, setFechaDesde] = useState(primerDiaDelMes());
   const [fechaHasta, setFechaHasta] = useState(hoyStr());
   const [facturas, setFacturas] = useState<FacturaIva[]>([]);
@@ -51,8 +49,6 @@ export default function PosicionIvaReporteContainer() {
     setLoading(true);
     setError(null);
 
-    // Compras: no están ligadas a un campo. Ventas: sí, pero a nivel de
-    // ítem (ItemHacienda), no de Factura.
     const comprasQuery = supabase
       .from("Factura")
       .select(FACTURA_SELECT)
@@ -60,14 +56,12 @@ export default function PosicionIvaReporteContainer() {
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta);
 
-    let ventasQuery = supabase
+    const ventasQuery = supabase
       .from("Factura")
-      .select(`${FACTURA_SELECT}, ItemHacienda!inner(Lote!inner(Id_Campo))`)
+      .select(FACTURA_SELECT)
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta);
-
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
       await Promise.all([comprasQuery, ventasQuery]);
@@ -81,7 +75,7 @@ export default function PosicionIvaReporteContainer() {
     }
 
     setLoading(false);
-  }, [campoActivo, fechaDesde, fechaHasta]);
+  }, [fechaDesde, fechaHasta]);
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 

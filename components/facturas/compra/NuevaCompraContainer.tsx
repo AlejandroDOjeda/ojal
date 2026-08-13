@@ -10,7 +10,6 @@ import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_CO
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
 import type { LoteOption } from "@/components/facturas/venta/NuevaVentaView";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaCompraView from "./NuevaCompraView";
 
 export type CategoriaGastoOption = { id: number; Nombre: string; TasaIvaHabitual: number };
@@ -19,7 +18,6 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 export default function NuevaCompraContainer() {
   const router = useRouter();
   const { userId } = useAuthContext();
-  const { campoActivo } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaGastoOption[]>([]);
   const [categoriasHacienda, setCategoriasHacienda] = useState<CategoriaHaciendaOption[]>([]);
@@ -119,16 +117,12 @@ export default function NuevaCompraContainer() {
     router.push("/facturas?tab=compras");
   };
 
-  const lotesDelCampoActivo = campoActivo ? lotes.filter((l) => l.Id_Campo === campoActivo.Id_Campo) : [];
-  const defaultLoteId = lotesDelCampoActivo.length === 1 ? lotesDelCampoActivo[0].Id_Lote : null;
-
   return (
     <NuevaCompraView
       entidades={entidades}
       categorias={categorias}
       categoriasHacienda={categoriasHacienda}
       lotes={lotes}
-      defaultLoteId={defaultLoteId}
       loadingData={loadingData}
       onSave={handleSave}
     />

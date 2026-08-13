@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { TIPO_OPERACION, signoComprobante } from "@/lib/opciones";
 import { toDateStr, hoyStr } from "@/lib/fecha";
-import { useCampoContext } from "@/contexts/CampoContext";
 import ResultadoReporteView from "./ResultadoReporteView";
 
 export type GastoCategoria = {
@@ -33,7 +32,6 @@ type ItemGastoRow = {
 };
 
 export default function ResultadoReporteContainer() {
-  const { campoActivo } = useCampoContext();
   const [fechaDesde, setFechaDesde] = useState(primerDiaDelMes());
   const [fechaHasta, setFechaHasta] = useState(hoyStr());
   const [ingresos, setIngresos] = useState(0);
@@ -45,16 +43,12 @@ export default function ResultadoReporteContainer() {
     setLoading(true);
     setError(null);
 
-    // Ingresos: ventas de hacienda, filtradas por campo vía ItemHacienda
-    // (igual que el resto de los reportes — la venta se liga al campo a
-    // nivel de ítem, no de factura).
-    let ventasQuery = supabase
+    const ventasQuery = supabase
       .from("Factura")
-      .select("Subtotal, Id_TipoComprobante, ItemHacienda!inner(Lote!inner(Id_Campo))")
+      .select("Subtotal, Id_TipoComprobante")
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta);
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     // Gastos: ItemGasto (combustible, veterinaria, arrendamiento, etc.), no
     // ligados a campo. Las compras de hacienda (ItemHacienda en facturas de
@@ -94,7 +88,7 @@ export default function ResultadoReporteContainer() {
     }
 
     setLoading(false);
-  }, [campoActivo, fechaDesde, fechaHasta]);
+  }, [fechaDesde, fechaHasta]);
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 
