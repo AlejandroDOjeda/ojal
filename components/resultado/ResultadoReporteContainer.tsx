@@ -50,11 +50,11 @@ export default function ResultadoReporteContainer() {
     // nivel de ítem, no de factura).
     let ventasQuery = supabase
       .from("Factura")
-      .select("Subtotal, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
+      .select("Subtotal, Id_TipoComprobante, ItemHacienda!inner(Lote!inner(Id_Campo))")
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta);
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     // Gastos: ItemGasto (combustible, veterinaria, arrendamiento, etc.), no
     // ligados a campo. Las compras de hacienda (ItemHacienda en facturas de

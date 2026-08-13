@@ -43,7 +43,7 @@ export type ItemGastoDetalle = {
 
 export type ItemHaciendaDetalle = {
   Id_ItemHacienda:   number;
-  Campo:             { Nombre: string } | null;
+  Lote:              { Nombre: string; Campo: { Nombre: string } | null } | null;
   CategoriaHacienda: { Nombre: string } | null;
   Cabezas:           number;
   KgPromedio:        number | null;
@@ -89,7 +89,7 @@ export default function FacturaDetalleContainer() {
       if (factura.Id_TipoOperacion === 1) { // Compra: puede tener gastos genéricos y/o compras de hacienda
         const [{ data: itemsGasto }, { data: itemsHacienda }, { data: documentos }] = await Promise.all([
           supabase.from("ItemGasto").select("*, CategoriaGasto(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
-          supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Campo(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
+          supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Lote(Nombre, Campo(Nombre))").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
           documentosPromise,
         ]);
         setItemsGasto((itemsGasto ?? []) as unknown as ItemGastoDetalle[]);
@@ -97,7 +97,7 @@ export default function FacturaDetalleContainer() {
         setDocumentosAsociados((documentos ?? []) as DocumentoAsociadoInfo[]);
       } else { // Venta
         const [{ data: items }, { data: documentos }] = await Promise.all([
-          supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Campo(Nombre)").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
+          supabase.from("ItemHacienda").select("*, CategoriaHacienda(Nombre), Lote(Nombre, Campo(Nombre))").eq("Id_Factura", parseInt(id)).order("CreatedAt"),
           documentosPromise,
         ]);
         setItemsHacienda((items ?? []) as unknown as ItemHaciendaDetalle[]);

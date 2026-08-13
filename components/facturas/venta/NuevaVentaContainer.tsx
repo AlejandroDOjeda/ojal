@@ -9,7 +9,7 @@ import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, 
 import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCampoContext } from "@/contexts/CampoContext";
-import NuevaVentaView from "./NuevaVentaView";
+import NuevaVentaView, { type LoteOption } from "./NuevaVentaView";
 
 export type CategoriaHaciendaOption = { id: number; Nombre: string; TasaIva: number };
 export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string };
@@ -17,18 +17,22 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 export default function NuevaVentaContainer() {
   const router = useRouter();
   const { userId } = useAuthContext();
-  const { campoActivo, campos } = useCampoContext();
+  const { campoActivo } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
+  const [lotes, setLotes] = useState<LoteOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const [{ data: ents }, { data: cats }] = await Promise.all([
+    const [{ data: ents }, { data: cats }, { data: lots }] = await Promise.all([
       supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial, CuitCuil").order("RazonSocial"),
       supabase.from("CategoriaHacienda").select("Id_CategoriaHacienda, Nombre, TasaIva").eq("Activa", true).order("Nombre"),
+      supabase.from("Lote").select("Id_Lote, Nombre, Id_Campo, Campo(Nombre)"),
     ]);
     setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
     setCategorias((cats ?? []).map((c: { Id_CategoriaHacienda: number; Nombre: string; TasaIva: number }) => ({ id: c.Id_CategoriaHacienda, Nombre: c.Nombre, TasaIva: c.TasaIva })));
+    type LoteRow = { Id_Lote: number; Nombre: string; Id_Campo: number; Campo: { Nombre: string } | null };
+    setLotes(((lots ?? []) as LoteRow[]).map((l) => ({ Id_Lote: l.Id_Lote, Nombre: l.Nombre, Id_Campo: l.Id_Campo, CampoNombre: l.Campo?.Nombre ?? "" })));
     setLoadingData(false);
   }, []);
 
@@ -74,7 +78,7 @@ export default function NuevaVentaContainer() {
 
     const itemsPayload = items.map((item) => ({
       Id_Factura:           facturaData.Id_Factura,
-      Id_Campo:             parseInt(item.Id_Campo),
+      Id_Lote:               parseInt(item.Id_Lote),
       Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
       Cabezas:              parseInt(item.Cabezas),
       KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -93,12 +97,17 @@ export default function NuevaVentaContainer() {
     router.push("/facturas?tab=ventas");
   };
 
+  // Solo autocompleta el ítem nuevo si el campo activo tiene un único lote
+  // — con más de uno no hay un default sin ambigüedad.
+  const lotesDelCampoActivo = campoActivo ? lotes.filter((l) => l.Id_Campo === campoActivo.Id_Campo) : [];
+  const defaultLoteId = lotesDelCampoActivo.length === 1 ? lotesDelCampoActivo[0].Id_Lote : null;
+
   return (
     <NuevaVentaView
       entidades={entidades}
       categorias={categorias}
-      campos={campos}
-      campoActivoId={campoActivo?.Id_Campo ?? null}
+      lotes={lotes}
+      defaultLoteId={defaultLoteId}
       loadingData={loadingData}
       onSave={handleSave}
     />

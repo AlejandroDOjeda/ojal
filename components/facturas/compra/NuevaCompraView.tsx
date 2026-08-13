@@ -23,7 +23,7 @@ import {
 } from "@/components/facturas/types";
 import type { CategoriaGastoOption, EntidadOption } from "./NuevaCompraContainer";
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
-import type { CampoOption } from "@/components/facturas/venta/NuevaVentaView";
+import type { LoteOption } from "@/components/facturas/venta/NuevaVentaView";
 
 type TipoCompra = "gasto" | "hacienda";
 
@@ -31,8 +31,8 @@ type Props = {
   entidades: EntidadOption[];
   categorias: CategoriaGastoOption[];
   categoriasHacienda: CategoriaHaciendaOption[];
-  campos: CampoOption[];
-  campoActivoId: number | null;
+  lotes: LoteOption[];
+  defaultLoteId: number | null;
   loadingData: boolean;
   initialHeader?: FacturaHeaderData;
   initialItems?: ItemCompraForm[];
@@ -46,10 +46,10 @@ let keyCounter = 0;
 const newKey = () => String(++keyCounter);
 
 type ItemGastoErrors = Partial<Record<"Descripcion" | "Cantidad" | "PrecioUnitario", true>>;
-type ItemHaciendaErrors = Partial<Record<"Id_Campo" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
+type ItemHaciendaErrors = Partial<Record<"Id_Lote" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 type ItemCompraErrors = ItemGastoErrors & ItemHaciendaErrors;
 
-export default function NuevaCompraView({ entidades, categorias, categoriasHacienda, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
+export default function NuevaCompraView({ entidades, categorias, categoriasHacienda, lotes, defaultLoteId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
   const [tipoCompra, setTipoCompra] = useState<TipoCompra>(() => initialItems?.[0]?._tipo ?? "gasto");
@@ -76,13 +76,13 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     if (tipo === tipoCompra) return;
     markDirty();
     setTipoCompra(tipo);
-    setItems([tipo === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey(), campoActivoId)]);
+    setItems([tipo === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey(), defaultLoteId)]);
     setItemErrors({});
   };
 
   const addItem = () => {
     markDirty();
-    setItems((p) => [...p, tipoCompra === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey(), campoActivoId)]);
+    setItems((p) => [...p, tipoCompra === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey(), defaultLoteId)]);
   };
   const removeItem = (key: string) => {
     markDirty();
@@ -165,7 +165,7 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
         if (!item.Cantidad || parseFloat(item.Cantidad) <= 0) err.Cantidad = true;
         if (!item.PrecioUnitario || parseFloat(item.PrecioUnitario) <= 0) err.PrecioUnitario = true;
       } else {
-        if (!item.Id_Campo) err.Id_Campo = true;
+        if (!item.Id_Lote) err.Id_Lote = true;
         if (!item.Id_CategoriaHacienda) err.Id_CategoriaHacienda = true;
         if (!item.Cabezas || parseInt(item.Cabezas) <= 0) err.Cabezas = true;
         if (item.Modalidad === "1") {
@@ -195,7 +195,7 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
   const categoriasHaciendaOptions = categoriasHacienda.map((c) => ({ value: c.id, label: c.Nombre }));
-  const camposOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
+  const lotesOptions = lotes.map((l) => ({ value: l.Id_Lote, label: `${l.CampoNombre} — ${l.Nombre}` }));
   const totales = calcTotalesCompra(items, parseFloat(header.NoGravado) || 0);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
@@ -304,7 +304,7 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-muted-foreground w-36">Campo</TableHead>
+                    <TableHead className="text-muted-foreground w-44">Lote</TableHead>
                     <TableHead className="text-muted-foreground w-40">Categoría</TableHead>
                     <TableHead className="text-muted-foreground text-right w-24">Cabezas</TableHead>
                     <TableHead className="text-muted-foreground w-32">Precio por</TableHead>
@@ -320,11 +320,11 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
                     <TableRow key={item._key} className="hover:bg-transparent">
                       <TableCell className="pr-3">
                         <SelectBox
-                          options={camposOptions}
-                          value={item.Id_Campo}
-                          onValueChange={(v) => updateHaciendaItem(item._key, "Id_Campo", v)}
-                          placeholder="— Campo —"
-                          error={!!itemErrors[item._key]?.Id_Campo}
+                          options={lotesOptions}
+                          value={item.Id_Lote}
+                          onValueChange={(v) => updateHaciendaItem(item._key, "Id_Lote", v)}
+                          placeholder="— Lote —"
+                          error={!!itemErrors[item._key]?.Id_Lote}
                         />
                       </TableCell>
                       <TableCell className="pr-3">

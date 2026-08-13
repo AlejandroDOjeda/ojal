@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingCart, TrendingUp, Baby, Skull, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { ShoppingCart, TrendingUp, Baby, Skull, SlidersHorizontal, ArrowRightLeft, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TIPO_MOVIMIENTO_LABELS } from "@/lib/opciones";
 
@@ -10,6 +10,7 @@ const ICONOS: Record<string, LucideIcon> = {
   nacimiento: Baby,
   muerte: Skull,
   ajuste_manual: SlidersHorizontal,
+  traslado: ArrowRightLeft,
 };
 
 export function MovimientoBadge({ tipo }: { tipo: string }) {

@@ -12,14 +12,33 @@ export type RodeoFila = {
   Nombre: string;
 };
 
+export type LoteOption = { Id_Lote: number; Nombre: string };
+
 export default function CargaInicialContainer() {
   const { campoActivo } = useCampoContext();
+  const [lotes, setLotes] = useState<LoteOption[]>([]);
+  const [loteId, setLoteId] = useState<number | null>(null);
   const [filas, setFilas] = useState<RodeoFila[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRodeo = useCallback(async () => {
+  const fetchLotes = useCallback(async () => {
     if (!campoActivo) {
+      setLotes([]); setLoteId(null); setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("Lote")
+      .select("Id_Lote, Nombre")
+      .eq("Id_Campo", campoActivo.Id_Campo)
+      .order("Nombre");
+    const lista = (data ?? []) as LoteOption[];
+    setLotes(lista);
+    setLoteId(lista.length === 1 ? lista[0].Id_Lote : null);
+  }, [campoActivo]);
+
+  const fetchRodeo = useCallback(async () => {
+    if (!loteId) {
       setFilas([]); setLoading(false); return;
     }
     setLoading(true);
@@ -28,7 +47,7 @@ export default function CargaInicialContainer() {
     const { data, error } = await supabase
       .from("Rodeo")
       .select("Id_Rodeo, Id_CategoriaHacienda, Cabezas, CategoriaHacienda(Nombre)")
-      .eq("Id_Campo", campoActivo.Id_Campo);
+      .eq("Id_Lote", loteId);
 
     if (error) {
       setError(error.message);
@@ -51,11 +70,10 @@ export default function CargaInicialContainer() {
     }
 
     setLoading(false);
-  }, [campoActivo]);
+  }, [loteId]);
 
-  useEffect(() => {
-    fetchRodeo();
-  }, [fetchRodeo]);
+  useEffect(() => { fetchLotes(); }, [fetchLotes]);
+  useEffect(() => { fetchRodeo(); }, [fetchRodeo]);
 
   const yaConfigurado = filas.some((f) => f.Cabezas > 0);
 
@@ -77,10 +95,14 @@ export default function CargaInicialContainer() {
   return (
     <CargaInicialView
       filas={filas}
+      lotes={lotes}
+      loteId={loteId}
+      onLoteChange={setLoteId}
       loading={loading}
       error={error}
       yaConfigurado={yaConfigurado}
       sinCampo={!campoActivo}
+      sinLotes={!!campoActivo && lotes.length === 0}
       onGuardar={handleGuardar}
     />
   );

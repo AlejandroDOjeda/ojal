@@ -156,7 +156,7 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-muted-foreground w-32">Campo</TableHead>
+                  <TableHead className="text-muted-foreground w-40">Lote</TableHead>
                   <TableHead className="text-muted-foreground w-36">Categoría</TableHead>
                   <TableHead className="text-muted-foreground text-right w-20">Cabezas</TableHead>
                   <TableHead className="text-muted-foreground text-right w-24">Kg prom.</TableHead>
@@ -169,7 +169,9 @@ export default function FacturaDetalleView({ factura, itemsGasto, itemsHacienda,
               <TableBody>
                 {itemsHacienda.map((item) => (
                   <TableRow key={item.Id_ItemHacienda}>
-                    <TableCell className="text-muted-foreground">{item.Campo?.Nombre ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.Lote ? `${item.Lote.Campo?.Nombre ?? "—"} — ${item.Lote.Nombre}` : "—"}
+                    </TableCell>
                     <TableCell>{item.CategoriaHacienda?.Nombre ?? "—"}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{item.Cabezas}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{item.KgPromedio ?? "—"}</TableCell>

@@ -47,12 +47,12 @@ export default function ResumenMensualContainer({ mes, anio }: Props) {
 
     let ventasQuery = supabase
       .from("Factura")
-      .select("Total, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
+      .select("Total, Id_TipoComprobante, ItemHacienda!inner(Lote!inner(Id_Campo))")
       .eq("Id_TipoOperacion", 2)
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
 
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
       await Promise.all([comprasQuery, ventasQuery]);

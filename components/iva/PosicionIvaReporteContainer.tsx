@@ -62,12 +62,12 @@ export default function PosicionIvaReporteContainer() {
 
     let ventasQuery = supabase
       .from("Factura")
-      .select(`${FACTURA_SELECT}, ItemHacienda!inner(Id_Campo)`)
+      .select(`${FACTURA_SELECT}, ItemHacienda!inner(Lote!inner(Id_Campo))`)
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta);
 
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
       await Promise.all([comprasQuery, ventasQuery]);

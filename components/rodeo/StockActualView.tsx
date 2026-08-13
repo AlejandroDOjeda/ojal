@@ -3,16 +3,24 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { StockFila } from "./StockActualContainer";
+import { SelectBox } from "@/components/app";
+import type { StockFila, LoteOption } from "./StockActualContainer";
+
+const TODOS_LOS_LOTES = "todos";
 
 type Props = {
   filas: StockFila[];
+  lotes: LoteOption[];
+  loteFiltro: number | null;
+  onLoteFiltroChange: (loteId: number | null) => void;
   loading: boolean;
   error: string | null;
   sinDatos: boolean;
 };
 
-export default function StockActualView({ filas, loading, error, sinDatos }: Props) {
+export default function StockActualView({
+  filas, lotes, loteFiltro, onLoteFiltroChange, loading, error, sinDatos,
+}: Props) {
   const [expandido, setExpandido] = useState(true);
   const total = filas.reduce((sum, f) => sum + f.Cabezas, 0);
   const max = Math.max(1, ...filas.map((f) => f.Cabezas));
@@ -25,6 +33,11 @@ export default function StockActualView({ filas, loading, error, sinDatos }: Pro
   if (error) {
     return <p className="text-sm text-destructive">{error}</p>;
   }
+
+  const loteOptions = [
+    { value: TODOS_LOS_LOTES, label: "Todos los lotes" },
+    ...lotes.map((l) => ({ value: String(l.Id_Lote), label: l.Nombre })),
+  ];
 
   return (
     <div>
@@ -39,22 +52,33 @@ export default function StockActualView({ filas, loading, error, sinDatos }: Pro
       )}
 
       <div className="rounded-lg border border-border bg-card p-6">
-        <button
-          type="button"
-          onClick={() => setExpandido((v) => !v)}
-          aria-expanded={expandido}
-          className="flex w-full items-center gap-2 text-left"
-        >
-          {expandido ? (
-            <ChevronDown size={18} className="shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setExpandido((v) => !v)}
+            aria-expanded={expandido}
+            className="flex flex-1 items-center gap-2 text-left"
+          >
+            {expandido ? (
+              <ChevronDown size={18} className="shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+            )}
+            <p className="text-3xl font-bold tabular-nums text-foreground">
+              {total}
+              <span className="ml-2 text-base font-normal text-muted-foreground">cabezas totales</span>
+            </p>
+          </button>
+
+          {lotes.length > 0 && (
+            <SelectBox
+              options={loteOptions}
+              value={loteFiltro ? String(loteFiltro) : TODOS_LOS_LOTES}
+              onValueChange={(v) => onLoteFiltroChange(v === TODOS_LOS_LOTES ? null : Number(v))}
+              className="w-44 shrink-0"
+            />
           )}
-          <p className="text-3xl font-bold tabular-nums text-foreground">
-            {total}
-            <span className="ml-2 text-base font-normal text-muted-foreground">cabezas totales</span>
-          </p>
-        </button>
+        </div>
 
         {expandido && (
           <div className="mt-6 space-y-3">

@@ -37,11 +37,11 @@ export default function ResultadoAnualContainer({ anio, mesHasta }: Props) {
 
     let ventasQuery = supabase
       .from("Factura")
-      .select("Subtotal, Fecha, Id_TipoComprobante, ItemHacienda!inner(Id_Campo)")
+      .select("Subtotal, Fecha, Id_TipoComprobante, ItemHacienda!inner(Lote!inner(Id_Campo))")
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", desde)
       .lte("Fecha", hasta);
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const gastosQuery = supabase
       .from("ItemGasto")

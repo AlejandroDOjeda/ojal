@@ -8,6 +8,7 @@ import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemGastoSubtotal, calcItemHaciendaSubtotal, calcTotalesCompra, type FacturaHeaderData, type ItemCompraForm } from "@/components/facturas/types";
 import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_COMPRA } from "@/components/facturas/duplicado";
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
+import type { LoteOption } from "@/components/facturas/venta/NuevaVentaView";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaCompraView from "./NuevaCompraView";
@@ -18,21 +19,25 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 export default function NuevaCompraContainer() {
   const router = useRouter();
   const { userId } = useAuthContext();
-  const { campoActivo, campos } = useCampoContext();
+  const { campoActivo } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaGastoOption[]>([]);
   const [categoriasHacienda, setCategoriasHacienda] = useState<CategoriaHaciendaOption[]>([]);
+  const [lotes, setLotes] = useState<LoteOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const [{ data: ents }, { data: cats }, { data: catsHacienda }] = await Promise.all([
+    const [{ data: ents }, { data: cats }, { data: catsHacienda }, { data: lots }] = await Promise.all([
       supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial, CuitCuil").order("RazonSocial"),
       supabase.from("CategoriaGasto").select("Id_CategoriaGasto, Nombre, TasaIvaHabitual").eq("Activa", true).order("Nombre"),
       supabase.from("CategoriaHacienda").select("Id_CategoriaHacienda, Nombre, TasaIva").eq("Activa", true).order("Nombre"),
+      supabase.from("Lote").select("Id_Lote, Nombre, Id_Campo, Campo(Nombre)"),
     ]);
     setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
     setCategorias((cats ?? []).map((c: { Id_CategoriaGasto: number; Nombre: string; TasaIvaHabitual: number }) => ({ id: c.Id_CategoriaGasto, Nombre: c.Nombre, TasaIvaHabitual: c.TasaIvaHabitual })));
     setCategoriasHacienda((catsHacienda ?? []).map((c: { Id_CategoriaHacienda: number; Nombre: string; TasaIva: number }) => ({ id: c.Id_CategoriaHacienda, Nombre: c.Nombre, TasaIva: c.TasaIva })));
+    type LoteRow = { Id_Lote: number; Nombre: string; Id_Campo: number; Campo: { Nombre: string } | null };
+    setLotes(((lots ?? []) as LoteRow[]).map((l) => ({ Id_Lote: l.Id_Lote, Nombre: l.Nombre, Id_Campo: l.Id_Campo, CampoNombre: l.Campo?.Nombre ?? "" })));
     setLoadingData(false);
   }, []);
 
@@ -91,7 +96,7 @@ export default function NuevaCompraContainer() {
 
     const haciendaPayload = itemsHacienda.map((item) => ({
       Id_Factura:           facturaData.Id_Factura,
-      Id_Campo:             parseInt(item.Id_Campo),
+      Id_Lote:               parseInt(item.Id_Lote),
       Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
       Cabezas:              parseInt(item.Cabezas),
       KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -114,13 +119,16 @@ export default function NuevaCompraContainer() {
     router.push("/facturas?tab=compras");
   };
 
+  const lotesDelCampoActivo = campoActivo ? lotes.filter((l) => l.Id_Campo === campoActivo.Id_Campo) : [];
+  const defaultLoteId = lotesDelCampoActivo.length === 1 ? lotesDelCampoActivo[0].Id_Lote : null;
+
   return (
     <NuevaCompraView
       entidades={entidades}
       categorias={categorias}
       categoriasHacienda={categoriasHacienda}
-      campos={campos}
-      campoActivoId={campoActivo?.Id_Campo ?? null}
+      lotes={lotes}
+      defaultLoteId={defaultLoteId}
       loadingData={loadingData}
       onSave={handleSave}
     />

@@ -9,12 +9,14 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTable, DatePicker, FormField } from "@/components/app";
+import { DataTable, DatePicker, FormField, SelectBox } from "@/components/app";
 import { signoMovimientoRodeo, TIPO_MOVIMIENTO_LABELS } from "@/lib/opciones";
 import { downloadXlsx } from "@/lib/excel";
 import { downloadPdf } from "@/lib/pdf";
 import { MovimientoBadge } from "./MovimientoBadge";
-import type { MovimientoFila } from "./HistorialMovimientosContainer";
+import type { MovimientoFila, LoteOption } from "./HistorialMovimientosContainer";
+
+const TODOS_LOS_LOTES = "todos";
 
 // parseISO interpreta "YYYY-MM-DD" como medianoche local; new Date(string) lo
 // interpreta como UTC, lo que en husos horarios negativos (Argentina) puede
@@ -34,8 +36,16 @@ const colorCabezas = (fila: MovimientoFila) => {
   return "text-muted-foreground";
 };
 
+const detalleTraslado = (fila: MovimientoFila): string | null => {
+  if (fila.TipoMovimiento !== "traslado" || !fila.LoteVinculado) return null;
+  return fila.Sentido === "incremento" ? `← ${fila.LoteVinculado.Nombre}` : `→ ${fila.LoteVinculado.Nombre}`;
+};
+
 type Props = {
   movimientos: MovimientoFila[];
+  lotes: LoteOption[];
+  loteFiltro: number | null;
+  onLoteFiltroChange: (loteId: number | null) => void;
   loading: boolean;
   error: string | null;
   fechaDesde: string;
@@ -46,7 +56,7 @@ type Props = {
 };
 
 export default function HistorialMovimientosView({
-  movimientos, loading, error, fechaDesde, fechaHasta,
+  movimientos, lotes, loteFiltro, onLoteFiltroChange, loading, error, fechaDesde, fechaHasta,
   onFechaDesdeChange, onFechaHastaChange, mostrarCampo,
 }: Props) {
   const columns = useMemo<ColumnDef<MovimientoFila, unknown>[]>(() => {
@@ -68,14 +78,20 @@ export default function HistorialMovimientosView({
         accessorFn: (row) => row.CategoriaHacienda?.Nombre ?? "",
         cell: ({ row }) => <span className="font-medium">{row.original.CategoriaHacienda?.Nombre ?? "—"}</span>,
       },
+      {
+        id: "lote",
+        header: "Lote",
+        accessorFn: (row) => row.Lote?.Nombre ?? "",
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Nombre ?? "—"}</span>,
+      },
     ];
 
     if (mostrarCampo) {
       cols.push({
         id: "campo",
         header: "Campo",
-        accessorFn: (row) => row.Campo?.Nombre ?? "",
-        cell: ({ row }) => <span className="text-muted-foreground">{row.original.Campo?.Nombre ?? "—"}</span>,
+        accessorFn: (row) => row.Lote?.Campo?.Nombre ?? "",
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Campo?.Nombre ?? "—"}</span>,
       });
     }
 
@@ -105,6 +121,10 @@ export default function HistorialMovimientosView({
         enableSorting: false,
         cell: ({ row }) => {
           const fila = row.original;
+          const traslado = detalleTraslado(fila);
+          if (traslado) {
+            return <span className="text-xs text-muted-foreground">{traslado}</span>;
+          }
           if (fila.Id_Factura) {
             return (
               <Link
@@ -125,15 +145,16 @@ export default function HistorialMovimientosView({
   }, [mostrarCampo]);
 
   const buildExportData = () => {
-    const headers = ["Fecha", "Tipo", "Categoría", ...(mostrarCampo ? ["Campo"] : []), "Cabezas", "Detalle"];
+    const headers = ["Fecha", "Tipo", "Categoría", "Lote", ...(mostrarCampo ? ["Campo"] : []), "Cabezas", "Detalle"];
     const rows = movimientos.map((m) => {
       const signo = signoMovimientoRodeo(m.TipoMovimiento, m.Sentido);
-      const detalle = m.Id_Factura ? `Comprobante #${m.Id_Factura}` : (m.Observaciones ?? "");
+      const detalle = detalleTraslado(m) ?? (m.Id_Factura ? `Comprobante #${m.Id_Factura}` : (m.Observaciones ?? ""));
       return [
         formatFecha(m.Fecha),
         TIPO_MOVIMIENTO_LABELS[m.TipoMovimiento] ?? m.TipoMovimiento,
         m.CategoriaHacienda?.Nombre ?? "",
-        ...(mostrarCampo ? [m.Campo?.Nombre ?? ""] : []),
+        m.Lote?.Nombre ?? "",
+        ...(mostrarCampo ? [m.Lote?.Campo?.Nombre ?? ""] : []),
         signo * m.Cabezas,
         detalle,
       ];
@@ -162,6 +183,11 @@ export default function HistorialMovimientosView({
       rows,
     });
   };
+
+  const loteOptions = [
+    { value: TODOS_LOS_LOTES, label: "Todos los lotes" },
+    ...lotes.map((l) => ({ value: String(l.Id_Lote), label: l.Nombre })),
+  ];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -195,13 +221,22 @@ export default function HistorialMovimientosView({
         <FormField label="Hasta" className="w-40">
           <DatePicker value={fechaHasta} onChange={onFechaHastaChange} />
         </FormField>
+        {lotes.length > 0 && (
+          <FormField label="Lote" className="w-44">
+            <SelectBox
+              options={loteOptions}
+              value={loteFiltro ? String(loteFiltro) : TODOS_LOS_LOTES}
+              onValueChange={(v) => onLoteFiltroChange(v === TODOS_LOS_LOTES ? null : Number(v))}
+            />
+          </FormField>
+        )}
       </div>
 
       <DataTable
         data={movimientos}
         columns={columns}
         loading={loading}
-        searchPlaceholder="Buscar por categoría, campo..."
+        searchPlaceholder="Buscar por categoría, lote..."
       />
     </div>
   );

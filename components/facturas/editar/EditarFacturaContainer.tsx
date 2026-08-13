@@ -12,6 +12,7 @@ import {
 import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_COMPRA, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
 import type { CategoriaGastoOption, EntidadOption } from "@/components/facturas/compra/NuevaCompraContainer";
 import type { CategoriaHaciendaOption } from "@/components/facturas/venta/NuevaVentaContainer";
+import type { LoteOption } from "@/components/facturas/venta/NuevaVentaView";
 import NuevaCompraView from "@/components/facturas/compra/NuevaCompraView";
 import NuevaVentaView from "@/components/facturas/venta/NuevaVentaView";
 import { PageShell } from "@/components/app";
@@ -23,7 +24,7 @@ const newKey = () => String(++keyCounter);
 export default function EditarFacturaContainer() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { campos, campoActivo } = useCampoContext();
+  const { campoActivo } = useCampoContext();
 
   const [tipoOperacion, setTipoOperacion] = useState<number | null>(null);
   const [initialHeader, setInitialHeader] = useState<FacturaHeaderData | null>(null);
@@ -32,6 +33,7 @@ export default function EditarFacturaContainer() {
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categoriasGasto, setCategoriasGasto] = useState<CategoriaGastoOption[]>([]);
   const [categoriasHacienda, setCategoriasHacienda] = useState<CategoriaHaciendaOption[]>([]);
+  const [lotes, setLotes] = useState<LoteOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -44,11 +46,13 @@ export default function EditarFacturaContainer() {
       { data: ents },
       { data: catsGasto },
       { data: catsHacienda },
+      { data: lots },
     ] = await Promise.all([
       supabase.from("Factura").select("*").eq("Id_Factura", facId).single(),
       supabase.from("EntidadLegal").select("Id_EntidadLegal, RazonSocial, CuitCuil").order("RazonSocial"),
       supabase.from("CategoriaGasto").select("Id_CategoriaGasto, Nombre, TasaIvaHabitual").eq("Activa", true).order("Nombre"),
       supabase.from("CategoriaHacienda").select("Id_CategoriaHacienda, Nombre, TasaIva").eq("Activa", true).order("Nombre"),
+      supabase.from("Lote").select("Id_Lote, Nombre, Id_Campo, Campo(Nombre)"),
     ]);
 
     if (facturaError || !facturaData) { setNotFound(true); setLoading(false); return; }
@@ -75,6 +79,8 @@ export default function EditarFacturaContainer() {
     setEntidades((ents ?? []).map((e: { Id_EntidadLegal: number; RazonSocial: string; CuitCuil: string }) => ({ id: e.Id_EntidadLegal, RazonSocial: e.RazonSocial, CuitCuil: e.CuitCuil })));
     setCategoriasGasto((catsGasto ?? []).map((c: { Id_CategoriaGasto: number; Nombre: string; TasaIvaHabitual: number }) => ({ id: c.Id_CategoriaGasto, Nombre: c.Nombre, TasaIvaHabitual: c.TasaIvaHabitual })));
     setCategoriasHacienda((catsHacienda ?? []).map((c: { Id_CategoriaHacienda: number; Nombre: string; TasaIva: number }) => ({ id: c.Id_CategoriaHacienda, Nombre: c.Nombre, TasaIva: c.TasaIva })));
+    type LoteRow = { Id_Lote: number; Nombre: string; Id_Campo: number; Campo: { Nombre: string } | null };
+    setLotes(((lots ?? []) as LoteRow[]).map((l) => ({ Id_Lote: l.Id_Lote, Nombre: l.Nombre, Id_Campo: l.Id_Campo, CampoNombre: l.Campo?.Nombre ?? "" })));
 
     if (f.Id_TipoOperacion === TIPO_OPERACION.COMPRA) {
       const [{ data: itemsGasto }, { data: itemsHacienda }] = await Promise.all([
@@ -93,11 +99,11 @@ export default function EditarFacturaContainer() {
         TasaIva: String(item.TasaIva),
       }));
       const hacienda: ItemCompraForm[] = (itemsHacienda ?? []).map((item: {
-        Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
+        Id_Lote: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
       }) => ({
         _key: newKey(),
         _tipo: "hacienda",
-        Id_Campo: String(item.Id_Campo),
+        Id_Lote: String(item.Id_Lote),
         Id_CategoriaHacienda: String(item.Id_CategoriaHacienda),
         Cabezas: String(item.Cabezas),
         Modalidad: item.KgPromedio !== null ? "1" as const : "2" as const,
@@ -110,10 +116,10 @@ export default function EditarFacturaContainer() {
     } else {
       const { data: items } = await supabase.from("ItemHacienda").select("*").eq("Id_Factura", facId).order("CreatedAt");
       setInitialItemsHacienda((items ?? []).map((item: {
-        Id_Campo: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
+        Id_Lote: number; Id_CategoriaHacienda: number; Cabezas: number; KgPromedio: number | null; PrecioPorKg: number | null; PrecioPorCabeza: number | null; TasaIva: number;
       }) => ({
         _key: newKey(),
-        Id_Campo: String(item.Id_Campo),
+        Id_Lote: String(item.Id_Lote),
         Id_CategoriaHacienda: String(item.Id_CategoriaHacienda),
         Cabezas: String(item.Cabezas),
         Modalidad: item.KgPromedio !== null ? "1" as const : "2" as const,
@@ -184,7 +190,7 @@ export default function EditarFacturaContainer() {
 
     const haciendaPayload = itemsHacienda.map((item) => ({
       Id_Factura:           facId,
-      Id_Campo:             parseInt(item.Id_Campo),
+      Id_Lote:               parseInt(item.Id_Lote),
       Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
       Cabezas:              parseInt(item.Cabezas),
       KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -244,7 +250,7 @@ export default function EditarFacturaContainer() {
     const { error: insertError } = await supabase.from("ItemHacienda").insert(
       items.map((item) => ({
         Id_Factura:           facId,
-        Id_Campo:             parseInt(item.Id_Campo),
+        Id_Lote:               parseInt(item.Id_Lote),
         Id_CategoriaHacienda: parseInt(item.Id_CategoriaHacienda),
         Cabezas:              parseInt(item.Cabezas),
         KgPromedio:           item.Modalidad === "1" ? parseFloat(item.KgPromedio) : null,
@@ -276,14 +282,17 @@ export default function EditarFacturaContainer() {
     );
   }
 
+  const lotesDelCampoActivo = campoActivo ? lotes.filter((l) => l.Id_Campo === campoActivo.Id_Campo) : [];
+  const defaultLoteId = lotesDelCampoActivo.length === 1 ? lotesDelCampoActivo[0].Id_Lote : null;
+
   if (tipoOperacion === TIPO_OPERACION.COMPRA) {
     return (
       <NuevaCompraView
         entidades={entidades}
         categorias={categoriasGasto}
         categoriasHacienda={categoriasHacienda}
-        campos={campos}
-        campoActivoId={campoActivo?.Id_Campo ?? null}
+        lotes={lotes}
+        defaultLoteId={defaultLoteId}
         loadingData={false}
         initialHeader={initialHeader!}
         initialItems={initialItemsCompra!}
@@ -299,8 +308,8 @@ export default function EditarFacturaContainer() {
     <NuevaVentaView
       entidades={entidades}
       categorias={categoriasHacienda}
-      campos={campos}
-      campoActivoId={campoActivo?.Id_Campo ?? null}
+      lotes={lotes}
+      defaultLoteId={defaultLoteId}
       loadingData={false}
       initialHeader={initialHeader!}
       initialItems={initialItemsHacienda!}
