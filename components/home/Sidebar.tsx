@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin, Percent, ChartBar,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin, Percent, ChartBar, Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -28,6 +28,7 @@ import {
 const configItems = [
   { href: "/rodeo", label: "Rodeo", icon: Package, prefix: true },
   { href: "/configuracion/campos", label: "Campos", icon: MapPin },
+  { href: "/configuracion/lotes", label: "Lotes", icon: Layers },
   { href: "/configuracion/entidades-legales", label: "Entidades Legales", icon: Building2 },
   { href: "/configuracion/categoria-hacienda", label: "Categorías Hacienda", icon: Beef },
   { href: "/configuracion/categoria-gasto", label: "Categorías Gasto", icon: ShoppingBag },

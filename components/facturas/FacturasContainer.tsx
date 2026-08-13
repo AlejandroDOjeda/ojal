@@ -55,13 +55,13 @@ export default function FacturasContainer() {
 
     let ventasQuery = supabase
       .from("Factura")
-      .select(`${FACTURA_SELECT}, ItemHacienda!inner(Id_Campo)`)
+      .select(`${FACTURA_SELECT}, ItemHacienda!inner(Lote!inner(Id_Campo))`)
       .eq("Id_TipoOperacion", TIPO_OPERACION.VENTA)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta)
       .order("Fecha", { ascending: false });
 
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Id_Campo", campoActivo.Id_Campo);
+    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const [{ data: comprasData, error: comprasError }, { data: ventasData, error: ventasError }] =
       await Promise.all([comprasQuery, ventasQuery]);

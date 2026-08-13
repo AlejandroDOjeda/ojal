@@ -1,57 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Settings, Plus } from "lucide-react";
-import type { StockFila } from "./StockActualContainer";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { SelectBox } from "@/components/app";
+import type { StockFila, LoteOption } from "./StockActualContainer";
+
+const TODOS_LOS_LOTES = "todos";
 
 type Props = {
   filas: StockFila[];
+  lotes: LoteOption[];
+  loteFiltro: number | null;
+  onLoteFiltroChange: (loteId: number | null) => void;
   loading: boolean;
   error: string | null;
   sinDatos: boolean;
 };
 
-export default function StockActualView({ filas, loading, error, sinDatos }: Props) {
+export default function StockActualView({
+  filas, lotes, loteFiltro, onLoteFiltroChange, loading, error, sinDatos,
+}: Props) {
+  const [expandido, setExpandido] = useState(true);
   const total = filas.reduce((sum, f) => sum + f.Cabezas, 0);
+  const max = Math.max(1, ...filas.map((f) => f.Cabezas));
+  const ordenadas = [...filas].sort((a, b) => b.Cabezas - a.Cabezas);
 
   if (loading) {
-    return (
-      <main className="p-8 max-w-2xl">
-        <p className="text-sm text-muted-foreground">Cargando...</p>
-      </main>
-    );
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
   if (error) {
-    return (
-      <main className="p-8 max-w-2xl">
-        <p className="text-sm text-destructive">{error}</p>
-      </main>
-    );
+    return <p className="text-sm text-destructive">{error}</p>;
   }
 
-  return (
-    <main className="p-8 max-w-2xl">
-      <div className="mb-6 flex items-start justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Rodeo</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/rodeo/carga-inicial"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Settings size={14} />
-            Editar stock inicial
-          </Link>
-          <Link
-            href="/rodeo/nuevo-movimiento"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Plus size={14} />
-            Registrar movimiento
-          </Link>
-        </div>
-      </div>
+  const loteOptions = [
+    { value: TODOS_LOS_LOTES, label: "Todos los lotes" },
+    ...lotes.map((l) => ({ value: String(l.Id_Lote), label: l.Nombre })),
+  ];
 
+  return (
+    <div>
       {sinDatos && (
         <div className="mb-5 rounded-md border border-border bg-muted/40 px-5 py-4 text-sm text-muted-foreground">
           Todavía no cargaste el stock inicial.{" "}
@@ -62,37 +51,58 @@ export default function StockActualView({ filas, loading, error, sinDatos }: Pro
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card">
-        <div className="grid grid-cols-2 border-b border-border px-5 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          <span>Categoría</span>
-          <span className="text-right">Cabezas</span>
-        </div>
-
-        {filas.map((fila, idx) => (
-          <div
-            key={fila.Id_CategoriaHacienda}
-            className={`grid grid-cols-2 items-center px-5 py-3.5 ${
-              idx < filas.length - 1 ? "border-b border-border" : ""
-            }`}
+      <div className="rounded-lg border border-border bg-card p-6">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setExpandido((v) => !v)}
+            aria-expanded={expandido}
+            className="flex flex-1 items-center gap-2 text-left"
           >
-            <span className="text-sm font-medium text-foreground">{fila.Nombre}</span>
-            <span
-              className={`text-right text-sm tabular-nums ${
-                fila.Cabezas > 0 ? "font-semibold text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {fila.Cabezas}
-            </span>
-          </div>
-        ))}
+            {expandido ? (
+              <ChevronDown size={18} className="shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+            )}
+            <p className="text-3xl font-bold tabular-nums text-foreground">
+              {total}
+              <span className="ml-2 text-base font-normal text-muted-foreground">cabezas totales</span>
+            </p>
+          </button>
 
-        <div className="grid grid-cols-2 items-center border-t border-border bg-muted/30 px-5 py-3">
-          <span className="text-sm font-semibold text-foreground">Total</span>
-          <span className="text-right text-sm font-bold tabular-nums text-foreground">
-            {total}
-          </span>
+          {lotes.length > 0 && (
+            <SelectBox
+              options={loteOptions}
+              value={loteFiltro ? String(loteFiltro) : TODOS_LOS_LOTES}
+              onValueChange={(v) => onLoteFiltroChange(v === TODOS_LOS_LOTES ? null : Number(v))}
+              className="w-44 shrink-0"
+            />
+          )}
         </div>
+
+        {expandido && (
+          <div className="mt-6 space-y-3">
+            {ordenadas.map((fila) => (
+              <div key={fila.Id_CategoriaHacienda} className="flex items-center gap-3">
+                <span className="w-28 shrink-0 truncate text-sm text-muted-foreground">{fila.Nombre}</span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: `${(fila.Cabezas / max) * 100}%` }}
+                  />
+                </div>
+                <span
+                  className={`w-10 shrink-0 text-right text-sm font-semibold tabular-nums ${
+                    fila.Cabezas > 0 ? "text-foreground" : "text-muted-foreground/40"
+                  }`}
+                >
+                  {fila.Cabezas}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }

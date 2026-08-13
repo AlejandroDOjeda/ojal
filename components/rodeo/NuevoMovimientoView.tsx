@@ -7,22 +7,26 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageShell, SectionCard, FormField, SelectBox } from "@/components/app";
-import type { CategoriaOption } from "./NuevoMovimientoContainer";
+import type { CategoriaOption, LoteOption } from "./NuevoMovimientoContainer";
 
 export type MovimientoFormData = {
-  tipoMovimiento: "nacimiento" | "muerte" | "ajuste_manual";
+  tipoMovimiento: "nacimiento" | "muerte" | "ajuste_manual" | "traslado";
   sentidoAjuste: "incremento" | "decremento";
   idCategoriaHacienda: number;
   nombreCategoria: string;
   cabezas: number;
   fecha: string;
   observaciones: string;
+  idLote: number | null;
+  idLoteOrigen: number | null;
+  idLoteDestino: number | null;
 };
 
 const TIPO_OPTIONS = [
   { value: "nacimiento", label: "Nacimiento / Parición" },
   { value: "muerte",     label: "Muerte / Pérdida" },
   { value: "ajuste_manual", label: "Ajuste manual" },
+  { value: "traslado",   label: "Traslado entre lotes" },
 ] as const;
 
 const SENTIDO_OPTIONS = [
@@ -32,22 +36,29 @@ const SENTIDO_OPTIONS = [
 
 type Props = {
   categorias: CategoriaOption[];
+  lotes: LoteOption[];
   loading: boolean;
   sinCampo: boolean;
+  sinLotes: boolean;
   onGuardar: (form: MovimientoFormData) => Promise<void>;
 };
 
 const hoy = () => new Date().toISOString().split("T")[0];
 
-export default function NuevoMovimientoView({ categorias, loading, sinCampo, onGuardar }: Props) {
+export default function NuevoMovimientoView({ categorias, lotes, loading, sinCampo, sinLotes, onGuardar }: Props) {
   const [tipo, setTipo] = useState<MovimientoFormData["tipoMovimiento"] | "">("");
   const [sentido, setSentido] = useState<MovimientoFormData["sentidoAjuste"]>("incremento");
   const [idCategoria, setIdCategoria] = useState<string>("");
+  const [idLote, setIdLote] = useState<string>("");
+  const [idLoteOrigen, setIdLoteOrigen] = useState<string>("");
+  const [idLoteDestino, setIdLoteDestino] = useState<string>("");
   const [cabezas, setCabezas] = useState<string>("");
   const [fecha, setFecha] = useState<string>(hoy());
   const [observaciones, setObservaciones] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const esTraslado = tipo === "traslado";
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -56,6 +67,15 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
     const cab = parseInt(cabezas, 10);
     if (!cabezas || isNaN(cab) || cab <= 0) e.cabezas = "Ingresá una cantidad mayor a 0.";
     if (!fecha) e.fecha = "Ingresá una fecha.";
+    if (esTraslado) {
+      if (!idLoteOrigen) e.loteOrigen = "Seleccioná el lote origen.";
+      if (!idLoteDestino) e.loteDestino = "Seleccioná el lote destino.";
+      if (idLoteOrigen && idLoteDestino && idLoteOrigen === idLoteDestino) {
+        e.loteDestino = "Tiene que ser distinto del lote origen.";
+      }
+    } else if (tipo) {
+      if (!idLote) e.lote = "Seleccioná un lote.";
+    }
     return e;
   };
 
@@ -75,6 +95,9 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
         cabezas: parseInt(cabezas, 10),
         fecha,
         observaciones,
+        idLote: idLote ? Number(idLote) : null,
+        idLoteOrigen: idLoteOrigen ? Number(idLoteOrigen) : null,
+        idLoteDestino: idLoteDestino ? Number(idLoteDestino) : null,
       });
       toast.success("Movimiento registrado.");
     } catch (err) {
@@ -88,18 +111,19 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
     value: c.Id_CategoriaHacienda,
     label: c.Nombre,
   }));
+  const loteOptions = lotes.map((l) => ({ value: l.Id_Lote, label: l.Nombre }));
+  const tipoOptions = TIPO_OPTIONS.filter((o) => o.value !== "traslado" || lotes.length >= 2);
+
+  const volver = (
+    <Link href="/rodeo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <ArrowLeft size={14} />
+      Volver al rodeo
+    </Link>
+  );
 
   if (sinCampo) {
     return (
-      <PageShell
-        title="Nuevo movimiento"
-        back={
-          <Link href="/rodeo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft size={14} />
-            Volver al rodeo
-          </Link>
-        }
-      >
+      <PageShell title="Nuevo movimiento" back={volver}>
         <p className="text-sm text-muted-foreground">
           Seleccioná un campo en el selector del encabezado para registrar un movimiento.
         </p>
@@ -107,29 +131,33 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
     );
   }
 
+  if (sinLotes) {
+    return (
+      <PageShell title="Nuevo movimiento" back={volver}>
+        <p className="text-sm text-muted-foreground">
+          Este campo todavía no tiene lotes.{" "}
+          <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
+            Creá uno
+          </Link>{" "}
+          para poder registrar movimientos.
+        </p>
+      </PageShell>
+    );
+  }
+
   return (
-    <PageShell
-      title="Nuevo movimiento"
-      back={
-        <Link
-          href="/rodeo"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Volver al rodeo
-        </Link>
-      }
-    >
+    <PageShell title="Nuevo movimiento" back={volver}>
       <form onSubmit={handleSubmit} className="max-w-lg">
         <SectionCard className="space-y-5">
 
           {/* Tipo de movimiento */}
           <FormField label="Tipo de movimiento" required error={errors.tipo}>
             <SelectBox
-              options={TIPO_OPTIONS}
+              options={tipoOptions}
               value={tipo || null}
               onValueChange={(v) => { setTipo(v as MovimientoFormData["tipoMovimiento"]); setErrors((p) => ({ ...p, tipo: "" })); }}
-              placeholder="— Seleccioná —"
+              placeholder={loading ? "Cargando…" : "— Seleccioná —"}
+              disabled={loading}
               error={!!errors.tipo}
             />
           </FormField>
@@ -143,6 +171,43 @@ export default function NuevoMovimientoView({ categorias, loading, sinCampo, onG
                 onValueChange={(v) => setSentido(v as MovimientoFormData["sentidoAjuste"])}
               />
             </FormField>
+          )}
+
+          {/* Lote (nacimiento/muerte/ajuste_manual) */}
+          {tipo && !esTraslado && (
+            <FormField label="Lote" required error={errors.lote}>
+              <SelectBox
+                options={loteOptions}
+                value={idLote || null}
+                onValueChange={(v) => { setIdLote(v); setErrors((p) => ({ ...p, lote: "" })); }}
+                placeholder="— Seleccioná —"
+                error={!!errors.lote}
+              />
+            </FormField>
+          )}
+
+          {/* Lote origen/destino (traslado) */}
+          {esTraslado && (
+            <>
+              <FormField label="Lote origen" required error={errors.loteOrigen}>
+                <SelectBox
+                  options={loteOptions}
+                  value={idLoteOrigen || null}
+                  onValueChange={(v) => { setIdLoteOrigen(v); setErrors((p) => ({ ...p, loteOrigen: "" })); }}
+                  placeholder="— Seleccioná —"
+                  error={!!errors.loteOrigen}
+                />
+              </FormField>
+              <FormField label="Lote destino" required error={errors.loteDestino}>
+                <SelectBox
+                  options={loteOptions}
+                  value={idLoteDestino || null}
+                  onValueChange={(v) => { setIdLoteDestino(v); setErrors((p) => ({ ...p, loteDestino: "" })); }}
+                  placeholder="— Seleccioná —"
+                  error={!!errors.loteDestino}
+                />
+              </FormField>
+            </>
           )}
 
           {/* Categoría */}

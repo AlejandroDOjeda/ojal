@@ -21,13 +21,16 @@ import {
 } from "@/components/facturas/types";
 import type { CategoriaHaciendaOption, EntidadOption } from "./NuevaVentaContainer";
 
-export type CampoOption = { Id_Campo: number; Nombre: string };
+// Id_Campo se mantiene para poder agrupar/filtrar por campo en el selector
+// (label combinado "Campo — Lote"), ya que una factura puede mezclar lotes
+// de distintos campos — igual que antes mezclaba campos.
+export type LoteOption = { Id_Lote: number; Nombre: string; Id_Campo: number; CampoNombre: string };
 
 type Props = {
   entidades: EntidadOption[];
   categorias: CategoriaHaciendaOption[];
-  campos: CampoOption[];
-  campoActivoId: number | null;
+  lotes: LoteOption[];
+  defaultLoteId: number | null;
   loadingData: boolean;
   initialHeader?: FacturaHeaderData;
   initialItems?: ItemHaciendaForm[];
@@ -40,12 +43,12 @@ type Props = {
 let keyCounter = 0;
 const newKey = () => String(++keyCounter);
 
-type ItemHaciendaErrors = Partial<Record<"Id_Campo" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
+type ItemHaciendaErrors = Partial<Record<"Id_Lote" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 
-export default function NuevaVentaView({ entidades, categorias, campos, campoActivoId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
+export default function NuevaVentaView({ entidades, categorias, lotes, defaultLoteId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
-  const nuevoItem = () => ({ _key: newKey(), ...EMPTY_ITEM_HACIENDA, Id_Campo: campoActivoId ? String(campoActivoId) : "" });
+  const nuevoItem = () => ({ _key: newKey(), ...EMPTY_ITEM_HACIENDA, Id_Lote: defaultLoteId ? String(defaultLoteId) : "" });
   const [items, setItems] = useState<ItemHaciendaForm[]>(initialItems ?? [nuevoItem()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +119,7 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
     const newItemErrors: Record<string, ItemHaciendaErrors> = {};
     for (const item of items) {
       const err: ItemHaciendaErrors = {};
-      if (!item.Id_Campo) err.Id_Campo = true;
+      if (!item.Id_Lote) err.Id_Lote = true;
       if (!item.Id_CategoriaHacienda) err.Id_CategoriaHacienda = true;
       if (!item.Cabezas || parseInt(item.Cabezas) <= 0) err.Cabezas = true;
       if (item.Modalidad === "1") {
@@ -144,7 +147,7 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
   const handleCancel = () => { if (isDirty) setShowExitDialog(true); else router.push(cancelPath ?? "/facturas?tab=ventas"); };
 
   const categoriasOptions = categorias.map((c) => ({ value: c.id, label: c.Nombre }));
-  const camposOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
+  const lotesOptions = lotes.map((l) => ({ value: l.Id_Lote, label: `${l.CampoNombre} — ${l.Nombre}` }));
   const totales = calcTotalesHacienda(items, parseFloat(header.NoGravado) || 0);
   const backLink = (
     <Link href="#" onClick={(e) => { e.preventDefault(); handleCancel(); }}>
@@ -171,7 +174,7 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-muted-foreground min-w-36">Campo</TableHead>
+                <TableHead className="text-muted-foreground min-w-44">Lote</TableHead>
                 <TableHead className="text-muted-foreground min-w-40">Categoría</TableHead>
                 <TableHead className="text-muted-foreground text-right min-w-24">Cabezas</TableHead>
                 <TableHead className="text-muted-foreground min-w-36">Precio por</TableHead>
@@ -187,11 +190,11 @@ export default function NuevaVentaView({ entidades, categorias, campos, campoAct
                 <TableRow key={item._key} className="hover:bg-transparent">
                   <TableCell className="pr-3">
                     <SelectBox
-                      options={camposOptions}
-                      value={item.Id_Campo}
-                      onValueChange={(v) => updateItem(item._key, "Id_Campo", v)}
-                      placeholder="— Campo —"
-                      error={!!itemErrors[item._key]?.Id_Campo}
+                      options={lotesOptions}
+                      value={item.Id_Lote}
+                      onValueChange={(v) => updateItem(item._key, "Id_Lote", v)}
+                      placeholder="— Lote —"
+                      error={!!itemErrors[item._key]?.Id_Lote}
                     />
                   </TableCell>
                   <TableCell className="pr-3">

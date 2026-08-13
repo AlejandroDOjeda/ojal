@@ -1,5 +1,5 @@
-import StockActualContainer from "@/components/rodeo/StockActualContainer";
+import RodeoContainer from "@/components/rodeo/RodeoContainer";
 
 export default function RodeoPage() {
-  return <StockActualContainer />;
+  return <RodeoContainer />;
 }

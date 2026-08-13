@@ -110,3 +110,34 @@ export const MODALIDAD_PRECIO_OPTIONS = [
 ] as const;
 
 export const MODALIDAD_PRECIO_ITEMS = toSelectItems(MODALIDAD_PRECIO_OPTIONS);
+
+// ─── TipoMovimiento (MovimientoRodeo) ────────────────────────────────────────
+
+export const TIPO_MOVIMIENTO_LABELS: Record<string, string> = {
+  compra: "Compra",
+  venta: "Venta",
+  nacimiento: "Nacimiento",
+  muerte: "Muerte",
+  ajuste_manual: "Ajuste manual",
+  traslado: "Traslado",
+};
+
+// Signo a aplicar sobre Cabezas al mostrar el historial de movimientos.
+// compra/nacimiento suman al rodeo, venta/muerte restan. ajuste_manual y
+// traslado no tienen signo fijo: dependen de Sentido (columna agregada
+// 2026-07-31, reutilizada por traslado desde 2026-08-13 — cada traslado
+// genera dos filas de MovimientoRodeo, una por lote, con Sentido opuesto).
+// Los ajuste_manual cargados antes de esa fecha no tienen Sentido y se
+// muestran neutros (0) porque no hay forma de saber su dirección real.
+export const signoMovimientoRodeo = (
+  tipoMovimiento: string,
+  sentido: string | null
+): 1 | -1 | 0 => {
+  if (tipoMovimiento === "compra" || tipoMovimiento === "nacimiento") return 1;
+  if (tipoMovimiento === "venta" || tipoMovimiento === "muerte") return -1;
+  if (tipoMovimiento === "ajuste_manual" || tipoMovimiento === "traslado") {
+    if (sentido === "incremento") return 1;
+    if (sentido === "decremento") return -1;
+  }
+  return 0;
+};
