@@ -16,7 +16,6 @@ import type { LoteOption } from "@/components/facturas/venta/NuevaVentaView";
 import NuevaCompraView from "@/components/facturas/compra/NuevaCompraView";
 import NuevaVentaView from "@/components/facturas/venta/NuevaVentaView";
 import { PageShell } from "@/components/app";
-import { useCampoContext } from "@/contexts/CampoContext";
 
 let keyCounter = 0;
 const newKey = () => String(++keyCounter);
@@ -24,7 +23,6 @@ const newKey = () => String(++keyCounter);
 export default function EditarFacturaContainer() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { campoActivo } = useCampoContext();
 
   const [tipoOperacion, setTipoOperacion] = useState<number | null>(null);
   const [initialHeader, setInitialHeader] = useState<FacturaHeaderData | null>(null);
@@ -282,9 +280,6 @@ export default function EditarFacturaContainer() {
     );
   }
 
-  const lotesDelCampoActivo = campoActivo ? lotes.filter((l) => l.Id_Campo === campoActivo.Id_Campo) : [];
-  const defaultLoteId = lotesDelCampoActivo.length === 1 ? lotesDelCampoActivo[0].Id_Lote : null;
-
   if (tipoOperacion === TIPO_OPERACION.COMPRA) {
     return (
       <NuevaCompraView
@@ -292,7 +287,6 @@ export default function EditarFacturaContainer() {
         categorias={categoriasGasto}
         categoriasHacienda={categoriasHacienda}
         lotes={lotes}
-        defaultLoteId={defaultLoteId}
         loadingData={false}
         initialHeader={initialHeader!}
         initialItems={initialItemsCompra!}
@@ -309,7 +303,6 @@ export default function EditarFacturaContainer() {
       entidades={entidades}
       categorias={categoriasHacienda}
       lotes={lotes}
-      defaultLoteId={defaultLoteId}
       loadingData={false}
       initialHeader={initialHeader!}
       initialItems={initialItemsHacienda!}

@@ -5,30 +5,35 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FormField, SelectBox } from "@/components/app";
+import type { Campo } from "@/contexts/CampoContext";
 import type { RodeoFila, LoteOption } from "./CargaInicialContainer";
 
 type Props = {
   filas: RodeoFila[];
+  campos: Campo[];
+  campoId: number | null;
+  onCampoChange: (campoId: number | null) => void;
   lotes: LoteOption[];
   loteId: number | null;
   onLoteChange: (loteId: number | null) => void;
   loading: boolean;
   error: string | null;
   yaConfigurado: boolean;
-  sinCampo: boolean;
   sinLotes: boolean;
   onGuardar: (cabezasMap: Record<number, number>) => Promise<void>;
 };
 
 export default function CargaInicialView({
   filas,
+  campos,
+  campoId,
+  onCampoChange,
   lotes,
   loteId,
   onLoteChange,
   loading,
   error,
   yaConfigurado,
-  sinCampo,
   sinLotes,
   onGuardar,
 }: Props) {
@@ -68,32 +73,7 @@ export default function CargaInicialView({
 
   const totalCabezas = Object.values(cabezas).reduce((a, b) => a + b, 0);
 
-  if (sinCampo) {
-    return (
-      <main className="p-8 max-w-2xl">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Carga inicial del rodeo</h1>
-        <p className="text-sm text-muted-foreground">
-          Seleccioná un campo en el selector del encabezado para editar su stock inicial.
-        </p>
-      </main>
-    );
-  }
-
-  if (sinLotes) {
-    return (
-      <main className="p-8 max-w-2xl">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Carga inicial del rodeo</h1>
-        <p className="text-sm text-muted-foreground">
-          Este campo todavía no tiene lotes.{" "}
-          <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
-            Creá uno
-          </Link>{" "}
-          para poder cargar su stock inicial.
-        </p>
-      </main>
-    );
-  }
-
+  const campoOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
   const loteOptions = lotes.map((l) => ({ value: l.Id_Lote, label: l.Nombre }));
 
   return (
@@ -102,18 +82,39 @@ export default function CargaInicialView({
         <h1 className="text-2xl font-bold text-foreground">Carga inicial del rodeo</h1>
       </div>
 
-      {lotes.length > 1 && (
-        <FormField label="Lote" className="mb-5 max-w-xs">
+      <div className="mb-5 flex flex-wrap gap-3">
+        <FormField label="Campo" className="w-56">
           <SelectBox
-            options={loteOptions}
-            value={loteId ? String(loteId) : null}
-            onValueChange={(v) => onLoteChange(Number(v))}
-            placeholder="— Seleccioná un lote —"
+            options={campoOptions}
+            value={campoId ? String(campoId) : null}
+            onValueChange={(v) => onCampoChange(Number(v))}
+            placeholder="— Seleccioná un campo —"
           />
         </FormField>
-      )}
 
-      {!loteId ? (
+        {campoId && lotes.length > 1 && (
+          <FormField label="Lote" className="w-56">
+            <SelectBox
+              options={loteOptions}
+              value={loteId ? String(loteId) : null}
+              onValueChange={(v) => onLoteChange(Number(v))}
+              placeholder="— Seleccioná un lote —"
+            />
+          </FormField>
+        )}
+      </div>
+
+      {!campoId ? (
+        <p className="text-sm text-muted-foreground">Elegí un campo para continuar.</p>
+      ) : sinLotes ? (
+        <p className="text-sm text-muted-foreground">
+          Este campo todavía no tiene lotes.{" "}
+          <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
+            Creá uno
+          </Link>{" "}
+          para poder cargar su stock inicial.
+        </p>
+      ) : !loteId ? (
         <p className="text-sm text-muted-foreground">Seleccioná un lote para editar su stock inicial.</p>
       ) : loading ? (
         <p className="text-sm text-muted-foreground">Cargando...</p>

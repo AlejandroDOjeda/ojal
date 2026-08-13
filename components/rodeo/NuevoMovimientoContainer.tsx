@@ -11,7 +11,8 @@ export type LoteOption = { Id_Lote: number; Nombre: string };
 
 export default function NuevoMovimientoContainer() {
   const router = useRouter();
-  const { campoActivo } = useCampoContext();
+  const { campos } = useCampoContext();
+  const [campoId, setCampoId] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<CategoriaOption[]>([]);
   const [lotes, setLotes] = useState<LoteOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,19 +32,21 @@ export default function NuevoMovimientoContainer() {
   }, []);
 
   const fetchLotes = useCallback(async () => {
-    if (!campoActivo) { setLotes([]); return; }
+    if (!campoId) { setLotes([]); return; }
     const { data } = await supabase
       .from("Lote")
       .select("Id_Lote, Nombre")
-      .eq("Id_Campo", campoActivo.Id_Campo)
+      .eq("Id_Campo", campoId)
       .order("Nombre");
     setLotes((data ?? []) as LoteOption[]);
-  }, [campoActivo]);
+  }, [campoId]);
+
+  useEffect(() => { fetchCategorias(); }, [fetchCategorias]);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchCategorias(), fetchLotes()]).then(() => setLoading(false));
-  }, [fetchCategorias, fetchLotes]);
+    fetchLotes().then(() => setLoading(false));
+  }, [fetchLotes]);
 
   const actualizarStock = async (idLote: number, idCategoriaHacienda: number, delta: number, nombreCategoria: string) => {
     const { data: rodeoRow, error: rodeoError } = await supabase
@@ -104,8 +107,6 @@ export default function NuevoMovimientoContainer() {
   };
 
   const handleGuardar = async (form: MovimientoFormData) => {
-    if (!campoActivo) throw new Error("Seleccioná un campo antes de registrar un movimiento.");
-
     if (form.tipoMovimiento === "traslado") {
       await handleGuardarTraslado(form);
       router.push("/rodeo");
@@ -155,10 +156,12 @@ export default function NuevoMovimientoContainer() {
   return (
     <NuevoMovimientoView
       categorias={categorias}
+      campos={campos}
+      campoId={campoId}
+      onCampoChange={setCampoId}
       lotes={lotes}
       loading={loading}
-      sinCampo={!campoActivo}
-      sinLotes={!!campoActivo && lotes.length === 0}
+      sinLotes={!!campoId && lotes.length === 0}
       onGuardar={handleGuardar}
     />
   );

@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import CampoSelector from "@/components/home/CampoSelector";
 
 export default function Header() {
   const router = useRouter();
@@ -37,7 +36,6 @@ export default function Header() {
           <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
             <Menu size={18} />
           </Button>
-          <CampoSelector />
         </div>
         <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle dark mode">

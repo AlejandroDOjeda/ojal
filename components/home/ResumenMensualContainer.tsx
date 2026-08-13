@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { signoComprobante } from "@/lib/opciones";
 import { toDateStr } from "@/lib/fecha";
-import { useCampoContext } from "@/contexts/CampoContext";
 import ResumenMensualCards from "./ResumenMensualCards";
 
 export type ResumenMensual = {
@@ -27,7 +26,6 @@ function nombreMes(mes: number, anio: number) {
 type Props = { mes: number; anio: number };
 
 export default function ResumenMensualContainer({ mes, anio }: Props) {
-  const { campoActivo } = useCampoContext();
   const [resumen, setResumen] = useState<ResumenMensual | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +34,6 @@ export default function ResumenMensualContainer({ mes, anio }: Props) {
     setLoading(true);
     const { inicio, fin } = rangoMes(mes, anio);
 
-    // Compras: no están ligadas a un campo. Ventas: sí, pero a nivel de
-    // ítem (ItemHacienda), no de Factura.
     const comprasQuery = supabase
       .from("Factura")
       .select("Total, Id_TipoComprobante")
@@ -45,14 +41,12 @@ export default function ResumenMensualContainer({ mes, anio }: Props) {
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
 
-    let ventasQuery = supabase
+    const ventasQuery = supabase
       .from("Factura")
-      .select("Total, Id_TipoComprobante, ItemHacienda!inner(Lote!inner(Id_Campo))")
+      .select("Total, Id_TipoComprobante")
       .eq("Id_TipoOperacion", 2)
       .gte("Fecha", inicio)
       .lte("Fecha", fin);
-
-    if (campoActivo) ventasQuery = ventasQuery.eq("ItemHacienda.Lote.Id_Campo", campoActivo.Id_Campo);
 
     const [{ data: compras, error: comprasError }, { data: ventas, error: ventasError }] =
       await Promise.all([comprasQuery, ventasQuery]);
@@ -72,7 +66,7 @@ export default function ResumenMensualContainer({ mes, anio }: Props) {
     }
 
     setLoading(false);
-  }, [campoActivo, mes, anio]);
+  }, [mes, anio]);
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 

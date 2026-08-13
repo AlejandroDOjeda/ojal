@@ -8,7 +8,6 @@ import { TIPO_OPERACION } from "@/lib/opciones";
 import { calcItemHaciendaSubtotal, calcTotalesHacienda, type FacturaHeaderData, type ItemHaciendaForm } from "@/components/facturas/types";
 import { existeFacturaDuplicada, esErrorDeFacturaDuplicada, MENSAJE_DUPLICADA_VENTA } from "@/components/facturas/duplicado";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useCampoContext } from "@/contexts/CampoContext";
 import NuevaVentaView, { type LoteOption } from "./NuevaVentaView";
 
 export type CategoriaHaciendaOption = { id: number; Nombre: string; TasaIva: number };
@@ -17,7 +16,6 @@ export type EntidadOption = { id: number; RazonSocial: string; CuitCuil: string 
 export default function NuevaVentaContainer() {
   const router = useRouter();
   const { userId } = useAuthContext();
-  const { campoActivo } = useCampoContext();
   const [entidades, setEntidades] = useState<EntidadOption[]>([]);
   const [categorias, setCategorias] = useState<CategoriaHaciendaOption[]>([]);
   const [lotes, setLotes] = useState<LoteOption[]>([]);
@@ -97,17 +95,11 @@ export default function NuevaVentaContainer() {
     router.push("/facturas?tab=ventas");
   };
 
-  // Solo autocompleta el ítem nuevo si el campo activo tiene un único lote
-  // — con más de uno no hay un default sin ambigüedad.
-  const lotesDelCampoActivo = campoActivo ? lotes.filter((l) => l.Id_Campo === campoActivo.Id_Campo) : [];
-  const defaultLoteId = lotesDelCampoActivo.length === 1 ? lotesDelCampoActivo[0].Id_Lote : null;
-
   return (
     <NuevaVentaView
       entidades={entidades}
       categorias={categorias}
       lotes={lotes}
-      defaultLoteId={defaultLoteId}
       loadingData={loadingData}
       onSave={handleSave}
     />

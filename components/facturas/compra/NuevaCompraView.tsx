@@ -32,7 +32,6 @@ type Props = {
   categorias: CategoriaGastoOption[];
   categoriasHacienda: CategoriaHaciendaOption[];
   lotes: LoteOption[];
-  defaultLoteId: number | null;
   loadingData: boolean;
   initialHeader?: FacturaHeaderData;
   initialItems?: ItemCompraForm[];
@@ -49,7 +48,7 @@ type ItemGastoErrors = Partial<Record<"Descripcion" | "Cantidad" | "PrecioUnitar
 type ItemHaciendaErrors = Partial<Record<"Id_Lote" | "Id_CategoriaHacienda" | "Cabezas" | "KgPromedio" | "PrecioPorKg" | "PrecioPorCabeza", true>>;
 type ItemCompraErrors = ItemGastoErrors & ItemHaciendaErrors;
 
-export default function NuevaCompraView({ entidades, categorias, categoriasHacienda, lotes, defaultLoteId, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
+export default function NuevaCompraView({ entidades, categorias, categoriasHacienda, lotes, loadingData, initialHeader, initialItems, title, cancelPath, facturaId, onSave }: Props) {
   const router = useRouter();
   const [header, setHeader] = useState<FacturaHeaderData>(initialHeader ?? EMPTY_HEADER);
   const [tipoCompra, setTipoCompra] = useState<TipoCompra>(() => initialItems?.[0]?._tipo ?? "gasto");
@@ -76,13 +75,13 @@ export default function NuevaCompraView({ entidades, categorias, categoriasHacie
     if (tipo === tipoCompra) return;
     markDirty();
     setTipoCompra(tipo);
-    setItems([tipo === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey(), defaultLoteId)]);
+    setItems([tipo === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey())]);
     setItemErrors({});
   };
 
   const addItem = () => {
     markDirty();
-    setItems((p) => [...p, tipoCompra === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey(), defaultLoteId)]);
+    setItems((p) => [...p, tipoCompra === "gasto" ? emptyItemCompraGasto(newKey()) : emptyItemCompraHacienda(newKey())]);
   };
   const removeItem = (key: string) => {
     markDirty();
