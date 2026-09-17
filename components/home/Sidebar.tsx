@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Building2, Beef,
-  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, Package, MapPin, Percent, ChartBar, Layers,
+  ReceiptText, ShoppingBag, ChevronDown, ChevronRight, MapPin, Percent, ChartBar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,9 +26,6 @@ import {
 } from "@/components/ui/sidebar";
 
 const configItems = [
-  { href: "/rodeo", label: "Rodeo", icon: Package, prefix: true },
-  { href: "/configuracion/campos", label: "Campos", icon: MapPin },
-  { href: "/configuracion/lotes", label: "Lotes", icon: Layers },
   { href: "/configuracion/entidades-legales", label: "Entidades Legales", icon: Building2 },
   { href: "/configuracion/categoria-hacienda", label: "Categorías Hacienda", icon: Beef },
   { href: "/configuracion/categoria-gasto", label: "Categorías Gasto", icon: ShoppingBag },
@@ -36,12 +33,11 @@ const configItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const inConfigGroup = pathname.startsWith("/configuracion") || pathname.startsWith("/rodeo");
+  const inConfigGroup = pathname.startsWith("/configuracion");
   const [configOpen, setConfigOpen] = useState(inConfigGroup);
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const isItemActive = (item: (typeof configItems)[number]) =>
-    item.prefix ? pathname.startsWith(item.href) : pathname === item.href;
+  const isItemActive = (item: (typeof configItems)[number]) => pathname === item.href;
 
   return (
     <Sidebar collapsible="icon">
@@ -68,6 +64,13 @@ export default function AppSidebar() {
                 <SidebarMenuButton tooltip="Inicio" isActive={pathname === "/home"} render={<Link href="/home" />}>
                   <Home />
                   <span>Inicio</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Campos" isActive={pathname.startsWith("/campos")} render={<Link href="/campos" />}>
+                  <MapPin />
+                  <span>Campos</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 

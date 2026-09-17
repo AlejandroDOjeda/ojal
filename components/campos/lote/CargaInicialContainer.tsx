@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { useCampoContext } from "@/contexts/CampoContext";
 import CargaInicialView from "./CargaInicialView";
 
 export type RodeoFila = {
@@ -12,43 +12,29 @@ export type RodeoFila = {
   Nombre: string;
 };
 
-export type LoteOption = { Id_Lote: number; Nombre: string };
-
 export default function CargaInicialContainer() {
-  const { campos } = useCampoContext();
-  const [campoId, setCampoId] = useState<number | null>(null);
-  const [lotes, setLotes] = useState<LoteOption[]>([]);
-  const [loteId, setLoteId] = useState<number | null>(null);
+  const { id, loteId } = useParams<{ id: string; loteId: string }>();
+  const campoId = parseInt(id, 10);
+  const idLote = parseInt(loteId, 10);
+
+  const [nombreLote, setNombreLote] = useState<string | null>(null);
   const [filas, setFilas] = useState<RodeoFila[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLotes = useCallback(async () => {
-    if (!campoId) {
-      setLotes([]); setLoteId(null); setLoading(false);
-      return;
-    }
-    const { data } = await supabase
-      .from("Lote")
-      .select("Id_Lote, Nombre")
-      .eq("Id_Campo", campoId)
-      .order("Nombre");
-    const lista = (data ?? []) as LoteOption[];
-    setLotes(lista);
-    setLoteId(lista.length === 1 ? lista[0].Id_Lote : null);
-  }, [campoId]);
+  const fetchLote = useCallback(async () => {
+    const { data } = await supabase.from("Lote").select("Nombre").eq("Id_Lote", idLote).single();
+    setNombreLote(data?.Nombre ?? null);
+  }, [idLote]);
 
   const fetchRodeo = useCallback(async () => {
-    if (!loteId) {
-      setFilas([]); setLoading(false); return;
-    }
     setLoading(true);
     setError(null);
 
     const { data, error } = await supabase
       .from("Rodeo")
       .select("Id_Rodeo, Id_CategoriaHacienda, Cabezas, CategoriaHacienda(Nombre)")
-      .eq("Id_Lote", loteId);
+      .eq("Id_Lote", idLote);
 
     if (error) {
       setError(error.message);
@@ -71,10 +57,9 @@ export default function CargaInicialContainer() {
     }
 
     setLoading(false);
-  }, [loteId]);
+  }, [idLote]);
 
-  useEffect(() => { fetchLotes(); }, [fetchLotes]);
-  useEffect(() => { fetchRodeo(); }, [fetchRodeo]);
+  useEffect(() => { fetchLote(); fetchRodeo(); }, [fetchLote, fetchRodeo]);
 
   const yaConfigurado = filas.some((f) => f.Cabezas > 0);
 
@@ -95,17 +80,13 @@ export default function CargaInicialContainer() {
 
   return (
     <CargaInicialView
-      filas={filas}
-      campos={campos}
       campoId={campoId}
-      onCampoChange={setCampoId}
-      lotes={lotes}
-      loteId={loteId}
-      onLoteChange={setLoteId}
+      loteId={idLote}
+      nombreLote={nombreLote}
+      filas={filas}
       loading={loading}
       error={error}
       yaConfigurado={yaConfigurado}
-      sinLotes={!!campoId && lotes.length === 0}
       onGuardar={handleGuardar}
     />
   );

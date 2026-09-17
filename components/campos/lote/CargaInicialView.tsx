@@ -2,41 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { FormField, SelectBox } from "@/components/app";
-import type { Campo } from "@/contexts/CampoContext";
-import type { RodeoFila, LoteOption } from "./CargaInicialContainer";
+import { Button } from "@/components/ui/button";
+import { PageShell } from "@/components/app";
+import type { RodeoFila } from "./CargaInicialContainer";
 
 type Props = {
+  campoId: number;
+  loteId: number;
+  nombreLote: string | null;
   filas: RodeoFila[];
-  campos: Campo[];
-  campoId: number | null;
-  onCampoChange: (campoId: number | null) => void;
-  lotes: LoteOption[];
-  loteId: number | null;
-  onLoteChange: (loteId: number | null) => void;
   loading: boolean;
   error: string | null;
   yaConfigurado: boolean;
-  sinLotes: boolean;
   onGuardar: (cabezasMap: Record<number, number>) => Promise<void>;
 };
 
-export default function CargaInicialView({
-  filas,
-  campos,
-  campoId,
-  onCampoChange,
-  lotes,
-  loteId,
-  onLoteChange,
-  loading,
-  error,
-  yaConfigurado,
-  sinLotes,
-  onGuardar,
-}: Props) {
+export default function CargaInicialView({ campoId, loteId, nombreLote, filas, loading, error, yaConfigurado, onGuardar }: Props) {
   const [cabezas, setCabezas] = useState<Record<number, number>>({});
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
@@ -73,50 +56,18 @@ export default function CargaInicialView({
 
   const totalCabezas = Object.values(cabezas).reduce((a, b) => a + b, 0);
 
-  const campoOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
-  const loteOptions = lotes.map((l) => ({ value: l.Id_Lote, label: l.Nombre }));
+  const backLink = (
+    <Link href={`/campos/${campoId}/lotes/${loteId}`}>
+      <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground -ml-2">
+        <ArrowLeft size={14} />
+        Volver a {nombreLote ?? "lote"}
+      </Button>
+    </Link>
+  );
 
   return (
-    <main className="p-8 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Carga inicial del rodeo</h1>
-      </div>
-
-      <div className="mb-5 flex flex-wrap gap-3">
-        <FormField label="Campo" className="w-56">
-          <SelectBox
-            options={campoOptions}
-            value={campoId ? String(campoId) : null}
-            onValueChange={(v) => onCampoChange(Number(v))}
-            placeholder="— Seleccioná un campo —"
-          />
-        </FormField>
-
-        {campoId && lotes.length > 1 && (
-          <FormField label="Lote" className="w-56">
-            <SelectBox
-              options={loteOptions}
-              value={loteId ? String(loteId) : null}
-              onValueChange={(v) => onLoteChange(Number(v))}
-              placeholder="— Seleccioná un lote —"
-            />
-          </FormField>
-        )}
-      </div>
-
-      {!campoId ? (
-        <p className="text-sm text-muted-foreground">Elegí un campo para continuar.</p>
-      ) : sinLotes ? (
-        <p className="text-sm text-muted-foreground">
-          Este campo todavía no tiene lotes.{" "}
-          <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
-            Creá uno
-          </Link>{" "}
-          para poder cargar su stock inicial.
-        </p>
-      ) : !loteId ? (
-        <p className="text-sm text-muted-foreground">Seleccioná un lote para editar su stock inicial.</p>
-      ) : loading ? (
+    <PageShell title="Carga inicial del rodeo" back={backLink} className="max-w-2xl">
+      {loading ? (
         <p className="text-sm text-muted-foreground">Cargando...</p>
       ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
@@ -180,17 +131,13 @@ export default function CargaInicialView({
             )}
 
             <div className="mt-5">
-              <button
-                type="submit"
-                disabled={guardando}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              >
+              <Button type="submit" disabled={guardando}>
                 {guardando ? "Guardando…" : "Guardar rodeo"}
-              </button>
+              </Button>
             </div>
           </form>
         </>
       )}
-    </main>
+    </PageShell>
   );
 }

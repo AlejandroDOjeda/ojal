@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { useCampoContext } from "@/contexts/CampoContext";
 import NuevoMovimientoView, { type MovimientoFormData } from "./NuevoMovimientoView";
 
 export type CategoriaOption = { Id_CategoriaHacienda: number; Nombre: string };
@@ -11,10 +10,13 @@ export type LoteOption = { Id_Lote: number; Nombre: string };
 
 export default function NuevoMovimientoContainer() {
   const router = useRouter();
-  const { campos } = useCampoContext();
-  const [campoId, setCampoId] = useState<number | null>(null);
+  const { id, loteId } = useParams<{ id: string; loteId: string }>();
+  const campoId = parseInt(id, 10);
+  const idLote = parseInt(loteId, 10);
+
+  const [nombreLote, setNombreLote] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<CategoriaOption[]>([]);
-  const [lotes, setLotes] = useState<LoteOption[]>([]);
+  const [otrosLotes, setOtrosLotes] = useState<LoteOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCategorias = useCallback(async () => {
@@ -31,28 +33,33 @@ export default function NuevoMovimientoContainer() {
     );
   }, []);
 
-  const fetchLotes = useCallback(async () => {
-    if (!campoId) { setLotes([]); return; }
+  const fetchLote = useCallback(async () => {
+    const { data } = await supabase.from("Lote").select("Nombre").eq("Id_Lote", idLote).single();
+    setNombreLote(data?.Nombre ?? null);
+  }, [idLote]);
+
+  const fetchOtrosLotes = useCallback(async () => {
     const { data } = await supabase
       .from("Lote")
       .select("Id_Lote, Nombre")
       .eq("Id_Campo", campoId)
+      .neq("Id_Lote", idLote)
       .order("Nombre");
-    setLotes((data ?? []) as LoteOption[]);
-  }, [campoId]);
+    setOtrosLotes((data ?? []) as LoteOption[]);
+  }, [campoId, idLote]);
 
-  useEffect(() => { fetchCategorias(); }, [fetchCategorias]);
+  useEffect(() => { fetchCategorias(); fetchLote(); }, [fetchCategorias, fetchLote]);
 
   useEffect(() => {
     setLoading(true);
-    fetchLotes().then(() => setLoading(false));
-  }, [fetchLotes]);
+    fetchOtrosLotes().then(() => setLoading(false));
+  }, [fetchOtrosLotes]);
 
-  const actualizarStock = async (idLote: number, idCategoriaHacienda: number, delta: number, nombreCategoria: string) => {
+  const actualizarStock = async (idLoteObjetivo: number, idCategoriaHacienda: number, delta: number, nombreCategoria: string) => {
     const { data: rodeoRow, error: rodeoError } = await supabase
       .from("Rodeo")
       .select("Id_Rodeo, Cabezas")
-      .eq("Id_Lote", idLote)
+      .eq("Id_Lote", idLoteObjetivo)
       .eq("Id_CategoriaHacienda", idCategoriaHacienda)
       .single();
 
@@ -73,17 +80,16 @@ export default function NuevoMovimientoContainer() {
   };
 
   const handleGuardarTraslado = async (form: MovimientoFormData) => {
-    if (!form.idLoteOrigen || !form.idLoteDestino) throw new Error("Seleccioná el lote origen y el lote destino.");
-    if (form.idLoteOrigen === form.idLoteDestino) throw new Error("El lote origen y el lote destino deben ser distintos.");
+    if (!form.idLoteDestino) throw new Error("Seleccioná el lote destino.");
 
     // Decrementar origen primero (protegido por el check Cabezas >= 0),
     // recién después incrementar destino.
-    await actualizarStock(form.idLoteOrigen, form.idCategoriaHacienda, -form.cabezas, form.nombreCategoria);
+    await actualizarStock(idLote, form.idCategoriaHacienda, -form.cabezas, form.nombreCategoria);
     await actualizarStock(form.idLoteDestino, form.idCategoriaHacienda, form.cabezas, form.nombreCategoria);
 
     const { error: movError } = await supabase.from("MovimientoRodeo").insert([
       {
-        Id_Lote: form.idLoteOrigen,
+        Id_Lote: idLote,
         TipoMovimiento: "traslado",
         Sentido: "decremento",
         Id_CategoriaHacienda: form.idCategoriaHacienda,
@@ -100,7 +106,7 @@ export default function NuevoMovimientoContainer() {
         Cabezas: form.cabezas,
         Fecha: form.fecha,
         Observaciones: form.observaciones || null,
-        Id_LoteVinculado: form.idLoteOrigen,
+        Id_LoteVinculado: idLote,
       },
     ]);
     if (movError) throw new Error(movError.message);
@@ -109,11 +115,9 @@ export default function NuevoMovimientoContainer() {
   const handleGuardar = async (form: MovimientoFormData) => {
     if (form.tipoMovimiento === "traslado") {
       await handleGuardarTraslado(form);
-      router.push("/rodeo");
+      router.push(`/campos/${campoId}/lotes/${idLote}`);
       return;
     }
-
-    if (!form.idLote) throw new Error("Seleccioná un lote.");
 
     const esResta =
       form.tipoMovimiento === "muerte" ||
@@ -124,7 +128,7 @@ export default function NuevoMovimientoContainer() {
     const { data: rodeoRow, error: rodeoError } = await supabase
       .from("Rodeo")
       .select("Id_Rodeo, Cabezas")
-      .eq("Id_Lote", form.idLote)
+      .eq("Id_Lote", idLote)
       .eq("Id_CategoriaHacienda", form.idCategoriaHacienda)
       .single();
     if (rodeoError || !rodeoRow) throw new Error("No se encontró la categoría en el rodeo del lote.");
@@ -134,7 +138,7 @@ export default function NuevoMovimientoContainer() {
     }
 
     const { error: movError } = await supabase.from("MovimientoRodeo").insert({
-      Id_Lote: form.idLote,
+      Id_Lote: idLote,
       TipoMovimiento: form.tipoMovimiento,
       Id_CategoriaHacienda: form.idCategoriaHacienda,
       Cabezas: form.cabezas,
@@ -150,18 +154,17 @@ export default function NuevoMovimientoContainer() {
       .eq("Id_Rodeo", rodeoRow.Id_Rodeo);
     if (updateError) throw new Error(updateError.message);
 
-    router.push("/rodeo");
+    router.push(`/campos/${campoId}/lotes/${idLote}`);
   };
 
   return (
     <NuevoMovimientoView
-      categorias={categorias}
-      campos={campos}
       campoId={campoId}
-      onCampoChange={setCampoId}
-      lotes={lotes}
+      loteId={idLote}
+      nombreLote={nombreLote}
+      categorias={categorias}
+      otrosLotes={otrosLotes}
       loading={loading}
-      sinLotes={!!campoId && lotes.length === 0}
       onGuardar={handleGuardar}
     />
   );
