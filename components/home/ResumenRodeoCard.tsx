@@ -38,10 +38,10 @@ export default function ResumenRodeoCard({ resumen, loading, error }: Props) {
           )}
         </div>
         <Link
-          href="/rodeo"
+          href="/campos"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          Ver rodeo
+          Ver campos
           <ArrowRight size={12} />
         </Link>
       </div>
@@ -57,7 +57,7 @@ export default function ResumenRodeoCard({ resumen, loading, error }: Props) {
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Sin stock inicial cargado.</p>
           <Link
-            href="/rodeo/carga-inicial"
+            href="/campos"
             className="text-xs font-medium text-foreground underline underline-offset-2 hover:opacity-70 transition-opacity"
           >
             Configurar ahora

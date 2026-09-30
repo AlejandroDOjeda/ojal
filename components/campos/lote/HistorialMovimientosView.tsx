@@ -72,18 +72,6 @@ export default function HistorialMovimientosView({
       cell: ({ row }) => <span className="font-medium">{row.original.CategoriaHacienda?.Nombre ?? "—"}</span>,
     },
     {
-      id: "lote",
-      header: "Lote",
-      accessorFn: (row) => row.Lote?.Nombre ?? "",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Nombre ?? "—"}</span>,
-    },
-    {
-      id: "campo",
-      header: "Campo",
-      accessorFn: (row) => row.Lote?.Campo?.Nombre ?? "",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.Lote?.Campo?.Nombre ?? "—"}</span>,
-    },
-    {
       id: "cabezas",
       header: "Cabezas",
       meta: { align: "right" },
@@ -129,7 +117,7 @@ export default function HistorialMovimientosView({
   ], []);
 
   const buildExportData = () => {
-    const headers = ["Fecha", "Tipo", "Categoría", "Lote", "Campo", "Cabezas", "Detalle"];
+    const headers = ["Fecha", "Tipo", "Categoría", "Cabezas", "Detalle"];
     const rows = movimientos.map((m) => {
       const signo = signoMovimientoRodeo(m.TipoMovimiento, m.Sentido);
       const detalle = detalleTraslado(m) ?? (m.Id_Factura ? `Comprobante #${m.Id_Factura}` : (m.Observaciones ?? ""));
@@ -137,8 +125,6 @@ export default function HistorialMovimientosView({
         formatFecha(m.Fecha),
         TIPO_MOVIMIENTO_LABELS[m.TipoMovimiento] ?? m.TipoMovimiento,
         m.CategoriaHacienda?.Nombre ?? "",
-        m.Lote?.Nombre ?? "",
-        m.Lote?.Campo?.Nombre ?? "",
         signo * m.Cabezas,
         detalle,
       ];
@@ -206,7 +192,7 @@ export default function HistorialMovimientosView({
         data={movimientos}
         columns={columns}
         loading={loading}
-        searchPlaceholder="Buscar por categoría, lote, campo..."
+        searchPlaceholder="Buscar por categoría..."
       />
     </div>
   );

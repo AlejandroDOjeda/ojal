@@ -32,7 +32,9 @@ function primerDiaDelMes() {
 const MOVIMIENTO_SELECT =
   "Id_MovimientoRodeo, TipoMovimiento, Cabezas, Fecha, Id_Factura, Observaciones, Sentido, Id_Lote, CategoriaHacienda(Nombre), Lote!MovimientoRodeo_Id_Lote_fkey(Nombre, Campo(Nombre)), LoteVinculado:Lote!MovimientoRodeo_Id_LoteVinculado_fkey(Nombre)";
 
-export default function HistorialMovimientosContainer() {
+type Props = { idLote: number };
+
+export default function HistorialMovimientosContainer({ idLote }: Props) {
   const [fechaDesde, setFechaDesde] = useState(primerDiaDelMes());
   const [fechaHasta, setFechaHasta] = useState(hoyStr());
   const [movimientos, setMovimientos] = useState<MovimientoFila[]>([]);
@@ -46,6 +48,7 @@ export default function HistorialMovimientosContainer() {
     const { data, error } = await supabase
       .from("MovimientoRodeo")
       .select(MOVIMIENTO_SELECT)
+      .eq("Id_Lote", idLote)
       .gte("Fecha", fechaDesde)
       .lte("Fecha", fechaHasta)
       .order("Fecha", { ascending: false })
@@ -57,7 +60,7 @@ export default function HistorialMovimientosContainer() {
       setMovimientos((data ?? []) as MovimientoFila[]);
     }
     setLoading(false);
-  }, [fechaDesde, fechaHasta]);
+  }, [idLote, fechaDesde, fechaHasta]);
 
   useEffect(() => {
     fetchMovimientos();

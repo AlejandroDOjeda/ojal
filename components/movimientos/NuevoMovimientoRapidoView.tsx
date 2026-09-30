@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PageShell, SectionCard, FormField, SelectBox } from "@/components/app";
-import type { Campo } from "@/contexts/CampoContext";
-import type { CategoriaOption, LoteOption } from "./NuevoMovimientoContainer";
+import { PageShell, SectionCard, FormField, SelectBox, Combobox } from "@/components/app";
+import type { CategoriaOption, LoteOption } from "./NuevoMovimientoRapidoContainer";
 
 export type MovimientoFormData = {
+  idLote: number;
   tipoMovimiento: "nacimiento" | "muerte" | "ajuste_manual" | "traslado";
   sentidoAjuste: "incremento" | "decremento";
   idCategoriaHacienda: number;
@@ -18,8 +16,6 @@ export type MovimientoFormData = {
   cabezas: number;
   fecha: string;
   observaciones: string;
-  idLote: number | null;
-  idLoteOrigen: number | null;
   idLoteDestino: number | null;
 };
 
@@ -27,7 +23,7 @@ const TIPO_OPTIONS = [
   { value: "nacimiento", label: "Nacimiento / Parición" },
   { value: "muerte",     label: "Muerte / Pérdida" },
   { value: "ajuste_manual", label: "Ajuste manual" },
-  { value: "traslado",   label: "Traslado entre lotes" },
+  { value: "traslado",   label: "Traslado a otro lote" },
 ] as const;
 
 const SENTIDO_OPTIONS = [
@@ -37,23 +33,18 @@ const SENTIDO_OPTIONS = [
 
 type Props = {
   categorias: CategoriaOption[];
-  campos: Campo[];
-  campoId: number | null;
-  onCampoChange: (campoId: number | null) => void;
   lotes: LoteOption[];
   loading: boolean;
-  sinLotes: boolean;
   onGuardar: (form: MovimientoFormData) => Promise<void>;
 };
 
 const hoy = () => new Date().toISOString().split("T")[0];
 
-export default function NuevoMovimientoView({ categorias, campos, campoId, onCampoChange, lotes, loading, sinLotes, onGuardar }: Props) {
+export default function NuevoMovimientoRapidoView({ categorias, lotes, loading, onGuardar }: Props) {
+  const [idLote, setIdLote] = useState<string>("");
   const [tipo, setTipo] = useState<MovimientoFormData["tipoMovimiento"] | "">("");
   const [sentido, setSentido] = useState<MovimientoFormData["sentidoAjuste"]>("incremento");
   const [idCategoria, setIdCategoria] = useState<string>("");
-  const [idLote, setIdLote] = useState<string>("");
-  const [idLoteOrigen, setIdLoteOrigen] = useState<string>("");
   const [idLoteDestino, setIdLoteDestino] = useState<string>("");
   const [cabezas, setCabezas] = useState<string>("");
   const [fecha, setFecha] = useState<string>(hoy());
@@ -61,29 +52,27 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
   const [guardando, setGuardando] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const loteSeleccionado = lotes.find((l) => l.Id_Lote === Number(idLote));
   const esTraslado = tipo === "traslado";
+  const otrosLotes = loteSeleccionado
+    ? lotes.filter((l) => l.Id_Campo === loteSeleccionado.Id_Campo && l.Id_Lote !== loteSeleccionado.Id_Lote)
+    : [];
 
-  // Al cambiar de campo, los lotes elegidos antes ya no son válidos.
-  useEffect(() => {
-    setIdLote(""); setIdLoteOrigen(""); setIdLoteDestino("");
-  }, [campoId]);
+  const handleLoteChange = (v: string) => {
+    setIdLote(v);
+    setTipo(""); setIdLoteDestino("");
+    setErrors((p) => ({ ...p, lote: "" }));
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
+    if (!idLote) e.lote = "Seleccioná un lote.";
     if (!tipo) e.tipo = "Seleccioná el tipo de movimiento.";
     if (!idCategoria) e.categoria = "Seleccioná una categoría.";
     const cab = parseInt(cabezas, 10);
     if (!cabezas || isNaN(cab) || cab <= 0) e.cabezas = "Ingresá una cantidad mayor a 0.";
     if (!fecha) e.fecha = "Ingresá una fecha.";
-    if (esTraslado) {
-      if (!idLoteOrigen) e.loteOrigen = "Seleccioná el lote origen.";
-      if (!idLoteDestino) e.loteDestino = "Seleccioná el lote destino.";
-      if (idLoteOrigen && idLoteDestino && idLoteOrigen === idLoteDestino) {
-        e.loteDestino = "Tiene que ser distinto del lote origen.";
-      }
-    } else if (tipo) {
-      if (!idLote) e.lote = "Seleccioná un lote.";
-    }
+    if (esTraslado && !idLoteDestino) e.loteDestino = "Seleccioná el lote destino.";
     return e;
   };
 
@@ -96,6 +85,7 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
     try {
       const cat = categorias.find((c) => c.Id_CategoriaHacienda === Number(idCategoria));
       await onGuardar({
+        idLote: Number(idLote),
         tipoMovimiento: tipo as MovimientoFormData["tipoMovimiento"],
         sentidoAjuste: sentido,
         idCategoriaHacienda: Number(idCategoria),
@@ -103,58 +93,37 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
         cabezas: parseInt(cabezas, 10),
         fecha,
         observaciones,
-        idLote: idLote ? Number(idLote) : null,
-        idLoteOrigen: idLoteOrigen ? Number(idLoteOrigen) : null,
         idLoteDestino: idLoteDestino ? Number(idLoteDestino) : null,
       });
       toast.success("Movimiento registrado.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al guardar.");
-    } finally {
       setGuardando(false);
     }
   };
 
-  const campoOptions = campos.map((c) => ({ value: c.Id_Campo, label: c.Nombre }));
-  const categoriaOptions = categorias.map((c) => ({
-    value: c.Id_CategoriaHacienda,
-    label: c.Nombre,
-  }));
-  const loteOptions = lotes.map((l) => ({ value: l.Id_Lote, label: l.Nombre }));
-  const tipoOptions = TIPO_OPTIONS.filter((o) => o.value !== "traslado" || lotes.length >= 2);
-
-  const volver = (
-    <Link href="/rodeo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-      <ArrowLeft size={14} />
-      Volver al rodeo
-    </Link>
-  );
+  const loteOptions = lotes.map((l) => ({ value: l.Id_Lote, label: `${l.CampoNombre} — ${l.Nombre}` }));
+  const categoriaOptions = categorias.map((c) => ({ value: c.Id_CategoriaHacienda, label: c.Nombre }));
+  const loteDestinoOptions = otrosLotes.map((l) => ({ value: l.Id_Lote, label: l.Nombre }));
+  const tipoOptions = TIPO_OPTIONS.filter((o) => o.value !== "traslado" || otrosLotes.length >= 1);
 
   return (
-    <PageShell title="Nuevo movimiento" back={volver}>
+    <PageShell title="Nuevo movimiento">
       <div className="max-w-lg space-y-5">
         <SectionCard>
-          <FormField label="Campo" required>
-            <SelectBox
-              options={campoOptions}
-              value={campoId ? String(campoId) : null}
-              onValueChange={(v) => onCampoChange(Number(v))}
-              placeholder="— Seleccioná un campo —"
+          <FormField label="Lote" required error={errors.lote}>
+            <Combobox
+              options={loteOptions}
+              value={idLote || null}
+              onValueChange={handleLoteChange}
+              placeholder={loading ? "Cargando…" : "— Seleccioná un lote —"}
+              disabled={loading}
+              error={!!errors.lote}
             />
           </FormField>
         </SectionCard>
 
-        {!campoId ? (
-          <p className="text-sm text-muted-foreground">Elegí un campo para continuar.</p>
-        ) : sinLotes ? (
-          <p className="text-sm text-muted-foreground">
-            Este campo todavía no tiene lotes.{" "}
-            <Link href="/configuracion/lotes" className="font-medium text-foreground underline underline-offset-2">
-              Creá uno
-            </Link>{" "}
-            para poder registrar movimientos.
-          </p>
-        ) : (
+        {idLote && (
           <form onSubmit={handleSubmit}>
             <SectionCard className="space-y-5">
 
@@ -164,8 +133,7 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
                   options={tipoOptions}
                   value={tipo || null}
                   onValueChange={(v) => { setTipo(v as MovimientoFormData["tipoMovimiento"]); setErrors((p) => ({ ...p, tipo: "" })); }}
-                  placeholder={loading ? "Cargando…" : "— Seleccioná —"}
-                  disabled={loading}
+                  placeholder="— Seleccioná —"
                   error={!!errors.tipo}
                 />
               </FormField>
@@ -181,41 +149,17 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
                 </FormField>
               )}
 
-              {/* Lote (nacimiento/muerte/ajuste_manual) */}
-              {tipo && !esTraslado && (
-                <FormField label="Lote" required error={errors.lote}>
+              {/* Lote destino (traslado) */}
+              {esTraslado && (
+                <FormField label="Lote destino" required error={errors.loteDestino}>
                   <SelectBox
-                    options={loteOptions}
-                    value={idLote || null}
-                    onValueChange={(v) => { setIdLote(v); setErrors((p) => ({ ...p, lote: "" })); }}
+                    options={loteDestinoOptions}
+                    value={idLoteDestino || null}
+                    onValueChange={(v) => { setIdLoteDestino(v); setErrors((p) => ({ ...p, loteDestino: "" })); }}
                     placeholder="— Seleccioná —"
-                    error={!!errors.lote}
+                    error={!!errors.loteDestino}
                   />
                 </FormField>
-              )}
-
-              {/* Lote origen/destino (traslado) */}
-              {esTraslado && (
-                <>
-                  <FormField label="Lote origen" required error={errors.loteOrigen}>
-                    <SelectBox
-                      options={loteOptions}
-                      value={idLoteOrigen || null}
-                      onValueChange={(v) => { setIdLoteOrigen(v); setErrors((p) => ({ ...p, loteOrigen: "" })); }}
-                      placeholder="— Seleccioná —"
-                      error={!!errors.loteOrigen}
-                    />
-                  </FormField>
-                  <FormField label="Lote destino" required error={errors.loteDestino}>
-                    <SelectBox
-                      options={loteOptions}
-                      value={idLoteDestino || null}
-                      onValueChange={(v) => { setIdLoteDestino(v); setErrors((p) => ({ ...p, loteDestino: "" })); }}
-                      placeholder="— Seleccioná —"
-                      error={!!errors.loteDestino}
-                    />
-                  </FormField>
-                </>
               )}
 
               {/* Categoría */}
@@ -224,8 +168,7 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
                   options={categoriaOptions}
                   value={idCategoria || null}
                   onValueChange={(v) => { setIdCategoria(v); setErrors((p) => ({ ...p, categoria: "" })); }}
-                  placeholder={loading ? "Cargando…" : "— Seleccioná —"}
-                  disabled={loading}
+                  placeholder="— Seleccioná —"
                   error={!!errors.categoria}
                 />
               </FormField>
@@ -264,16 +207,10 @@ export default function NuevoMovimientoView({ categorias, campos, campoId, onCam
               </FormField>
             </SectionCard>
 
-            <div className="mt-5 flex items-center gap-3">
+            <div className="mt-5">
               <Button type="submit" disabled={guardando}>
                 {guardando ? "Guardando…" : "Registrar movimiento"}
               </Button>
-              <Link
-                href="/rodeo"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancelar
-              </Link>
             </div>
           </form>
         )}
