@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/app";
@@ -20,9 +22,9 @@ type Props = {
 };
 
 export default function CargaInicialView({ campoId, loteId, nombreLote, filas, loading, error, yaConfigurado, onGuardar }: Props) {
+  const router = useRouter();
   const [cabezas, setCabezas] = useState<Record<number, number>>({});
   const [guardando, setGuardando] = useState(false);
-  const [guardado, setGuardado] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,7 +36,6 @@ export default function CargaInicialView({ campoId, loteId, nombreLote, filas, l
   }, [filas]);
 
   const handleChange = (id: number, value: string) => {
-    setGuardado(false);
     const num = parseInt(value, 10);
     setCabezas((prev) => ({ ...prev, [id]: isNaN(num) || num < 0 ? 0 : num }));
   };
@@ -43,13 +44,12 @@ export default function CargaInicialView({ campoId, loteId, nombreLote, filas, l
     e.preventDefault();
     setGuardando(true);
     setErrorGuardar(null);
-    setGuardado(false);
     try {
       await onGuardar(cabezas);
-      setGuardado(true);
+      toast.success("Rodeo guardado correctamente.");
+      router.push(`/campos/${campoId}/lotes/${loteId}`);
     } catch (err) {
       setErrorGuardar(err instanceof Error ? err.message : "Error al guardar");
-    } finally {
       setGuardando(false);
     }
   };
@@ -77,13 +77,6 @@ export default function CargaInicialView({ campoId, loteId, nombreLote, filas, l
             <div className="mb-5 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300">
               <AlertTriangle size={15} className="mt-0.5 shrink-0" />
               <p>El rodeo de este lote ya fue configurado. Solo modificá si necesitás corregir un error, antes de cargar facturas.</p>
-            </div>
-          )}
-
-          {guardado && (
-            <div className="mb-5 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300">
-              <CheckCircle2 size={15} className="shrink-0" />
-              <p>Rodeo guardado correctamente.</p>
             </div>
           )}
 
